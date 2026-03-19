@@ -4,10 +4,12 @@ import 'dart:typed_data';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 
+import 'l10n/app_localizations.dart';
 import 'watermark_processor.dart';
 
 class _ProcessedFile {
@@ -30,7 +32,14 @@ class WatermarkApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Watermark App',
+      onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF126A5A)),
         useMaterial3: true,
@@ -79,11 +88,12 @@ class _WatermarkPageState extends State<WatermarkPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Watermark App'),
+        title: Text(l10n.appTitle),
         centerTitle: false,
       ),
       body: SafeArea(
@@ -120,6 +130,8 @@ class _WatermarkPageState extends State<WatermarkPage> {
                       controls,
                       const SizedBox(height: 16),
                       SizedBox(height: 420, child: preview),
+                      const SizedBox(height: 16),
+                      _buildAuthorFooter(theme),
                     ],
                   ),
                 );
@@ -133,6 +145,8 @@ class _WatermarkPageState extends State<WatermarkPage> {
   }
 
   Widget _buildControlsPanel(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -151,7 +165,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
         if (_processedFiles.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
-            'Ready to save ${_processedFiles.length} file${_processedFiles.length == 1 ? '' : 's'}',
+            l10n.readyToSaveFiles(_processedFiles.length),
             style: theme.textTheme.bodySmall,
           ),
         ],
@@ -164,6 +178,8 @@ class _WatermarkPageState extends State<WatermarkPage> {
   }
 
   Widget _buildPreviewPanel(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -184,8 +200,8 @@ class _WatermarkPageState extends State<WatermarkPage> {
                   const SizedBox(height: 12),
                   Text(
                     _selectedPaths.isEmpty
-                        ? 'Enter watermark text and pick one or more image or PDF files'
-                        : 'Files selected. Click Apply Watermark to generate previews',
+                        ? l10n.emptyPreviewHint
+                        : l10n.selectedPreviewHint,
                     style: theme.textTheme.titleMedium,
                     textAlign: TextAlign.center,
                   ),
@@ -216,7 +232,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
                         if (previewBytes == null) {
                           return Center(
                             child: Text(
-                              'Preview unavailable',
+                              l10n.previewUnavailable,
                               style: theme.textTheme.bodyMedium,
                             ),
                           );
@@ -230,7 +246,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
                 if (_processedFiles.length > 1) ...[
                   const SizedBox(height: 12),
                   Text(
-                    'Swipe left for next, right for previous (${_previewIndex + 1}/${_processedFiles.length})',
+                    l10n.swipeHint(_previewIndex + 1, _processedFiles.length),
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodySmall,
                   ),
@@ -241,7 +257,8 @@ class _WatermarkPageState extends State<WatermarkPage> {
   }
 
   Widget _buildLoadingOverlay(ThemeData theme) {
-    final message = _statusMessage.isEmpty ? 'Processing file...' : _statusMessage;
+    final l10n = AppLocalizations.of(context)!;
+    final message = _statusMessage.isEmpty ? l10n.processingFile : _statusMessage;
 
     return Positioned.fill(
       child: ColoredBox(
@@ -271,7 +288,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
                   child: CircularProgressIndicator(strokeWidth: 3),
                 ),
                 const SizedBox(height: 16),
-                Text('Applying watermark...', style: theme.textTheme.titleMedium),
+                Text(l10n.applyingWatermark, style: theme.textTheme.titleMedium),
                 const SizedBox(height: 8),
                 Text(
                   message,
@@ -286,7 +303,18 @@ class _WatermarkPageState extends State<WatermarkPage> {
     );
   }
 
+  Widget _buildAuthorFooter(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Text(
+      l10n.authorFooter,
+      textAlign: TextAlign.center,
+      style: theme.textTheme.bodySmall,
+    );
+  }
+
   Widget _buildPrimaryActionCard() {
+    final l10n = AppLocalizations.of(context)!;
     final selectedCount = _selectedPaths.length;
 
     return Card(
@@ -298,7 +326,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
             FilledButton.icon(
               onPressed: _processing ? null : _pickFile,
               icon: const Icon(Icons.file_open),
-              label: const Text('Pick Image or PDF Files'),
+              label: Text(l10n.pickFiles),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 18),
               ),
@@ -307,8 +335,8 @@ class _WatermarkPageState extends State<WatermarkPage> {
               const SizedBox(height: 10),
               Text(
                 selectedCount == 1
-                    ? 'Selected file: ${File(_selectedPaths.first).uri.pathSegments.last}'
-                    : 'Selected files: $selectedCount',
+                    ? l10n.selectedFile(File(_selectedPaths.first).uri.pathSegments.last)
+                    : l10n.selectedFiles(selectedCount),
               ),
             ],
           ],
@@ -318,6 +346,8 @@ class _WatermarkPageState extends State<WatermarkPage> {
   }
 
   Widget _buildActionButtons() {
+    final l10n = AppLocalizations.of(context)!;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -328,7 +358,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
             FilledButton.icon(
               onPressed: _processing || _selectedPaths.isEmpty ? null : _applyWatermark,
               icon: const Icon(Icons.auto_fix_high),
-              label: const Text('Apply Watermark'),
+              label: Text(l10n.applyWatermark),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               ),
@@ -336,7 +366,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
             FilledButton.icon(
               onPressed: _processing || _processedFiles.isEmpty ? null : _saveCurrent,
               icon: const Icon(Icons.save_alt),
-              label: const Text('Save All'),
+              label: Text(l10n.saveAll),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               ),
@@ -344,7 +374,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
             FilledButton.icon(
               onPressed: _processing || _processedFiles.isEmpty ? null : _shareCurrent,
               icon: const Icon(Icons.share_outlined),
-              label: const Text('Share All'),
+              label: Text(l10n.shareAll),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               ),
@@ -352,7 +382,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
             OutlinedButton.icon(
               onPressed: _processing ? null : _reset,
               icon: const Icon(Icons.refresh),
-              label: const Text('Reset'),
+              label: Text(l10n.reset),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               ),
@@ -364,16 +394,18 @@ class _WatermarkPageState extends State<WatermarkPage> {
   }
 
   Widget _buildTextCard() {
+    final l10n = AppLocalizations.of(context)!;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: TextField(
           controller: _textController,
           enabled: !_processing,
-          decoration: const InputDecoration(
-            labelText: 'Watermark text',
-            hintText: 'Enter the text to stamp with date and time',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.watermarkTextLabel,
+            hintText: l10n.watermarkTextHint,
+            border: const OutlineInputBorder(),
           ),
         ),
       ),
@@ -381,6 +413,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
   }
 
   Widget _buildColorCard() {
+    final l10n = AppLocalizations.of(context)!;
     const palette = <Color>[
       Colors.red,
       Colors.blue,
@@ -402,9 +435,9 @@ class _WatermarkPageState extends State<WatermarkPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SegmentedButton<bool>(
-                  segments: const [
-                    ButtonSegment<bool>(value: true, label: Text('Random color')),
-                    ButtonSegment<bool>(value: false, label: Text('Selected color')),
+                  segments: [
+                    ButtonSegment<bool>(value: true, label: Text(l10n.randomColor)),
+                    ButtonSegment<bool>(value: false, label: Text(l10n.selectedColor)),
                   ],
                   selected: <bool>{_useRandomColor},
                   onSelectionChanged: _processing
@@ -479,10 +512,12 @@ class _WatermarkPageState extends State<WatermarkPage> {
   }
 
   Widget _buildTransparencyControl() {
+    final l10n = AppLocalizations.of(context)!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Transparency: ${_transparency.round()}%'),
+        Text(l10n.transparencyValue(_transparency.round())),
         Slider(
           value: _transparency,
           min: 10,
@@ -501,10 +536,12 @@ class _WatermarkPageState extends State<WatermarkPage> {
   }
 
   Widget _buildDensityControl() {
+    final l10n = AppLocalizations.of(context)!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Density: ${_density.round()}%'),
+        Text(l10n.densityValue(_density.round())),
         Slider(
           value: _density,
           min: 20,
@@ -522,34 +559,9 @@ class _WatermarkPageState extends State<WatermarkPage> {
     );
   }
 
-  Widget _buildTransparencyCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Watermark transparency: ${_transparency.round()}%'),
-            Slider(
-              value: _transparency,
-              min: 10,
-              max: 90,
-              divisions: 80,
-              onChanged: _processing
-                  ? null
-                  : (value) {
-                      setState(() {
-                        _transparency = value;
-                      });
-                    },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildDropArea() {
+    final l10n = AppLocalizations.of(context)!;
+
     return DropTarget(
       onDragEntered: (_) {
         setState(() {
@@ -577,7 +589,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
             .toList();
         if (paths.isEmpty) {
           setState(() {
-            _statusMessage = 'The dropped file paths are unavailable.';
+            _statusMessage = l10n.droppedPathUnavailable;
           });
           return;
         }
@@ -595,12 +607,12 @@ class _WatermarkPageState extends State<WatermarkPage> {
             width: 2,
           ),
         ),
-        child: const Column(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.file_upload_outlined, size: 36),
-            SizedBox(height: 10),
-            Text('Desktop drop area'),
+            const Icon(Icons.file_upload_outlined, size: 36),
+            const SizedBox(height: 10),
+            Text(l10n.desktopDropArea),
           ],
         ),
       ),
@@ -608,8 +620,10 @@ class _WatermarkPageState extends State<WatermarkPage> {
   }
 
   Future<void> _pickFile() async {
-    const group = XTypeGroup(
-      label: 'Images and PDFs',
+    final l10n = AppLocalizations.of(context)!;
+
+    final group = XTypeGroup(
+      label: l10n.pickerLabel,
       extensions: <String>['jpg', 'jpeg', 'png', 'pdf'],
       uniformTypeIdentifiers: <String>['public.jpeg', 'public.png', 'com.adobe.pdf'],
     );
@@ -623,6 +637,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
   }
 
   void _selectPaths(List<String> paths) {
+    final l10n = AppLocalizations.of(context)!;
     final uniquePaths = paths.toSet().toList();
 
     setState(() {
@@ -630,17 +645,19 @@ class _WatermarkPageState extends State<WatermarkPage> {
       _processedFiles = <_ProcessedFile>[];
       _previewIndex = 0;
       _statusMessage = uniquePaths.length == 1
-          ? 'Selected ${File(uniquePaths.first).uri.pathSegments.last}. Click Apply Watermark.'
-          : 'Selected ${uniquePaths.length} files. Click Apply Watermark.';
+          ? l10n.selectedApplySingle(File(uniquePaths.first).uri.pathSegments.last)
+          : l10n.selectedApplyMultiple(uniquePaths.length);
     });
   }
 
   Future<void> _processPaths(List<String> paths) async {
+    final l10n = AppLocalizations.of(context)!;
+
     setState(() {
       _processing = true;
       _processedFiles = <_ProcessedFile>[];
       _previewIndex = 0;
-      _statusMessage = 'Processing 0/${paths.length} files...';
+      _statusMessage = l10n.processingCount(paths.length);
     });
 
     final processedFiles = <_ProcessedFile>[];
@@ -654,7 +671,11 @@ class _WatermarkPageState extends State<WatermarkPage> {
         }
 
         setState(() {
-          _statusMessage = 'Processing ${i + 1}/${paths.length}: ${File(path).uri.pathSegments.last}';
+          _statusMessage = l10n.processingNamedFile(
+            i + 1,
+            paths.length,
+            File(path).uri.pathSegments.last,
+          );
         });
 
         final result = await WatermarkProcessor.processFile(
@@ -677,7 +698,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
 
       if (processedFiles.isEmpty) {
         setState(() {
-          _statusMessage = 'Unsupported file or processing failed.';
+          _statusMessage = l10n.processingFailed;
           _processing = false;
         });
         return;
@@ -686,7 +707,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
       setState(() {
         _processedFiles = processedFiles;
         _previewIndex = 0;
-        _statusMessage = 'Preview ready for ${processedFiles.length} file${processedFiles.length == 1 ? '' : 's'}. You can save or share them.';
+        _statusMessage = l10n.previewReady(processedFiles.length);
         _processing = false;
       });
     } catch (error) {
@@ -695,7 +716,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
       }
 
       setState(() {
-        _statusMessage = 'Error: $error';
+        _statusMessage = l10n.errorPrefix(error.toString());
         _processing = false;
       });
     }
@@ -720,6 +741,8 @@ class _WatermarkPageState extends State<WatermarkPage> {
   }
 
   Future<void> _saveCurrent() async {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_processedFiles.isEmpty) {
       return;
     }
@@ -733,11 +756,13 @@ class _WatermarkPageState extends State<WatermarkPage> {
     }
 
     setState(() {
-      _statusMessage = 'Saved ${_processedFiles.length} file${_processedFiles.length == 1 ? '' : 's'}.';
+      _statusMessage = l10n.savedFiles(_processedFiles.length);
     });
   }
 
   Future<void> _shareCurrent() async {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_processedFiles.isEmpty) {
       return;
     }
@@ -758,8 +783,8 @@ class _WatermarkPageState extends State<WatermarkPage> {
     final result = await SharePlus.instance.share(
       ShareParams(
         files: shareFiles,
-        subject: 'Watermarked files',
-        text: 'Shared from Watermark App',
+        subject: l10n.shareSubject,
+        text: l10n.shareText,
       ),
     );
 
@@ -769,8 +794,8 @@ class _WatermarkPageState extends State<WatermarkPage> {
 
     setState(() {
       _statusMessage = result.status == ShareResultStatus.success
-          ? 'Shared ${_processedFiles.length} file${_processedFiles.length == 1 ? '' : 's'}.'
-          : 'Share sheet opened for ${_processedFiles.length} file${_processedFiles.length == 1 ? '' : 's'}.';
+          ? l10n.sharedFiles(_processedFiles.length)
+          : l10n.shareOpenedFiles(_processedFiles.length);
     });
   }
 

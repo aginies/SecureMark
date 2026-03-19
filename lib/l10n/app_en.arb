@@ -1,0 +1,154 @@
+{
+  "@@locale": "en",
+  "appTitle": "Watermark App",
+  "readyToSaveFiles": "Ready to save {count, plural, one {1 file} other {{count} files}}",
+  "@readyToSaveFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "emptyPreviewHint": "Enter watermark text and pick one or more image or PDF files",
+  "selectedPreviewHint": "Files selected. Click Apply Watermark to generate previews",
+  "previewUnavailable": "Preview unavailable",
+  "swipeHint": "Swipe left for next, right for previous ({current}/{total})",
+  "@swipeHint": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "processingFile": "Processing file...",
+  "applyingWatermark": "Applying watermark...",
+  "authorFooter": "Author: guibo",
+  "pickFiles": "Pick Image or PDF Files",
+  "selectedFile": "Selected file: {name}",
+  "@selectedFile": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "selectedFiles": "Selected files: {count}",
+  "@selectedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "applyWatermark": "Apply Watermark",
+  "saveAll": "Save All",
+  "shareAll": "Share All",
+  "reset": "Reset",
+  "watermarkTextLabel": "Watermark text",
+  "watermarkTextHint": "Enter the text to stamp with date and time",
+  "randomColor": "Random color",
+  "selectedColor": "Selected color",
+  "transparencyValue": "Transparency: {value}%",
+  "@transparencyValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "densityValue": "Density: {value}%",
+  "@densityValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "droppedPathUnavailable": "The dropped file paths are unavailable.",
+  "desktopDropArea": "Desktop drop area",
+  "pickerLabel": "Images and PDFs",
+  "selectedApplySingle": "Selected {name}. Click Apply Watermark.",
+  "@selectedApplySingle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "selectedApplyMultiple": "Selected {count} files. Click Apply Watermark.",
+  "@selectedApplyMultiple": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "processingCount": "Processing 0/{count} files...",
+  "@processingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "processingNamedFile": "Processing {current}/{total}: {name}",
+  "@processingNamedFile": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "processingFailed": "Unsupported file or processing failed.",
+  "previewReady": "Preview ready for {count, plural, one {1 file} other {{count} files}}. You can save or share them.",
+  "@previewReady": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "errorPrefix": "Error: {error}",
+  "@errorPrefix": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "savedFiles": "Saved {count, plural, one {1 file} other {{count} files}}.",
+  "@savedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareSubject": "Watermarked files",
+  "shareText": "Shared from Watermark App",
+  "sharedFiles": "Shared {count, plural, one {1 file} other {{count} files}}.",
+  "@sharedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareOpenedFiles": "Share sheet opened for {count, plural, one {1 file} other {{count} files}}.",
+  "@shareOpenedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
+}

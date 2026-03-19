@@ -1,0 +1,154 @@
+{
+  "@@locale": "fr",
+  "appTitle": "Application de filigrane",
+  "readyToSaveFiles": "Prêt à enregistrer {count, plural, one {1 fichier} other {{count} fichiers}}",
+  "@readyToSaveFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "emptyPreviewHint": "Saisissez le texte du filigrane puis choisissez une ou plusieurs images ou PDF",
+  "selectedPreviewHint": "Fichiers sélectionnés. Cliquez sur Appliquer le filigrane pour générer les aperçus",
+  "previewUnavailable": "Aperçu indisponible",
+  "swipeHint": "Glissez à gauche pour le suivant, à droite pour le précédent ({current}/{total})",
+  "@swipeHint": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "processingFile": "Traitement du fichier...",
+  "applyingWatermark": "Application du filigrane...",
+  "authorFooter": "Auteur : guibo",
+  "pickFiles": "Choisir des images ou PDF",
+  "selectedFile": "Fichier sélectionné : {name}",
+  "@selectedFile": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "selectedFiles": "Fichiers sélectionnés : {count}",
+  "@selectedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "applyWatermark": "Appliquer le filigrane",
+  "saveAll": "Tout enregistrer",
+  "shareAll": "Tout partager",
+  "reset": "Réinitialiser",
+  "watermarkTextLabel": "Texte du filigrane",
+  "watermarkTextHint": "Saisissez le texte à estampiller avec la date et l'heure",
+  "randomColor": "Couleur aléatoire",
+  "selectedColor": "Couleur choisie",
+  "transparencyValue": "Transparence : {value}%",
+  "@transparencyValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "densityValue": "Densité : {value}%",
+  "@densityValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "droppedPathUnavailable": "Les chemins des fichiers déposés sont indisponibles.",
+  "desktopDropArea": "Zone de dépôt bureau",
+  "pickerLabel": "Images et PDF",
+  "selectedApplySingle": "{name} sélectionné. Cliquez sur Appliquer le filigrane.",
+  "@selectedApplySingle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "selectedApplyMultiple": "{count} fichiers sélectionnés. Cliquez sur Appliquer le filigrane.",
+  "@selectedApplyMultiple": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "processingCount": "Traitement de 0/{count} fichiers...",
+  "@processingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "processingNamedFile": "Traitement {current}/{total} : {name}",
+  "@processingNamedFile": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "processingFailed": "Fichier non pris en charge ou échec du traitement.",
+  "previewReady": "Aperçu prêt pour {count, plural, one {1 fichier} other {{count} fichiers}}. Vous pouvez les enregistrer ou les partager.",
+  "@previewReady": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "errorPrefix": "Erreur : {error}",
+  "@errorPrefix": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "savedFiles": "{count, plural, one {1 fichier enregistré} other {{count} fichiers enregistrés}}.",
+  "@savedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareSubject": "Fichiers filigranés",
+  "shareText": "Partage depuis Watermark App",
+  "sharedFiles": "{count, plural, one {1 fichier partagé} other {{count} fichiers partagés}}.",
+  "@sharedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareOpenedFiles": "La feuille de partage est ouverte pour {count, plural, one {1 fichier} other {{count} fichiers}}.",
+  "@shareOpenedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
+}
