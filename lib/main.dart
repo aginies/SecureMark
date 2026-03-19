@@ -131,8 +131,10 @@ class _WatermarkPageState extends State<WatermarkPage> {
 
                 // Mobile layout with larger preview area
                 final screenHeight = constraints.maxHeight;
+                
+                // Use more conservative sizing for better compatibility
                 final previewHeight = isMobile 
-                    ? (screenHeight * 0.6).clamp(400.0, 600.0) // 60% of screen height, min 400px, max 600px
+                    ? (screenHeight * 0.5).clamp(350.0, 500.0) // 50% of screen height, min 350px, max 500px
                     : 420.0; // Default height for web/desktop narrow screens
 
                 return SingleChildScrollView(
@@ -302,22 +304,10 @@ class _WatermarkPageState extends State<WatermarkPage> {
                                 maxScale: 4.0,
                                 panEnabled: true,
                                 scaleEnabled: true,
-                                clipBehavior: Clip.none,
-                                constrained: false, // Allow image to fill available space
-                                child: Container(
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  alignment: Alignment.center,
-                                  // Add padding on mobile for better touch targets
-                                  padding: (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) 
-                                      ? const EdgeInsets.all(8.0)
-                                      : EdgeInsets.zero,
+                                child: Center(
                                   child: Image.memory(
                                     previewBytes, 
                                     fit: BoxFit.contain,
-                                    // Ensure image is large enough for good touch interaction
-                                    width: double.infinity,
-                                    height: double.infinity,
                                   ),
                                 ),
                               ),
