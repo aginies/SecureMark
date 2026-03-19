@@ -114,6 +114,19 @@ enum WatermarkFont {
         return 'PlayfairDisplay';
       case WatermarkFont.oswald:
         return 'Oswald';
+      // Custom asset fonts
+      case WatermarkFont.customRoboto:
+        return 'CustomRoboto';
+      case WatermarkFont.customOpenSans:
+        return 'CustomOpenSans';
+      case WatermarkFont.charis:
+        return 'Charis';
+      case WatermarkFont.liberationMono:
+        return 'LiberationMono';
+      case WatermarkFont.liberationSerif:
+        return 'LiberationSerif';
+      case WatermarkFont.vera:
+        return 'Vera';
     }
   }
 }
@@ -198,15 +211,5 @@ class FontManager {
     WatermarkFont.charis,
     WatermarkFont.liberationSerif,
     WatermarkFont.playfairDisplay,
-  ];
-
-  static List<WatermarkFont> get decorativeFonts => [
-    WatermarkFont.playfairDisplay,
-    WatermarkFont.oswald,
-    WatermarkFont.montserrat,
-  ];
-
-  static List<WatermarkFont> get monospaceFonts => [
-    WatermarkFont.sourceCodePro,
   ];
 }

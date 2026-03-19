@@ -19,6 +19,7 @@ dependencies:
   intl: ^0.20.2
   path: ^1.9.1
   share_plus: ^11.1.0
+  google_fonts: ^6.1.0
 
 dev_dependencies:
   flutter_test:
@@ -28,6 +29,41 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+  
+  # Custom fonts
+  fonts:
+    - family: CustomRoboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700
+    - family: CustomOpenSans
+      fonts:
+        - asset: assets/fonts/OpenSans-Regular.ttf
+        - asset: assets/fonts/OpenSans-Bold.ttf
+          weight: 700
+    - family: Charis
+      fonts:
+        - asset: assets/fonts/Charis-Regular.ttf
+        - asset: assets/fonts/Charis-Bold.ttf
+          weight: 700
+    - family: LiberationMono
+      fonts:
+        - asset: assets/fonts/LiberationMono-Regular.ttf
+        - asset: assets/fonts/LiberationMono-Bold.ttf
+          weight: 700
+    - family: LiberationSerif
+      fonts:
+        - asset: assets/fonts/LiberationSerif-Regular.ttf
+        - asset: assets/fonts/LiberationSerif-Bold.ttf
+          weight: 700
+    - family: Vera
+      fonts:
+        - asset: assets/fonts/Vera.ttf
+        - asset: assets/fonts/VeraBd.ttf
+          weight: 700
 
 flutter_launcher_icons:
   android: true

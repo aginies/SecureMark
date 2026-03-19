@@ -9,6 +9,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import 'font_manager.dart';
+
 final Random _random = Random();
 const int _fixedFontSize = 24;
 const int _maxImageDimension = 1600;
@@ -128,6 +130,7 @@ class _Placement {
     required this.angle,
     required this.colorKey,
     required this.color,
+    required this.font,
   });
 
   final int x;
@@ -136,6 +139,7 @@ class _Placement {
   final double angle;
   final int colorKey;
   final img.Color color;
+  final WatermarkFont font;
 }
 
 class _ResolvedColor {
@@ -164,6 +168,7 @@ class WatermarkProcessor {
     required bool useRandomColor,
     required int selectedColorValue,
     required double fontSize,
+    WatermarkFont font = WatermarkFont.arial,
     int jpegQuality = 75,
     int? targetSize = 1280,
     bool includeTimestamp = false,
@@ -195,6 +200,7 @@ class WatermarkProcessor {
       useRandomColor,
       selectedColorValue,
       fontSize,
+      font,
       jpegQuality,
       targetSize,
       includeTimestamp,
@@ -221,6 +227,7 @@ class WatermarkProcessor {
           useRandomColor: useRandomColor,
           selectedColorValue: selectedColorValue,
           fontSize: fontSize,
+          font: font,
           jpegQuality: jpegQuality,
           includeTimestamp: includeTimestamp,
           onProgress: onProgress,
@@ -235,6 +242,7 @@ class WatermarkProcessor {
           useRandomColor: useRandomColor,
           selectedColorValue: selectedColorValue,
           fontSize: fontSize,
+          font: font,
           jpegQuality: jpegQuality,
           targetSize: targetSize,
           includeTimestamp: includeTimestamp,
@@ -358,11 +366,12 @@ class WatermarkProcessor {
     bool useRandomColor,
     int selectedColorValue,
     double fontSize,
+    WatermarkFont font,
     int jpegQuality,
     int? targetSize,
     bool includeTimestamp,
   ) {
-    return '$filePath-$transparency-$density-$watermarkText-$useRandomColor-$selectedColorValue-$fontSize-$jpegQuality-$targetSize-$includeTimestamp';
+    return '$filePath-$transparency-$density-$watermarkText-$useRandomColor-$selectedColorValue-$fontSize-${font.fontFamily}-$jpegQuality-$targetSize-$includeTimestamp';
   }
 
   /// Add result to cache with size management
@@ -455,6 +464,7 @@ class WatermarkProcessor {
     required bool useRandomColor,
     required int selectedColorValue,
     required double fontSize,
+    required WatermarkFont font,
     required int jpegQuality,
     int? targetSize,
     bool includeTimestamp = false,
@@ -485,6 +495,7 @@ class WatermarkProcessor {
           useRandomColor: useRandomColor,
           selectedColorValue: selectedColorValue,
           fontSize: fontSize,
+          font: font,
           jpegQuality: jpegQuality,
           targetSize: targetSize,
           filePath: file.path,
@@ -530,6 +541,7 @@ class WatermarkProcessor {
     required bool useRandomColor,
     required int selectedColorValue,
     required double fontSize,
+    required WatermarkFont font,
     required int jpegQuality,
     bool includeTimestamp = false,
     ProgressCallback? onProgress,
@@ -584,6 +596,7 @@ class WatermarkProcessor {
           useRandomColor,
           selectedColorValue,
           fontSize,
+          font,
         );
 
         final encoded = _encodePngForSharing(watermarked);
@@ -649,6 +662,7 @@ class WatermarkProcessor {
     required bool useRandomColor,
     required int selectedColorValue,
     required double fontSize,
+    required WatermarkFont font,
     required int jpegQuality,
     int? targetSize,
     required String filePath,
@@ -675,6 +689,7 @@ class WatermarkProcessor {
         useRandomColor,
         selectedColorValue,
         fontSize,
+        font,
       );
 
       // Encode in the original format
@@ -700,6 +715,7 @@ class WatermarkProcessor {
     required bool useRandomColor,
     required int selectedColorValue,
     required double fontSize,
+    required WatermarkFont font,
     int jpegQuality = 75,
     int? targetSize = 1280,
   }) {
@@ -718,6 +734,7 @@ class WatermarkProcessor {
       useRandomColor,
       selectedColorValue,
       fontSize,
+      font,
     );
     return _encodePngForSharing(outputImage);
   }
@@ -733,17 +750,33 @@ class WatermarkProcessor {
     textImage.clear(img.ColorRgba8(0, 0, 0, 0));
     textImage.backgroundColor = img.ColorRgba8(0, 0, 0, 0);
 
-    // Select font based on size
-    final font = _getFontForSize(placement.fontSize);
-
-    img.drawString(
-      textImage,
-      watermarkText,
-      font: font,
-      x: 0,
-      y: (12 * (placement.fontSize / 24)).round(),
-      color: placement.color,
-    );
+    // Select font based on the placement font type
+    if (placement.font.isBitmap) {
+      // Use bitmap font for Arial (legacy support)
+      final bitmapFont = placement.font.getBitmapFont(placement.fontSize);
+      if (bitmapFont != null) {
+        img.drawString(
+          textImage,
+          watermarkText,
+          font: bitmapFont,
+          x: 0,
+          y: (12 * (placement.fontSize / 24)).round(),
+          color: placement.color,
+        );
+      }
+    } else {
+      // For Google Fonts, fall back to bitmap font for now
+      // In a future enhancement, this could use TrueType font rendering
+      final font = _getFontForSize(placement.fontSize);
+      img.drawString(
+        textImage,
+        watermarkText,
+        font: font,
+        x: 0,
+        y: (12 * (placement.fontSize / 24)).round(),
+        color: placement.color,
+      );
+    }
 
     final rotated = img.copyRotate(
       textImage,
@@ -768,6 +801,7 @@ class WatermarkProcessor {
     bool useRandomColor,
     int selectedColorValue,
     double fontSize,
+    WatermarkFont font,
   ) {
     final placements = _buildPlacements(
       width: image.width,
@@ -778,7 +812,9 @@ class WatermarkProcessor {
       useRandomColor: useRandomColor,
       selectedColorValue: selectedColorValue,
       fontSize: fontSize.round(),
+      font: font,
     );
+
     final stampCache = <String, img.Image>{};
 
     for (final placement in placements) {
@@ -806,6 +842,7 @@ class WatermarkProcessor {
     required bool useRandomColor,
     required int selectedColorValue,
     required int fontSize,
+    required WatermarkFont font,
   }) {
     final placements = <_Placement>[];
     final targetCount = _watermarkCount(width, height, density);
@@ -839,6 +876,7 @@ class WatermarkProcessor {
         cellHeight: cellHeight,
         colorPool: colorPool,
         fontSize: fontSize,
+        font: font,
       );
 
       if (placement != null) {
@@ -855,6 +893,7 @@ class WatermarkProcessor {
         watermarkText: watermarkText,
         colorPool: colorPool,
         fontSize: fontSize,
+        font: font,
       );
       if (placement != null) {
         placements.add(placement);
@@ -874,6 +913,7 @@ class WatermarkProcessor {
     required double cellHeight,
     required List<_ResolvedColor> colorPool,
     required int fontSize,
+    required WatermarkFont font,
   }) {
     for (var attempt = 0; attempt < 6; attempt++) {
       final angle = _randomAngle();
@@ -910,6 +950,7 @@ class WatermarkProcessor {
         angle: angle,
         colorKey: resolvedColor.key,
         color: resolvedColor.color,
+        font: font,
       );
     }
 
@@ -922,6 +963,7 @@ class WatermarkProcessor {
     required String watermarkText,
     required List<_ResolvedColor> colorPool,
     required int fontSize,
+    required WatermarkFont font,
   }) {
     for (var attempt = 0; attempt < 12; attempt++) {
       final angle = _randomAngle();
@@ -944,6 +986,7 @@ class WatermarkProcessor {
         angle: angle,
         colorKey: resolvedColor.key,
         color: resolvedColor.color,
+        font: font,
       );
     }
 

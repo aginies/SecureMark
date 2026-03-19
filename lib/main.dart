@@ -14,6 +14,7 @@ import 'package:collection/collection.dart';
 
 import 'l10n/app_localizations.dart';
 import 'watermark_processor.dart';
+import 'font_manager.dart';
 
 class _ProcessedFile {
   const _ProcessedFile({
@@ -77,6 +78,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   double _transparency = 90;
   double _density = 35;
   double _fontSize = 24;
+  WatermarkFont _selectedFont = FontManager.getDefaultFont();
   int _jpegQuality = 75;
   int? _targetSize = 1280;
   bool _includeTimestamp = true;
@@ -404,10 +406,62 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                   ),
                   const SizedBox(height: 16),
                   Text(l10n.fontStyleLabel),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: theme.dividerColor),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<WatermarkFont>(
+                        value: _selectedFont,
+                        isExpanded: true,
+                        onChanged: (WatermarkFont? newFont) {
+                          if (newFont != null) {
+                            setState(() {
+                              _selectedFont = newFont;
+                            });
+                          }
+                        },
+                        items: _buildFontDropdownItems(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Text(
-                    l10n.fontSelectionNote,
+                    _getFontSourceDescription(context),
                     style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      border: Border.all(color: theme.dividerColor),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Preview:',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Sample watermark text',
+                          style: _selectedFont.getTextStyle(fontSize: 18),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Échantillon de texte français',
+                          style: _selectedFont.getTextStyle(fontSize: 14),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -1097,6 +1151,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
             useRandomColor: _useRandomColor,
             selectedColorValue: _selectedColor.toARGB32(),
             fontSize: _fontSize,
+            font: _selectedFont,
             jpegQuality: _jpegQuality,
             targetSize: _targetSize,
             includeTimestamp: _includeTimestamp,
@@ -1412,5 +1467,66 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     setState(() {
       _selectedColor = color;
     });
+  }
+
+  List<DropdownMenuItem<WatermarkFont>> _buildFontDropdownItems() {
+    final items = <DropdownMenuItem<WatermarkFont>>[];
+    
+    // Add system/bitmap fonts
+    final bitmapFonts = FontManager.bitmapFonts;
+    if (bitmapFonts.isNotEmpty) {
+      for (final font in bitmapFonts) {
+        items.add(DropdownMenuItem<WatermarkFont>(
+          value: font,
+          child: Text(
+            font.displayName,
+            style: font.getTextStyle(fontSize: 14),
+          ),
+        ));
+      }
+    }
+    
+    // Add asset fonts if any exist
+    final assetFonts = FontManager.assetFonts;
+    if (assetFonts.isNotEmpty) {
+      // Add a separator comment (not visible in dropdown but helps organization)
+      for (final font in assetFonts) {
+        items.add(DropdownMenuItem<WatermarkFont>(
+          value: font,
+          child: Text(
+            font.displayName,
+            style: font.getTextStyle(fontSize: 14),
+          ),
+        ));
+      }
+    }
+    
+    // Add Google fonts
+    final googleFonts = FontManager.googleFonts;
+    if (googleFonts.isNotEmpty) {
+      for (final font in googleFonts) {
+        items.add(DropdownMenuItem<WatermarkFont>(
+          value: font,
+          child: Text(
+            font.displayName,
+            style: font.getTextStyle(fontSize: 14),
+          ),
+        ));
+      }
+    }
+    
+    return items;
+  }
+
+  String _getFontSourceDescription(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (_selectedFont.source) {
+      case FontSource.bitmap:
+        return l10n.fontSelectionNote;
+      case FontSource.google:
+        return l10n.fontSelectionNoteGoogle;
+      case FontSource.asset:
+        return 'Note: Using custom TTF font for enhanced typography. Requires font files in assets/fonts/.';
+    }
   }
 }
