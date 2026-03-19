@@ -183,4 +183,7 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return 'La feuille de partage est ouverte pour $_temp0.';
   }
+
+  @override
+  String get cancel => 'Annuler';
 }

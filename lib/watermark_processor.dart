@@ -15,6 +15,74 @@ const int _maxImageDimension = 1600;
 const double _pdfRasterDpi = 96;
 const double _angleStepDegrees = 15;
 const int _randomColorPoolSize = 6;
+const int _maxFileSize = 50 * 1024 * 1024; // 50MB
+const int _maxFilesInBatch = 100;
+
+/// Specific error types for better error handling
+enum WatermarkErrorType {
+  unsupportedFileType,
+  fileTooLarge,
+  fileNotFound,
+  fileCorrupted,
+  invalidImageData,
+  invalidPdfData,
+  memoryLimitExceeded,
+  processingTimeout,
+  operationCancelled,
+  unknownError,
+}
+
+class WatermarkError implements Exception {
+  const WatermarkError({
+    required this.type,
+    required this.message,
+    this.filePath,
+    this.originalError,
+  });
+
+  final WatermarkErrorType type;
+  final String message;
+  final String? filePath;
+  final Object? originalError;
+
+  @override
+  String toString() {
+    final buffer = StringBuffer('WatermarkError: $message');
+    if (filePath != null) {
+      buffer.write(' (File: ${p.basename(filePath!)})');
+    }
+    if (originalError != null) {
+      buffer.write(' - Original error: $originalError');
+    }
+    return buffer.toString();
+  }
+
+  /// Get user-friendly error message
+  String get userMessage {
+    switch (type) {
+      case WatermarkErrorType.unsupportedFileType:
+        return 'This file type is not supported. Please use JPG, PNG, or PDF files.';
+      case WatermarkErrorType.fileTooLarge:
+        return 'File is too large (max ${(_maxFileSize / (1024 * 1024)).round()}MB). Please use a smaller file.';
+      case WatermarkErrorType.fileNotFound:
+        return 'File not found. Please make sure the file exists.';
+      case WatermarkErrorType.fileCorrupted:
+        return 'File appears to be corrupted or unreadable.';
+      case WatermarkErrorType.invalidImageData:
+        return 'Invalid image data. The image file may be corrupted.';
+      case WatermarkErrorType.invalidPdfData:
+        return 'Invalid PDF data. The PDF file may be corrupted.';
+      case WatermarkErrorType.memoryLimitExceeded:
+        return 'Not enough memory to process this file. Try using a smaller file.';
+      case WatermarkErrorType.processingTimeout:
+        return 'Processing took too long and was cancelled. Try using a smaller file.';
+      case WatermarkErrorType.operationCancelled:
+        return 'Operation was cancelled.';
+      case WatermarkErrorType.unknownError:
+        return 'An unexpected error occurred while processing the file.';
+    }
+  }
+}
 
 class ProcessResult {
   const ProcessResult({
@@ -26,6 +94,30 @@ class ProcessResult {
   final String outputPath;
   final Uint8List outputBytes;
   final Uint8List? previewBytes;
+}
+
+/// Progress callback for reporting processing progress
+typedef ProgressCallback = void Function(double progress, String message);
+
+/// Cancellation token for cancelling operations
+class CancellationToken {
+  bool _cancelled = false;
+  
+  bool get isCancelled => _cancelled;
+  
+  void cancel() {
+    _cancelled = true;
+  }
+}
+
+class _ValidationResult {
+  const _ValidationResult({
+    required this.isValid,
+    this.error,
+  });
+
+  final bool isValid;
+  final WatermarkError? error;
 }
 
 class _Placement {
@@ -57,140 +149,505 @@ class _ResolvedColor {
 }
 
 class WatermarkProcessor {
-  static Future<ProcessResult?> processFile({
+  /// Cache for processed results to avoid reprocessing identical requests
+  static final Map<String, ProcessResult> _resultCache = <String, ProcessResult>{};
+  
+  /// Maximum cache size to prevent memory issues
+  static const int _maxCacheSize = 10;
+
+  /// Process a file with comprehensive error handling and validation
+  static Future<ProcessResult> processFile({
     required File file,
     required double transparency,
     required double density,
     required String watermarkText,
     required bool useRandomColor,
     required int selectedColorValue,
+    ProgressCallback? onProgress,
+    CancellationToken? cancellationToken,
   }) async {
-    final extension = p.extension(file.path).toLowerCase();
-    final resolvedText = _resolvedWatermarkText(watermarkText);
-
-    if (extension == '.pdf') {
-      return _processPdf(
-        file: file,
-        transparency: transparency,
-        density: density,
-        watermarkText: resolvedText,
-        useRandomColor: useRandomColor,
-        selectedColorValue: selectedColorValue,
+    // Check for cancellation at the start
+    if (cancellationToken?.isCancelled == true) {
+      throw const WatermarkError(
+        type: WatermarkErrorType.operationCancelled,
+        message: 'Operation was cancelled before processing started',
       );
     }
 
-    if (extension == '.jpg' || extension == '.jpeg' || extension == '.png') {
-      return _processImage(
-        file: file,
-        transparency: transparency,
-        density: density,
-        watermarkText: resolvedText,
-        useRandomColor: useRandomColor,
-        selectedColorValue: selectedColorValue,
-      );
+    onProgress?.call(0.0, 'Validating file...');
+
+    // Validate the file
+    final validation = await _validateFile(file);
+    if (!validation.isValid) {
+      throw validation.error!;
     }
 
-    return null;
-  }
-
-  static Future<ProcessResult?> _processImage({
-    required File file,
-    required double transparency,
-    required double density,
-    required String watermarkText,
-    required bool useRandomColor,
-    required int selectedColorValue,
-  }) async {
-    final inputBytes = await file.readAsBytes();
-    final outputBytes = await Isolate.run(
-      () => _renderWatermarkedImageBytes(
-        inputBytes: inputBytes,
-        transparency: transparency,
-        density: density,
-        watermarkText: watermarkText,
-        useRandomColor: useRandomColor,
-        selectedColorValue: selectedColorValue,
-      ),
+    // Check cache
+    final cacheKey = _generateCacheKey(
+      file.path,
+      transparency,
+      density,
+      watermarkText,
+      useRandomColor,
+      selectedColorValue,
     );
-    if (outputBytes == null) {
-      return null;
+    
+    if (_resultCache.containsKey(cacheKey)) {
+      onProgress?.call(1.0, 'Retrieved from cache');
+      return _resultCache[cacheKey]!;
     }
-    final outputPath = _outputPath(file.path, '.png');
 
-    return ProcessResult(
-      outputPath: outputPath,
-      outputBytes: outputBytes,
-      previewBytes: outputBytes,
-    );
-  }
+    try {
+      onProgress?.call(0.1, 'Processing file...');
 
-  static Future<ProcessResult?> _processPdf({
-    required File file,
-    required double transparency,
-    required double density,
-    required String watermarkText,
-    required bool useRandomColor,
-    required int selectedColorValue,
-  }) async {
-    final inputBytes = await file.readAsBytes();
-    final doc = pw.Document();
-    Uint8List? preview;
-    var hasPages = false;
+      final extension = p.extension(file.path).toLowerCase();
+      final resolvedText = _resolvedWatermarkText(watermarkText);
 
-    await for (final page in Printing.raster(inputBytes, dpi: _pdfRasterDpi)) {
-      hasPages = true;
-      final pngBytes = await page.toPng();
-      if (pngBytes == null) {
-        continue;
+      ProcessResult result;
+      if (extension == '.pdf') {
+        result = await _processPdf(
+          file: file,
+          transparency: transparency,
+          density: density,
+          watermarkText: resolvedText,
+          useRandomColor: useRandomColor,
+          selectedColorValue: selectedColorValue,
+          onProgress: onProgress,
+          cancellationToken: cancellationToken,
+        );
+      } else if (extension == '.jpg' || extension == '.jpeg' || extension == '.png') {
+        result = await _processImage(
+          file: file,
+          transparency: transparency,
+          density: density,
+          watermarkText: resolvedText,
+          useRandomColor: useRandomColor,
+          selectedColorValue: selectedColorValue,
+          onProgress: onProgress,
+          cancellationToken: cancellationToken,
+        );
+      } else {
+        throw WatermarkError(
+          type: WatermarkErrorType.unsupportedFileType,
+          message: 'Unsupported file type: $extension',
+          filePath: file.path,
+        );
       }
 
-      final decoded = img.decodeImage(pngBytes);
+      // Cache the result (with size limit)
+      _addToCache(cacheKey, result);
+      
+      onProgress?.call(1.0, 'Processing complete');
+      return result;
+
+    } catch (e) {
+      if (e is WatermarkError) {
+        rethrow;
+      }
+      throw WatermarkError(
+        type: WatermarkErrorType.unknownError,
+        message: 'Unexpected error during processing',
+        filePath: file.path,
+        originalError: e,
+      );
+    }
+  }
+
+  /// Validate a file before processing
+  static Future<_ValidationResult> _validateFile(File file) async {
+    try {
+      // Check if file exists
+      if (!await file.exists()) {
+        return _ValidationResult(
+          isValid: false,
+          error: WatermarkError(
+            type: WatermarkErrorType.fileNotFound,
+            message: 'File does not exist',
+            filePath: file.path,
+          ),
+        );
+      }
+
+      // Check file size
+      final fileSize = await file.length();
+      if (fileSize > _maxFileSize) {
+        return _ValidationResult(
+          isValid: false,
+          error: WatermarkError(
+            type: WatermarkErrorType.fileTooLarge,
+            message: 'File size ${(fileSize / (1024 * 1024)).toStringAsFixed(1)}MB exceeds limit of ${(_maxFileSize / (1024 * 1024)).round()}MB',
+            filePath: file.path,
+          ),
+        );
+      }
+
+      // Check file extension
+      final extension = p.extension(file.path).toLowerCase();
+      const supportedExtensions = {'.jpg', '.jpeg', '.png', '.pdf'};
+      if (!supportedExtensions.contains(extension)) {
+        return _ValidationResult(
+          isValid: false,
+          error: WatermarkError(
+            type: WatermarkErrorType.unsupportedFileType,
+            message: 'Unsupported file extension: $extension',
+            filePath: file.path,
+          ),
+        );
+      }
+
+      // Basic file integrity check - try to read first few bytes
+      try {
+        final bytes = await file.openRead(0, 1024).first;
+        if (bytes.isEmpty) {
+          return _ValidationResult(
+            isValid: false,
+            error: WatermarkError(
+              type: WatermarkErrorType.fileCorrupted,
+              message: 'File appears to be empty',
+              filePath: file.path,
+            ),
+          );
+        }
+      } catch (e) {
+        return _ValidationResult(
+          isValid: false,
+          error: WatermarkError(
+            type: WatermarkErrorType.fileCorrupted,
+            message: 'Unable to read file',
+            filePath: file.path,
+            originalError: e,
+          ),
+        );
+      }
+
+      return const _ValidationResult(isValid: true);
+    } catch (e) {
+      return _ValidationResult(
+        isValid: false,
+        error: WatermarkError(
+          type: WatermarkErrorType.unknownError,
+          message: 'Error during file validation',
+          filePath: file.path,
+          originalError: e,
+        ),
+      );
+    }
+  }
+
+  /// Generate cache key for result caching
+  static String _generateCacheKey(
+    String filePath,
+    double transparency,
+    double density,
+    String watermarkText,
+    bool useRandomColor,
+    int selectedColorValue,
+  ) {
+    return '$filePath-$transparency-$density-$watermarkText-$useRandomColor-$selectedColorValue';
+  }
+
+  /// Add result to cache with size management
+  static void _addToCache(String key, ProcessResult result) {
+    if (_resultCache.length >= _maxCacheSize) {
+      // Remove oldest entry
+      final firstKey = _resultCache.keys.first;
+      _resultCache.remove(firstKey);
+    }
+    _resultCache[key] = result;
+  }
+
+  /// Process multiple files with progress reporting and cancellation support
+  static Future<List<ProcessResult>> processMultipleFiles({
+    required List<File> files,
+    required double transparency,
+    required double density,
+    required String watermarkText,
+    required bool useRandomColor,
+    required int selectedColorValue,
+    ProgressCallback? onProgress,
+    CancellationToken? cancellationToken,
+  }) async {
+    if (files.length > _maxFilesInBatch) {
+      throw WatermarkError(
+        type: WatermarkErrorType.unknownError,
+        message: 'Too many files in batch (max $_maxFilesInBatch)',
+      );
+    }
+
+    final results = <ProcessResult>[];
+    final totalFiles = files.length;
+
+    for (var i = 0; i < totalFiles; i++) {
+      if (cancellationToken?.isCancelled == true) {
+        throw const WatermarkError(
+          type: WatermarkErrorType.operationCancelled,
+          message: 'Batch processing was cancelled',
+        );
+      }
+
+      try {
+        final fileProgress = i / totalFiles;
+        onProgress?.call(fileProgress, 'Processing file ${i + 1} of $totalFiles...');
+
+        final result = await processFile(
+          file: files[i],
+          transparency: transparency,
+          density: density,
+          watermarkText: watermarkText,
+          useRandomColor: useRandomColor,
+          selectedColorValue: selectedColorValue,
+          onProgress: (progress, message) {
+            final totalProgress = fileProgress + (progress / totalFiles);
+            onProgress?.call(totalProgress, message);
+          },
+          cancellationToken: cancellationToken,
+        );
+
+        results.add(result);
+      } catch (e) {
+        // Continue processing other files even if one fails
+        print('Failed to process ${files[i].path}: $e');
+        continue;
+      }
+    }
+
+    onProgress?.call(1.0, 'Batch processing complete');
+    return results;
+  }
+
+  /// Clear the result cache
+  static void clearCache() {
+    _resultCache.clear();
+  }
+
+  static Future<ProcessResult> _processImage({
+    required File file,
+    required double transparency,
+    required double density,
+    required String watermarkText,
+    required bool useRandomColor,
+    required int selectedColorValue,
+    ProgressCallback? onProgress,
+    CancellationToken? cancellationToken,
+  }) async {
+    try {
+      onProgress?.call(0.2, 'Reading image file...');
+      
+      if (cancellationToken?.isCancelled == true) {
+        throw const WatermarkError(
+          type: WatermarkErrorType.operationCancelled,
+          message: 'Operation cancelled during image reading',
+        );
+      }
+
+      final inputBytes = await file.readAsBytes();
+      final extension = p.extension(file.path).toLowerCase();
+      
+      onProgress?.call(0.4, 'Processing image...');
+
+      final outputBytes = await Isolate.run(
+        () => _renderWatermarkedImageBytesWithValidation(
+          inputBytes: inputBytes,
+          transparency: transparency,
+          density: density,
+          watermarkText: watermarkText,
+          useRandomColor: useRandomColor,
+          selectedColorValue: selectedColorValue,
+          filePath: file.path,
+          originalExtension: extension,
+        ),
+      );
+
+      if (cancellationToken?.isCancelled == true) {
+        throw const WatermarkError(
+          type: WatermarkErrorType.operationCancelled,
+          message: 'Operation cancelled during image processing',
+        );
+      }
+
+      onProgress?.call(0.9, 'Finalizing image...');
+      
+      // Use original extension instead of always converting to PNG
+      final outputPath = _outputPath(file.path, extension);
+
+      return ProcessResult(
+        outputPath: outputPath,
+        outputBytes: outputBytes,
+        previewBytes: outputBytes,
+      );
+    } catch (e) {
+      if (e is WatermarkError) {
+        rethrow;
+      }
+      throw WatermarkError(
+        type: WatermarkErrorType.invalidImageData,
+        message: 'Failed to process image',
+        filePath: file.path,
+        originalError: e,
+      );
+    }
+  }
+
+  static Future<ProcessResult> _processPdf({
+    required File file,
+    required double transparency,
+    required double density,
+    required String watermarkText,
+    required bool useRandomColor,
+    required int selectedColorValue,
+    ProgressCallback? onProgress,
+    CancellationToken? cancellationToken,
+  }) async {
+    try {
+      onProgress?.call(0.2, 'Reading PDF file...');
+      
+      if (cancellationToken?.isCancelled == true) {
+        throw const WatermarkError(
+          type: WatermarkErrorType.operationCancelled,
+          message: 'Operation cancelled during PDF reading',
+        );
+      }
+
+      final inputBytes = await file.readAsBytes();
+      final doc = pw.Document();
+      Uint8List? preview;
+      var hasPages = false;
+      var pageCount = 0;
+      var processedPages = 0;
+
+      onProgress?.call(0.3, 'Processing PDF pages...');
+
+      await for (final page in Printing.raster(inputBytes, dpi: _pdfRasterDpi)) {
+        if (cancellationToken?.isCancelled == true) {
+          throw const WatermarkError(
+            type: WatermarkErrorType.operationCancelled,
+            message: 'Operation cancelled during PDF processing',
+          );
+        }
+
+        hasPages = true;
+        pageCount++;
+        
+        final pngBytes = await page.toPng();
+        if (pngBytes == null) {
+          continue;
+        }
+
+        final decoded = img.decodeImage(pngBytes);
+        if (decoded == null) {
+          continue;
+        }
+
+        final watermarked = img.Image.from(decoded);
+        _applyWatermarkField(
+          watermarked,
+          watermarkText,
+          transparency,
+          density,
+          useRandomColor,
+          selectedColorValue,
+        );
+
+        final encoded = _encodePngForSharing(watermarked);
+        preview ??= encoded;
+
+        final provider = pw.MemoryImage(encoded);
+        final format = PdfPageFormat(
+          page.width.toDouble(),
+          page.height.toDouble(),
+        );
+
+        doc.addPage(
+          pw.Page(
+            pageFormat: format,
+            margin: pw.EdgeInsets.zero,
+            build: (_) => pw.SizedBox.expand(
+              child: pw.Image(provider, fit: pw.BoxFit.fill),
+            ),
+          ),
+        );
+
+        processedPages++;
+        final progress = 0.3 + (processedPages / pageCount) * 0.5;
+        onProgress?.call(progress, 'Processing page $processedPages...');
+      }
+
+      if (!hasPages) {
+        throw WatermarkError(
+          type: WatermarkErrorType.invalidPdfData,
+          message: 'PDF contains no readable pages',
+          filePath: file.path,
+        );
+      }
+
+      onProgress?.call(0.9, 'Finalizing PDF...');
+
+      final outputBytes = await doc.save();
+      final outputPath = _outputPath(file.path, '.pdf');
+
+      return ProcessResult(
+        outputPath: outputPath,
+        outputBytes: outputBytes,
+        previewBytes: preview,
+      );
+    } catch (e) {
+      if (e is WatermarkError) {
+        rethrow;
+      }
+      throw WatermarkError(
+        type: WatermarkErrorType.invalidPdfData,
+        message: 'Failed to process PDF',
+        filePath: file.path,
+        originalError: e,
+      );
+    }
+  }
+
+  static Uint8List _renderWatermarkedImageBytesWithValidation({
+    required Uint8List inputBytes,
+    required double transparency,
+    required double density,
+    required String watermarkText,
+    required bool useRandomColor,
+    required int selectedColorValue,
+    required String filePath,
+    required String originalExtension,
+  }) {
+    try {
+      final decoded = img.decodeImage(inputBytes);
       if (decoded == null) {
-        continue;
+        throw WatermarkError(
+          type: WatermarkErrorType.invalidImageData,
+          message: 'Unable to decode image data',
+          filePath: filePath,
+        );
       }
 
-      final watermarked = img.Image.from(decoded);
+      final resized = _resizeForSharing(decoded);
+      final outputImage = img.Image.from(resized);
+      
       _applyWatermarkField(
-        watermarked,
+        outputImage,
         watermarkText,
         transparency,
         density,
         useRandomColor,
         selectedColorValue,
       );
-
-      final encoded = _encodePngForSharing(watermarked);
-      preview ??= encoded;
-
-      final provider = pw.MemoryImage(encoded);
-      final format = PdfPageFormat(
-        page.width.toDouble(),
-        page.height.toDouble(),
-      );
-
-      doc.addPage(
-        pw.Page(
-          pageFormat: format,
-          margin: pw.EdgeInsets.zero,
-          build: (_) => pw.SizedBox.expand(
-            child: pw.Image(provider, fit: pw.BoxFit.fill),
-          ),
-        ),
+      
+      // Encode in the original format
+      return _encodeImageInOriginalFormat(outputImage, originalExtension);
+    } catch (e) {
+      if (e is WatermarkError) {
+        rethrow;
+      }
+      throw WatermarkError(
+        type: WatermarkErrorType.invalidImageData,
+        message: 'Failed to render watermarked image',
+        filePath: filePath,
+        originalError: e,
       );
     }
-
-    if (!hasPages) {
-      return null;
-    }
-
-    final outputBytes = await doc.save();
-    final outputPath = _outputPath(file.path, '.pdf');
-
-    return ProcessResult(
-      outputPath: outputPath,
-      outputBytes: outputBytes,
-      previewBytes: preview,
-    );
   }
 
   static Uint8List? _renderWatermarkedImageBytes({
@@ -465,23 +922,52 @@ class WatermarkProcessor {
       return image;
     }
 
-    if (width >= height) {
-      return img.copyResize(
-        image,
-        width: _maxImageDimension,
-        interpolation: img.Interpolation.average,
+    // Use more efficient resizing for very large images
+    final scale = _maxImageDimension / longestSide;
+    final newWidth = (width * scale).round();
+    final newHeight = (height * scale).round();
+
+    try {
+      if (width >= height) {
+        return img.copyResize(
+          image,
+          width: newWidth,
+          height: newHeight,
+          interpolation: img.Interpolation.average,
+        );
+      } else {
+        return img.copyResize(
+          image,
+          width: newWidth,
+          height: newHeight,
+          interpolation: img.Interpolation.average,
+        );
+      }
+    } catch (e) {
+      throw WatermarkError(
+        type: WatermarkErrorType.memoryLimitExceeded,
+        message: 'Not enough memory to resize image',
+        originalError: e,
       );
     }
-
-    return img.copyResize(
-      image,
-      height: _maxImageDimension,
-      interpolation: img.Interpolation.average,
-    );
   }
 
   static Uint8List _encodePngForSharing(img.Image image) {
     return Uint8List.fromList(img.encodePng(image, level: 2));
+  }
+
+  /// Encode image in the original format to preserve file type
+  static Uint8List _encodeImageInOriginalFormat(img.Image image, String extension) {
+    switch (extension.toLowerCase()) {
+      case '.jpg':
+      case '.jpeg':
+        return Uint8List.fromList(img.encodeJpg(image, quality: 95));
+      case '.png':
+        return Uint8List.fromList(img.encodePng(image, level: 2));
+      default:
+        // Default to PNG for unsupported formats
+        return Uint8List.fromList(img.encodePng(image, level: 2));
+    }
   }
 
   static double _randomAngle() {

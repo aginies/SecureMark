@@ -1,4 +1,4 @@
-name: watermark_app
+name: watermark
 description: A watermark app for images and PDFs
 publish_to: 'none'
 version: 1.0.0+1

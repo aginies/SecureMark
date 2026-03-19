@@ -181,4 +181,7 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return 'Share sheet opened for $_temp0.';
   }
+
+  @override
+  String get cancel => 'Cancel';
 }

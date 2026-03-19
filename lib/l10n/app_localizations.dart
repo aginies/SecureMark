@@ -319,6 +319,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Share sheet opened for {count, plural, one {1 file} other {{count} files}}.'**
   String shareOpenedFiles(int count);
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
 }
 
 class _AppLocalizationsDelegate

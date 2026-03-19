@@ -150,5 +150,6 @@
         "type": "int"
       }
     }
-  }
+  },
+  "cancel": "Annuler"
 }

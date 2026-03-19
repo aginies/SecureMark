@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:path/path.dart' as p;
@@ -58,16 +59,20 @@ class WatermarkPage extends StatefulWidget {
 
 class _WatermarkPageState extends State<WatermarkPage> {
   final TextEditingController _textController = TextEditingController();
+  final TransformationController _transformationController = TransformationController();
   double _transparency = 90;
   double _density = 35;
   bool _useRandomColor = true;
   Color _selectedColor = Colors.red;
   bool _dragging = false;
   bool _processing = false;
+  double _progress = 0.0;
   String _statusMessage = '';
+  String _progressMessage = '';
   List<String> _selectedPaths = <String>[];
   List<_ProcessedFile> _processedFiles = <_ProcessedFile>[];
   int _previewIndex = 0;
+  CancellationToken? _cancellationToken;
 
   bool get _supportsDesktopDrop =>
       !kIsWeb && (Platform.isMacOS || Platform.isLinux || Platform.isWindows);
@@ -83,6 +88,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
   @override
   void dispose() {
     _textController.dispose();
+    _transformationController.dispose();
     super.dispose();
   }
 
@@ -226,6 +232,8 @@ class _WatermarkPageState extends State<WatermarkPage> {
                         setState(() {
                           _previewIndex = index;
                         });
+                        // Reset zoom when changing preview
+                        _transformationController.value = Matrix4.identity();
                       },
                       itemBuilder: (context, index) {
                         final previewBytes = _processedFiles[index].result.previewBytes;
@@ -238,7 +246,97 @@ class _WatermarkPageState extends State<WatermarkPage> {
                           );
                         }
 
-                        return Image.memory(previewBytes, fit: BoxFit.contain);
+                        return Stack(
+                          children: [
+                            GestureDetector(
+                              onDoubleTap: () {
+                                final currentScale = _transformationController.value.getMaxScaleOnAxis();
+                                final targetScale = currentScale > 1.0 ? 1.0 : 2.0;
+                                
+                                if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+                                  HapticFeedback.lightImpact();
+                                }
+                                
+                                _transformationController.value = Matrix4.identity()..scale(targetScale);
+                              },
+                              child: InteractiveViewer(
+                                transformationController: _transformationController,
+                                minScale: 0.5,
+                                maxScale: 4.0,
+                                panEnabled: true,
+                                scaleEnabled: true,
+                                clipBehavior: Clip.none,
+                                child: Container(
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  alignment: Alignment.center,
+                                  child: Image.memory(previewBytes, fit: BoxFit.contain),
+                                ),
+                              ),
+                            ),
+                            // Zoom instructions overlay (shows when not zoomed)
+                            ValueListenableBuilder<Matrix4>(
+                              valueListenable: _transformationController,
+                              builder: (context, matrix, child) {
+                                final scale = matrix.getMaxScaleOnAxis();
+                                final isZoomed = scale > 1.0;
+                                
+                                return Positioned(
+                                  top: 8,
+                                  left: 8,
+                                  right: 8,
+                                  child: AnimatedOpacity(
+                                    opacity: isZoomed ? 0.0 : 0.7,
+                                    duration: const Duration(milliseconds: 300),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black54,
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(Icons.pinch, color: Colors.white, size: 16),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Pinch to zoom • Double-tap to zoom',
+                                            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            // Reset zoom button (only visible when zoomed)
+                            ValueListenableBuilder<Matrix4>(
+                              valueListenable: _transformationController,
+                              builder: (context, matrix, child) {
+                                final scale = matrix.getMaxScaleOnAxis();
+                                if (scale <= 1.0) return const SizedBox.shrink();
+                                
+                                return Positioned(
+                                  bottom: 8,
+                                  right: 8,
+                                  child: FloatingActionButton.small(
+                                    heroTag: "zoom_reset_$index", // Unique hero tag for PageView
+                                    onPressed: () {
+                                      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+                                        HapticFeedback.lightImpact();
+                                      }
+                                      _transformationController.value = Matrix4.identity();
+                                    },
+                                    backgroundColor: theme.colorScheme.surface.withValues(alpha: 0.9),
+                                    child: const Icon(Icons.zoom_out_map, size: 20),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        );
                       },
                     ),
                   ),
@@ -258,7 +356,9 @@ class _WatermarkPageState extends State<WatermarkPage> {
 
   Widget _buildLoadingOverlay(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
-    final message = _statusMessage.isEmpty ? l10n.processingFile : _statusMessage;
+    final message = _progressMessage.isEmpty 
+        ? (_statusMessage.isEmpty ? l10n.processingFile : _statusMessage)
+        : _progressMessage;
 
     return Positioned.fill(
       child: ColoredBox(
@@ -282,10 +382,13 @@ class _WatermarkPageState extends State<WatermarkPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(
+                SizedBox(
                   width: 36,
                   height: 36,
-                  child: CircularProgressIndicator(strokeWidth: 3),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    value: _progress > 0 ? _progress : null,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Text(l10n.applyingWatermark, style: theme.textTheme.titleMedium),
@@ -294,6 +397,18 @@ class _WatermarkPageState extends State<WatermarkPage> {
                   message,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium,
+                ),
+                if (_progress > 0) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    '${(_progress * 100).round()}%',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: _cancelProcessing,
+                  child: Text(l10n.cancel),
                 ),
               ],
             ),
@@ -653,42 +768,69 @@ class _WatermarkPageState extends State<WatermarkPage> {
   Future<void> _processPaths(List<String> paths) async {
     final l10n = AppLocalizations.of(context)!;
 
+    _cancellationToken = CancellationToken();
+
     setState(() {
       _processing = true;
       _processedFiles = <_ProcessedFile>[];
       _previewIndex = 0;
+      _progress = 0.0;
+      _progressMessage = '';
       _statusMessage = l10n.processingCount(paths.length);
     });
 
     final processedFiles = <_ProcessedFile>[];
+    final failedFiles = <String>[];
 
     try {
       for (var i = 0; i < paths.length; i++) {
+        if (_cancellationToken?.isCancelled == true) {
+          setState(() {
+            _processing = false;
+            _progress = 0.0;
+            _progressMessage = '';
+            _statusMessage = 'Processing cancelled';
+          });
+          return;
+        }
+
         final path = paths[i];
 
         if (!mounted) {
           return;
         }
 
-        setState(() {
-          _statusMessage = l10n.processingNamedFile(
-            i + 1,
-            paths.length,
-            File(path).uri.pathSegments.last,
+        try {
+          final result = await WatermarkProcessor.processFile(
+            file: File(path),
+            transparency: _transparency,
+            density: _density,
+            watermarkText: _textController.text,
+            useRandomColor: _useRandomColor,
+            selectedColorValue: _selectedColor.toARGB32(),
+            onProgress: (progress, message) {
+              if (mounted) {
+                setState(() {
+                  final fileProgress = i / paths.length;
+                  _progress = fileProgress + (progress / paths.length);
+                  _progressMessage = message;
+                });
+              }
+            },
+            cancellationToken: _cancellationToken,
           );
-        });
 
-        final result = await WatermarkProcessor.processFile(
-          file: File(path),
-          transparency: _transparency,
-          density: _density,
-          watermarkText: _textController.text,
-          useRandomColor: _useRandomColor,
-          selectedColorValue: _selectedColor.toARGB32(),
-        );
-
-        if (result != null) {
           processedFiles.add(_ProcessedFile(sourcePath: path, result: result));
+        } catch (e) {
+          failedFiles.add(path);
+          print('Failed to process $path: $e');
+          
+          // Show user-friendly error message if it's a WatermarkError
+          if (e is WatermarkError && mounted) {
+            setState(() {
+              _statusMessage = e.userMessage;
+            });
+          }
         }
       }
 
@@ -696,40 +838,75 @@ class _WatermarkPageState extends State<WatermarkPage> {
         return;
       }
 
-      if (processedFiles.isEmpty) {
+      if (processedFiles.isEmpty && failedFiles.isNotEmpty) {
         setState(() {
-          _statusMessage = l10n.processingFailed;
+          _statusMessage = failedFiles.length == 1 
+              ? 'Failed to process file. Please check the file format and try again.'
+              : 'Failed to process ${failedFiles.length} files. Please check the file formats and try again.';
           _processing = false;
+          _progress = 0.0;
+          _progressMessage = '';
         });
         return;
       }
 
+      final successMessage = processedFiles.isEmpty
+          ? l10n.processingFailed
+          : failedFiles.isEmpty
+              ? l10n.previewReady(processedFiles.length)
+              : 'Processed ${processedFiles.length} files successfully. ${failedFiles.length} files failed.';
+
       setState(() {
         _processedFiles = processedFiles;
         _previewIndex = 0;
-        _statusMessage = l10n.previewReady(processedFiles.length);
+        _statusMessage = successMessage;
         _processing = false;
+        _progress = 1.0;
+        _progressMessage = '';
       });
     } catch (error) {
       if (!mounted) {
         return;
       }
 
+      String errorMessage;
+      if (error is WatermarkError) {
+        errorMessage = error.userMessage;
+      } else {
+        errorMessage = l10n.errorPrefix(error.toString());
+      }
+
       setState(() {
-        _statusMessage = l10n.errorPrefix(error.toString());
+        _statusMessage = errorMessage;
         _processing = false;
+        _progress = 0.0;
+        _progressMessage = '';
       });
     }
   }
 
+  void _cancelProcessing() {
+    _cancellationToken?.cancel();
+    setState(() {
+      _processing = false;
+      _progress = 0.0;
+      _progressMessage = '';
+      _statusMessage = 'Processing cancelled';
+    });
+  }
+
   void _reset() {
+    _cancellationToken?.cancel();
     setState(() {
       _dragging = false;
       _processing = false;
+      _progress = 0.0;
+      _progressMessage = '';
       _selectedPaths = <String>[];
       _processedFiles = <_ProcessedFile>[];
       _previewIndex = 0;
       _statusMessage = '';
+      _cancellationToken = null;
     });
   }
 
