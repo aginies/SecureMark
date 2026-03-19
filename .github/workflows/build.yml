@@ -33,11 +33,21 @@ jobs:
         run: flutter pub get
       - name: Build APK
         run: flutter build apk --release
+      - name: Verify APK exists
+        run: |
+          if [ -f "build/app/outputs/flutter-apk/app-release.apk" ]; then
+            echo "✅ APK built successfully"
+            ls -la build/app/outputs/flutter-apk/app-release.apk
+          else
+            echo "❌ APK not found"
+            find build -name "*.apk" -exec ls -la {} \;
+          fi
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
 
   build-ios:
     name: Build iOS/iPad
@@ -56,12 +66,20 @@ jobs:
       - name: Package iOS Build
         run: |
           cd build/ios/iphoneos
-          zip -r ../../../watermark-app-ios.zip Runner.app
+          if [ -d "Runner.app" ]; then
+            zip -r ../../../watermark-app-ios.zip Runner.app
+            echo "✅ iOS app packaged successfully"
+            ls -la ../../../watermark-app-ios.zip
+          else
+            echo "❌ Runner.app not found"
+            find . -name "*.app" -exec ls -la {} \;
+          fi
       - name: Upload iOS Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ios-release-app
           path: watermark-app-ios.zip
+          if-no-files-found: error
 
   build-windows:
     name: Build Windows
@@ -77,14 +95,32 @@ jobs:
         run: flutter pub get
       - name: Build Windows
         run: flutter build windows --release
+      - name: Verify Windows build
+        run: |
+          if (Test-Path "build\windows\x64\runner\Release") {
+            Write-Host "✅ Windows build completed successfully"
+            Get-ChildItem -Recurse "build\windows\x64\runner\Release" | Format-Table Name, Length
+          } else {
+            Write-Host "❌ Windows build directory not found"
+            Get-ChildItem -Recurse "build\windows" | Format-Table FullName
+          }
+        shell: powershell
       - name: Package Windows Build
         run: |
           Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath watermark-app-windows.zip
+          if (Test-Path "watermark-app-windows.zip") {
+            Write-Host "✅ Windows ZIP created successfully"
+            Get-Item "watermark-app-windows.zip" | Format-List Name, Length
+          } else {
+            Write-Host "❌ Windows ZIP creation failed"
+          }
+        shell: powershell
       - name: Upload Windows Artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-release-exe
           path: watermark-app-windows.zip
+          if-no-files-found: error
 
   create-release:
     name: Create GitHub Release
@@ -92,34 +128,121 @@ jobs:
     needs: [build-android, build-ios, build-windows]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      
       - name: Download Android Artifact
         uses: actions/download-artifact@v4
         with:
           name: android-release-apk
+          path: ./artifacts/android
           
       - name: Download iOS Artifact
         uses: actions/download-artifact@v4
         with:
           name: ios-release-app
+          path: ./artifacts/ios
           
       - name: Download Windows Artifact
         uses: actions/download-artifact@v4
         with:
           name: windows-release-exe
+          path: ./artifacts/windows
+
+      - name: Debug - List Downloaded Files
+        run: |
+          echo "=== Listing all downloaded artifacts ==="
+          find ./artifacts -type f -exec ls -la {} \;
+          echo "=== Current directory contents ==="
+          ls -la
 
       - name: Rename Files for Release
         run: |
-          mv app-release.apk WatermarkApp-Android.apk
-          mv watermark-app-ios.zip WatermarkApp-iOS-verification.zip
-          mv watermark-app-windows.zip WatermarkApp-Windows.zip
+          # Create release directory
+          mkdir -p ./release
+          
+          # Copy and rename Android APK
+          if [ -f "./artifacts/android/app-release.apk" ]; then
+            cp "./artifacts/android/app-release.apk" "./release/WatermarkApp-Android.apk"
+            echo "✅ Android APK copied successfully"
+          else
+            echo "❌ Android APK not found"
+            find ./artifacts/android -name "*.apk" -exec ls -la {} \;
+          fi
+          
+          # Copy and rename iOS ZIP
+          if [ -f "./artifacts/ios/watermark-app-ios.zip" ]; then
+            cp "./artifacts/ios/watermark-app-ios.zip" "./release/WatermarkApp-iOS.zip"
+            echo "✅ iOS ZIP copied successfully"
+          else
+            echo "❌ iOS ZIP not found"
+            find ./artifacts/ios -name "*.zip" -exec ls -la {} \;
+          fi
+          
+          # Copy and rename Windows ZIP
+          if [ -f "./artifacts/windows/watermark-app-windows.zip" ]; then
+            cp "./artifacts/windows/watermark-app-windows.zip" "./release/WatermarkApp-Windows.zip"
+            echo "✅ Windows ZIP copied successfully"
+          else
+            echo "❌ Windows ZIP not found"
+            find ./artifacts/windows -name "*.zip" -exec ls -la {} \;
+          fi
+          
+          echo "=== Final release files ==="
+          ls -la ./release/
+
+      - name: Verify All Artifacts Present
+        run: |
+          echo "=== Checking for required release files ==="
+          MISSING_FILES=0
+          
+          if [ ! -f "./release/WatermarkApp-Android.apk" ]; then
+            echo "❌ Android APK missing"
+            MISSING_FILES=$((MISSING_FILES + 1))
+          else
+            echo "✅ Android APK present"
+          fi
+          
+          if [ ! -f "./release/WatermarkApp-iOS.zip" ]; then
+            echo "❌ iOS ZIP missing"
+            MISSING_FILES=$((MISSING_FILES + 1))
+          else
+            echo "✅ iOS ZIP present"
+          fi
+          
+          if [ ! -f "./release/WatermarkApp-Windows.zip" ]; then
+            echo "❌ Windows ZIP missing"
+            MISSING_FILES=$((MISSING_FILES + 1))
+          else
+            echo "✅ Windows ZIP present"
+          fi
+          
+          if [ $MISSING_FILES -gt 0 ]; then
+            echo "❌ $MISSING_FILES file(s) missing. Release will proceed with available files."
+          else
+            echo "✅ All release files present"
+          fi
+
+      - name: Create Release Notes
+        run: |
+          echo "# WatermarkApp Release ${GITHUB_REF_NAME}" > release_notes.md
+          echo "" >> release_notes.md
+          echo "## What's New" >> release_notes.md
+          echo "- Cross-platform watermark application for images and PDFs" >> release_notes.md
+          echo "- Support for PNG, JPG, and PDF files" >> release_notes.md
+          echo "- Customizable watermark text, transparency, and density" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## Downloads" >> release_notes.md
+          echo "- **Android**: Install the APK file on your Android device" >> release_notes.md
+          echo "- **iOS**: For development/verification purposes only (requires Xcode)" >> release_notes.md
+          echo "- **Windows**: Extract and run the executable" >> release_notes.md
 
       - name: Release
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: |
-            WatermarkApp-Android.apk
-            WatermarkApp-iOS-verification.zip
-            WatermarkApp-Windows.zip
-          generate_release_notes: true
+          files: ./release/*
+          body_path: release_notes.md
           draft: false
           prerelease: false
+          fail_on_unmatched_files: false
