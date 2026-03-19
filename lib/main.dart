@@ -520,7 +520,12 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                             GestureDetector(
                               onDoubleTap: () {
                                 final currentScale = _transformationController.value.getMaxScaleOnAxis();
-                                final targetScale = currentScale > 1.0 ? 1.0 : 2.0;
+                                // Smart zoom: cycle through 1.0 -> 2.0 -> 3.0 -> 1.0
+                                final targetScale = currentScale <= 1.0 
+                                    ? 2.0 
+                                    : currentScale <= 2.0 
+                                        ? 3.0 
+                                        : 1.0;
                                 
                                 if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
                                   HapticFeedback.lightImpact();
@@ -571,58 +576,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                                 ),
                               ),
                             ],
-                            // Zoom instructions overlay (shows when not zoomed)
-                            ValueListenableBuilder<Matrix4>(
-                              valueListenable: _transformationController,
-                              builder: (context, matrix, child) {
-                                final scale = matrix.getMaxScaleOnAxis();
-                                final isZoomed = scale > 1.0;
-                                final isMobile = !kIsWeb && (Platform.isAndroid || Platform.isIOS);
-                                
-                                return Positioned(
-                                  top: isMobile ? 12 : 8,
-                                  left: 8,
-                                  right: 8,
-                                  child: AnimatedOpacity(
-                                    opacity: isZoomed ? 0.0 : (isMobile ? 0.8 : 0.7),
-                                    duration: const Duration(milliseconds: 300),
-                                    child: Container(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: isMobile ? 16 : 12,
-                                        vertical: isMobile ? 12 : 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black54,
-                                        borderRadius: BorderRadius.circular(isMobile ? 20 : 16),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.pinch, 
-                                            color: Colors.white, 
-                                            size: isMobile ? 20 : 16,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            isMobile 
-                                                ? 'Pinch or double-tap to zoom'
-                                                : 'Pinch to zoom • Double-tap to zoom',
-                                            style: (isMobile 
-                                                ? theme.textTheme.bodyMedium 
-                                                : theme.textTheme.bodySmall)?.copyWith(
-                                              color: Colors.white,
-                                              fontWeight: isMobile ? FontWeight.w500 : FontWeight.normal,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
                             // Reset zoom button (only visible when zoomed)
                             ValueListenableBuilder<Matrix4>(
                               valueListenable: _transformationController,
