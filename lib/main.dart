@@ -42,7 +42,7 @@ class WatermarkApp extends StatelessWidget {
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF126A5A)),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
       home: const WatermarkPage(),
@@ -216,7 +216,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
         ],
         if (_supportsDesktopDrop) ...[
           const SizedBox(height: 16),
-          _buildDropArea(),
+          _buildDropArea(theme),
         ],
       ],
     );
@@ -228,7 +228,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F7F2),
+        color: theme.colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
@@ -730,7 +730,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
     );
   }
 
-  Widget _buildDropArea() {
+  Widget _buildDropArea(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
 
     return DropTarget(
@@ -771,10 +771,10 @@ class _WatermarkPageState extends State<WatermarkPage> {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: _dragging ? const Color(0xFFE1F3EE) : const Color(0xFFF7F7F2),
+          color: _dragging ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3) : theme.colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: _dragging ? const Color(0xFF126A5A) : const Color(0xFF9BB5AE),
+            color: _dragging ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
             width: 2,
           ),
         ),
