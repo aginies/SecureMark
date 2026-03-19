@@ -566,68 +566,42 @@ class WatermarkProcessor {
       }
 
       final inputBytes = await file.readAsBytes();
-      final document = sync.PdfDocument(inputBytes: inputBytes);
-      final pageCount = document.pages.count;
 
-      onProgress?.call(0.2, 'Adding watermark layer...');
-
-      // Color and transparency
-      final alpha = (100 - transparency).clamp(10, 90) / 100;
-      final pdfFont = sync.PdfStandardFont(sync.PdfFontFamily.helvetica, fontSize);
-
-      for (var i = 0; i < pageCount; i++) {
-        if (cancellationToken?.isCancelled == true) {
-          document.dispose();
-          throw const WatermarkError(
-            type: WatermarkErrorType.operationCancelled,
-            message: 'Operation cancelled',
-          );
-        }
-
-        final page = document.pages[i];
-        final pageSize = page.size;
-        final graphics = page.graphics;
-
-        // Draw multiple watermarks based on density
-        final targetCount = _watermarkCount(pageSize.width.toInt(), pageSize.height.toInt(), density);
-        final columns = max<int>(2, sqrt(targetCount * (pageSize.width / max<double>(1.0, pageSize.height))).round());
-        final rows = max<int>(2, (targetCount / columns).ceil());
-        
-        final cellWidth = pageSize.width / columns;
-        final cellHeight = pageSize.height / rows;
-
-        for (var row = 0; row < rows; row++) {
-          for (var col = 0; col < columns; col++) {
-            graphics.save();
-            
-            // Resolve color for this instance
-            final color = _resolveSyncfusionColor(useRandomColor, selectedColorValue, alpha);
-            final brush = sync.PdfSolidBrush(color);
-
-            // Randomize position within cell slightly
-            final x = (col * cellWidth) + (_random.nextDouble() * (cellWidth * 0.3));
-            final y = (row * cellHeight) + (_random.nextDouble() * (cellHeight * 0.3));
-            final angle = _randomAngle();
-
-            graphics.translateTransform(x, y);
-            graphics.rotateTransform(angle);
-            graphics.drawString(watermarkText, pdfFont, brush: brush);
-            
-            graphics.restore();
-          }
-        }
-
-        onProgress?.call(0.2 + (i / pageCount) * 0.6, 'Processing page ${i + 1} of $pageCount...');
+      if (cancellationToken?.isCancelled == true) {
+        throw const WatermarkError(
+          type: WatermarkErrorType.operationCancelled,
+          message: 'Operation cancelled',
+        );
       }
 
-      onProgress?.call(0.9, 'Saving PDF...');
-      final List<int> bytes = await document.save();
-      document.dispose();
+      onProgress?.call(0.2, 'Adding watermark layer (background)...');
+
+      // Move heavy PDF processing to Isolate
+      final outputBytes = await Isolate.run(
+        () => _renderWatermarkedPdfBytes(
+          inputBytes: inputBytes,
+          transparency: transparency,
+          density: density,
+          watermarkText: watermarkText,
+          useRandomColor: useRandomColor,
+          selectedColorValue: selectedColorValue,
+          fontSize: fontSize,
+        ),
+      );
+
+      if (cancellationToken?.isCancelled == true) {
+        throw const WatermarkError(
+          type: WatermarkErrorType.operationCancelled,
+          message: 'Operation cancelled during PDF processing',
+        );
+      }
+
+      onProgress?.call(0.9, 'Finalizing PDF...');
       
-      final outputBytes = Uint8List.fromList(bytes);
       final outputPath = _outputPath(file.path, '.pdf', includeTimestamp);
 
       // Generate a preview of the first page using the existing Printing logic
+      // Note: Printing.raster must be called on the main isolate as it uses platform channels
       final preview = await Printing.raster(outputBytes, pages: [0], dpi: 72).first;
       final previewBytes = await preview.toPng();
 
@@ -647,7 +621,67 @@ class WatermarkProcessor {
     }
   }
 
-  static sync.PdfColor _resolveSyncfusionColor(bool useRandomColor, int selectedColorValue, double opacity) {
+  static Uint8List _renderWatermarkedPdfBytes({
+    required Uint8List inputBytes,
+    required double transparency,
+    required double density,
+    required String watermarkText,
+    required bool useRandomColor,
+    required int selectedColorValue,
+    required double fontSize,
+  }) {
+    final document = sync.PdfDocument(inputBytes: inputBytes);
+    final pageCount = document.pages.count;
+
+    // Color and transparency
+    final alpha = (100 - transparency).clamp(10, 90) / 100;
+    final pdfFont = sync.PdfStandardFont(sync.PdfFontFamily.helvetica, fontSize);
+
+    for (var i = 0; i < pageCount; i++) {
+      final page = document.pages[i];
+      final pageSize = page.size;
+      final graphics = page.graphics;
+
+      // Draw multiple watermarks based on density
+      final targetCount = _watermarkCount(pageSize.width.toInt(), pageSize.height.toInt(), density);
+      final columns = max<int>(2, sqrt(targetCount * (pageSize.width / max<double>(1.0, pageSize.height))).round());
+      final rows = max<int>(2, (targetCount / columns).ceil());
+      
+      final cellWidth = pageSize.width / columns;
+      final cellHeight = pageSize.height / rows;
+
+      for (var row = 0; row < rows; row++) {
+        for (var col = 0; col < columns; col++) {
+          graphics.save();
+          
+          // Resolve color for this instance (opaque, transparency handled by graphics state)
+          final color = _resolveSyncfusionColor(useRandomColor, selectedColorValue);
+          final brush = sync.PdfSolidBrush(color);
+
+          // Randomize position within cell slightly
+          final x = (col * cellWidth) + (_random.nextDouble() * (cellWidth * 0.3));
+          final y = (row * cellHeight) + (_random.nextDouble() * (cellHeight * 0.3));
+          final angle = _randomAngle();
+
+          graphics.translateTransform(x, y);
+          graphics.rotateTransform(angle);
+          
+          // Apply transparency globally to the graphics state
+          graphics.setTransparency(alpha);
+          
+          graphics.drawString(watermarkText, pdfFont, brush: brush);
+          
+          graphics.restore();
+        }
+      }
+    }
+
+    final List<int> bytes = document.saveSync();
+    document.dispose();
+    return Uint8List.fromList(bytes);
+  }
+
+  static sync.PdfColor _resolveSyncfusionColor(bool useRandomColor, int selectedColorValue) {
     int r, g, b;
     if (useRandomColor) {
       final hue = _random.nextDouble() * 360;
@@ -671,7 +705,7 @@ class WatermarkProcessor {
       g = (selectedColorValue >> 8) & 0xFF;
       b = selectedColorValue & 0xFF;
     }
-    return sync.PdfColor(r, g, b, (opacity * 255).round());
+    return sync.PdfColor(r, g, b);
   }
 
   static Uint8List _renderWatermarkedImageBytesWithValidation({
