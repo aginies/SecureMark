@@ -10,6 +10,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
+import 'package:collection/collection.dart';
 
 import 'l10n/app_localizations.dart';
 import 'watermark_processor.dart';
@@ -69,7 +70,7 @@ class WatermarkPage extends StatefulWidget {
   State<WatermarkPage> createState() => _WatermarkPageState();
 }
 
-class _WatermarkPageState extends State<WatermarkPage> {
+class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserver {
   final TextEditingController _textController = TextEditingController();
   final TransformationController _transformationController = TransformationController();
   final PageController _previewController = PageController();
@@ -95,7 +96,26 @@ class _WatermarkPageState extends State<WatermarkPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _handleSharedContent();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _textController.dispose();
+    _transformationController.dispose();
+    _previewController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // Check for shared content when app comes back to foreground
+      _handleSharedContent();
+    }
   }
 
   Future<void> _handleSharedContent() async {
@@ -111,20 +131,30 @@ class _WatermarkPageState extends State<WatermarkPage> {
         }).toList();
 
         if (validFiles.isNotEmpty) {
-          setState(() {
-            _selectedPaths = validFiles;
-            _processedFiles.clear();
-            _previewIndex = 0;
-          });
+          // Only update if these are new files (different from current selection)
+          final currentPathsSet = Set<String>.from(_selectedPaths);
+          final newPathsSet = Set<String>.from(validFiles);
+          
+          if (!const SetEquality().equals(currentPathsSet, newPathsSet)) {
+            setState(() {
+              _selectedPaths = validFiles;
+              _processedFiles.clear();
+              _previewIndex = 0;
+            });
 
-          if (mounted) {
-            final l10n = AppLocalizations.of(context)!;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(l10n.selectedFiles(validFiles.length)),
-                duration: const Duration(seconds: 3),
-              ),
-            );
+            if (mounted) {
+              final l10n = AppLocalizations.of(context)!;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('📷 ${l10n.selectedFiles(validFiles.length)}'),
+                  duration: const Duration(seconds: 3),
+                  action: SnackBarAction(
+                    label: l10n.applyWatermark,
+                    onPressed: _applyWatermark,
+                  ),
+                ),
+              );
+            }
           }
         }
       }
@@ -144,13 +174,6 @@ class _WatermarkPageState extends State<WatermarkPage> {
     return _processedFiles[safeIndex];
   }
 
-  @override
-  void dispose() {
-    _textController.dispose();
-    _transformationController.dispose();
-    _previewController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
