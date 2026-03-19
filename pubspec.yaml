@@ -1,7 +1,7 @@
 name: watermark_app
 description: WaterMarkApp - A professional watermark application for images and PDFs
 publish_to: 'none'
-version: 1.0.4+4
+version: 1.0.5+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
