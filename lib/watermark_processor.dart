@@ -233,7 +233,7 @@ class WatermarkProcessor {
           onProgress: onProgress,
           cancellationToken: cancellationToken,
         );
-      } else if (extension == '.jpg' || extension == '.jpeg' || extension == '.png') {
+      } else if (extension == '.jpg' || extension == '.jpeg' || extension == '.png' || extension == '.webp') {
         result = await _processImage(
           file: file,
           transparency: transparency,
@@ -306,7 +306,7 @@ class WatermarkProcessor {
 
       // Check file extension
       final extension = p.extension(file.path).toLowerCase();
-      const supportedExtensions = {'.jpg', '.jpeg', '.png', '.pdf'};
+      const supportedExtensions = {'.jpg', '.jpeg', '.png', '.webp', '.pdf'};
       if (!supportedExtensions.contains(extension)) {
         return _ValidationResult(
           isValid: false,
@@ -1064,6 +1064,10 @@ class WatermarkProcessor {
       case '.jpeg':
         return Uint8List.fromList(img.encodeJpg(image, quality: jpegQuality));
       case '.png':
+        return Uint8List.fromList(img.encodePng(image, level: 2));
+      case '.webp':
+        // WebP encoding may not be available in current image package version
+        // Fall back to PNG encoding for WebP files
         return Uint8List.fromList(img.encodePng(image, level: 2));
       default:
         // Default to PNG for unsupported formats

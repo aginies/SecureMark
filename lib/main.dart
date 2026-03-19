@@ -75,7 +75,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   final TextEditingController _textController = TextEditingController();
   final TransformationController _transformationController = TransformationController();
   final PageController _previewController = PageController();
-  double _transparency = 90;
+  double _transparency = 75;
   double _density = 35;
   double _fontSize = 24;
   WatermarkFont _selectedFont = FontManager.getDefaultFont();
@@ -129,7 +129,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
             .map((file) => file as String)
             .where((path) {
           final extension = p.extension(path).toLowerCase();
-          return ['.jpg', '.jpeg', '.png', '.pdf'].contains(extension);
+          return ['.jpg', '.jpeg', '.png', '.webp', '.pdf'].contains(extension);
         }).toList();
 
         if (validFiles.isNotEmpty) {
@@ -432,36 +432,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                   Text(
                     _getFontSourceDescription(context),
                     style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      border: Border.all(color: theme.dividerColor),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Preview:',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Sample watermark text',
-                          style: _selectedFont.getTextStyle(fontSize: 18),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Échantillon de texte français',
-                          style: _selectedFont.getTextStyle(fontSize: 14),
-                        ),
-                      ],
-                    ),
                   ),
                 ],
               ),
@@ -880,6 +850,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       Colors.cyan,
       Colors.yellow,
       Colors.white,
+      Colors.purple,
+      Colors.black,
     ];
 
     return Card(
@@ -1081,8 +1053,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
     final group = XTypeGroup(
       label: l10n.pickerLabel,
-      extensions: <String>['jpg', 'jpeg', 'png', 'pdf'],
-      uniformTypeIdentifiers: <String>['public.jpeg', 'public.png', 'com.adobe.pdf'],
+      extensions: <String>['jpg', 'jpeg', 'png', 'webp', 'pdf'],
+      uniformTypeIdentifiers: <String>['public.jpeg', 'public.png', 'public.webp', 'com.adobe.pdf'],
     );
 
     final files = await openFiles(acceptedTypeGroups: <XTypeGroup>[group]);
@@ -1429,12 +1401,10 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         )
         .toList();
 
-    final result = await SharePlus.instance.share(
-      ShareParams(
-        files: shareFiles,
-        subject: l10n.shareSubject,
-        text: l10n.shareText,
-      ),
+    final result = await Share.shareXFiles(
+      shareFiles,
+      subject: l10n.shareSubject,
+      text: l10n.shareText,
     );
 
     if (!mounted) {
@@ -1452,6 +1422,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     return switch (p.extension(path).toLowerCase()) {
       '.png' => 'image/png',
       '.jpg' || '.jpeg' => 'image/jpeg',
+      '.webp' => 'image/webp',
       '.pdf' => 'application/pdf',
       _ => 'application/octet-stream',
     };

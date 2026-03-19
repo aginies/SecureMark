@@ -86,7 +86,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String transparencyValue(int value) {
-    return 'Transparency: $value%';
+    return 'Watermark Transparency: $value%';
   }
 
   @override

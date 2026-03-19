@@ -221,7 +221,7 @@ abstract class AppLocalizations {
   /// No description provided for @transparencyValue.
   ///
   /// In en, this message translates to:
-  /// **'Transparency: {value}%'**
+  /// **'Watermark Transparency: {value}%'**
   String transparencyValue(int value);
 
   /// No description provided for @densityValue.

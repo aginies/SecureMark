@@ -51,7 +51,7 @@
   "watermarkTextHint": "Saisissez le texte à estampiller avec la date et l'heure",
   "randomColor": "Couleur aléatoire",
   "selectedColor": "Couleur choisie",
-  "transparencyValue": "Transparence : {value}%",
+  "transparencyValue": "Transparence du filigrane : {value}%",
   "@transparencyValue": {
     "placeholders": {
       "value": {
