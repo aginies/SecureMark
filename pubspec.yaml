@@ -1,7 +1,7 @@
 name: watermark_app
 description: WaterMarkApp - A professional watermark application for images and PDFs
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.4+4
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -20,6 +20,7 @@ dependencies:
   path: ^1.9.1
   share_plus: ^12.0.1
   google_fonts: ^8.0.2
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_test:

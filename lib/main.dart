@@ -10,6 +10,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:collection/collection.dart';
 
 import 'l10n/app_localizations.dart';
@@ -89,6 +90,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   double _progress = 0.0;
   String _statusMessage = '';
   String _progressMessage = '';
+  String _appVersion = '';
   List<String> _selectedPaths = <String>[];
   List<_ProcessedFile> _processedFiles = <_ProcessedFile>[];
   int _previewIndex = 0;
@@ -100,6 +102,16 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _handleSharedContent();
+    _initPackageInfo();
+  }
+
+  Future<void> _initPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = info.version;
+      });
+    }
   }
 
   @override
@@ -686,10 +698,22 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   Widget _buildAuthorFooter(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Text(
-      l10n.authorFooter,
-      textAlign: TextAlign.center,
-      style: theme.textTheme.bodySmall,
+    return Column(
+      children: [
+        Text(
+          l10n.authorFooter,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodySmall,
+        ),
+        if (_appVersion.isNotEmpty)
+          Text(
+            'v$_appVersion',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.hintColor,
+            ),
+          ),
+      ],
     );
   }
 
