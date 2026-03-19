@@ -151,5 +151,6 @@
       }
     }
   },
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "saveLocationInfo": "Files will be saved in the same folder as originals with 'watermarked-' prefix"
 }

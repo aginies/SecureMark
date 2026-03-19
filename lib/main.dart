@@ -174,6 +174,33 @@ class _WatermarkPageState extends State<WatermarkPage> {
             l10n.readyToSaveFiles(_processedFiles.length),
             style: theme.textTheme.bodySmall,
           ),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.folder_outlined, 
+                  size: 16, 
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _getSaveLocationInfo(),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
         if (_supportsDesktopDrop) ...[
           const SizedBox(height: 16),
@@ -924,17 +951,136 @@ class _WatermarkPageState extends State<WatermarkPage> {
       return;
     }
 
-    for (final file in _processedFiles) {
-      await File(file.result.outputPath).writeAsBytes(file.result.outputBytes);
-    }
-
-    if (!mounted) {
-      return;
-    }
-
     setState(() {
-      _statusMessage = l10n.savedFiles(_processedFiles.length);
+      _statusMessage = 'Saving files...';
     });
+
+    final savedFiles = <String>[];
+    final failedFiles = <String>[];
+
+    try {
+      for (final file in _processedFiles) {
+        try {
+          // Create the directory if it doesn't exist
+          final outputFile = File(file.result.outputPath);
+          final directory = outputFile.parent;
+          
+          if (!await directory.exists()) {
+            await directory.create(recursive: true);
+          }
+          
+          await outputFile.writeAsBytes(file.result.outputBytes);
+          savedFiles.add(file.result.outputPath);
+        } catch (e) {
+          failedFiles.add(file.sourcePath);
+          print('Failed to save ${file.result.outputPath}: $e');
+        }
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      // Provide detailed feedback about save results
+      String statusMessage;
+      if (failedFiles.isEmpty) {
+        statusMessage = savedFiles.length == 1
+            ? 'File saved to: ${_getDisplayPath(savedFiles.first)}'
+            : l10n.savedFiles(savedFiles.length);
+      } else if (savedFiles.isEmpty) {
+        statusMessage = 'Failed to save files. Please check permissions and storage space.';
+      } else {
+        statusMessage = 'Saved ${savedFiles.length} files. ${failedFiles.length} files failed.';
+      }
+
+      setState(() {
+        _statusMessage = statusMessage;
+      });
+
+      // Show a more detailed dialog with save locations
+      if (savedFiles.isNotEmpty && mounted) {
+        _showSaveResultDialog(savedFiles, failedFiles);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      
+      setState(() {
+        _statusMessage = 'Error saving files: ${e.toString()}';
+      });
+    }
+  }
+
+  /// Get save location information for display
+  String _getSaveLocationInfo() {
+    if (_processedFiles.isEmpty) return '';
+    
+    final firstFile = _processedFiles.first;
+    final directory = p.dirname(firstFile.sourcePath);
+    final displayDir = p.basename(directory);
+    
+    if (_processedFiles.length == 1) {
+      final fileName = p.basenameWithoutExtension(firstFile.result.outputPath);
+      return 'Will save as: $fileName in $displayDir/';
+    } else {
+      return 'Will save ${_processedFiles.length} files to: $displayDir/';
+    }
+  }
+
+  /// Get a user-friendly display path
+  String _getDisplayPath(String fullPath) {
+    if (fullPath.length > 50) {
+      final fileName = p.basename(fullPath);
+      final directory = p.basename(p.dirname(fullPath));
+      return '.../$directory/$fileName';
+    }
+    return fullPath;
+  }
+
+  /// Show detailed save results dialog
+  void _showSaveResultDialog(List<String> savedFiles, List<String> failedFiles) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Files Saved'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (savedFiles.isNotEmpty) ...[
+                Text('✅ Successfully saved ${savedFiles.length} files:'),
+                const SizedBox(height: 8),
+                ...savedFiles.map((path) => Padding(
+                  padding: const EdgeInsets.only(left: 16, bottom: 4),
+                  child: Text(
+                    _getDisplayPath(path),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                )),
+              ],
+              if (failedFiles.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text('❌ Failed to save ${failedFiles.length} files:'),
+                const SizedBox(height: 8),
+                ...failedFiles.map((path) => Padding(
+                  padding: const EdgeInsets.only(left: 16, bottom: 4),
+                  child: Text(
+                    p.basename(path),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                )),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _shareCurrent() async {

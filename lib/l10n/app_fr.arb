@@ -151,5 +151,6 @@
       }
     }
   },
-  "cancel": "Annuler"
+  "cancel": "Annuler",
+  "saveLocationInfo": "Les fichiers seront sauvés dans le même dossier que les originaux avec le préfixe 'watermarked-'"
 }
