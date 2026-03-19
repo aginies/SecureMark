@@ -284,6 +284,12 @@ abstract class AppLocalizations {
   /// **'Preview ready for {count, plural, one {1 file} other {{count} files}}. You can save or share them.'**
   String previewReady(int count);
 
+  /// No description provided for @previewReadyMobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview ready for {count, plural, one {1 file} other {{count} files}}. You can share them.'**
+  String previewReadyMobile(int count);
+
   /// No description provided for @errorPrefix.
   ///
   /// In en, this message translates to:

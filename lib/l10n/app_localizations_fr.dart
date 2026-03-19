@@ -141,6 +141,17 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String previewReadyMobile(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count fichiers',
+      one: '1 fichier',
+    );
+    return 'Aperçu prêt pour $_temp0. Vous pouvez les partager.';
+  }
+
+  @override
   String errorPrefix(String error) {
     return 'Erreur : $error';
   }

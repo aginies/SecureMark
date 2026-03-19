@@ -117,6 +117,14 @@
       }
     }
   },
+  "previewReadyMobile": "Preview ready for {count, plural, one {1 file} other {{count} files}}. You can share them.",
+  "@previewReadyMobile": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "errorPrefix": "Error: {error}",
   "@errorPrefix": {
     "placeholders": {
