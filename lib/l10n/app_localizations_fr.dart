@@ -19,7 +19,7 @@ class AppLocalizationsFr extends AppLocalizations {
       other: '$count fichiers',
       one: '1 fichier',
     );
-    return 'Pret a enregistrer $_temp0';
+    return 'Prêt à enregistrer $_temp0';
   }
 
   @override
@@ -28,14 +28,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get selectedPreviewHint =>
-      'Fichiers selectionnes. Cliquez sur Appliquer le filigrane pour generer les apercus';
+      'Fichiers sélectionnés. Cliquez sur Appliquer le filigrane pour générer les aperçus';
 
   @override
-  String get previewUnavailable => 'Apercu indisponible';
+  String get previewUnavailable => 'Aperçu indisponible';
 
   @override
   String swipeHint(int current, int total) {
-    return 'Glissez a gauche pour le suivant, a droite pour le precedent ($current/$total)';
+    return 'Glissez à gauche pour le suivant, à droite pour le précédent ($current/$total)';
   }
 
   @override
@@ -52,12 +52,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String selectedFile(String name) {
-    return 'Fichier selectionne : $name';
+    return 'Fichier sélectionné : $name';
   }
 
   @override
   String selectedFiles(int count) {
-    return 'Fichiers selectionnes : $count';
+    return 'Fichiers sélectionnés : $count';
   }
 
   @override
@@ -70,17 +70,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get shareAll => 'Tout partager';
 
   @override
-  String get reset => 'Reinitialiser';
+  String get reset => 'Réinitialiser';
 
   @override
   String get watermarkTextLabel => 'Texte du filigrane';
 
   @override
   String get watermarkTextHint =>
-      'Saisissez le texte a estampiller avec la date et l\'heure';
+      'Saisissez le texte à estampiller avec la date et l\'heure';
 
   @override
-  String get randomColor => 'Couleur aleatoire';
+  String get randomColor => 'Couleur aléatoire';
 
   @override
   String get selectedColor => 'Couleur choisie';
@@ -92,27 +92,27 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String densityValue(int value) {
-    return 'Densite : $value%';
+    return 'Densité : $value%';
   }
 
   @override
   String get droppedPathUnavailable =>
-      'Les chemins des fichiers deposes sont indisponibles.';
+      'Les chemins des fichiers déposés sont indisponibles.';
 
   @override
-  String get desktopDropArea => 'Zone de depot bureau';
+  String get desktopDropArea => 'Zone de dépôt bureau';
 
   @override
   String get pickerLabel => 'Images et PDF';
 
   @override
   String selectedApplySingle(String name) {
-    return '$name selectionne. Cliquez sur Appliquer le filigrane.';
+    return '$name sélectionné. Cliquez sur Appliquer le filigrane.';
   }
 
   @override
   String selectedApplyMultiple(int count) {
-    return '$count fichiers selectionnes. Cliquez sur Appliquer le filigrane.';
+    return '$count fichiers sélectionnés. Cliquez sur Appliquer le filigrane.';
   }
 
   @override
@@ -127,7 +127,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get processingFailed =>
-      'Fichier non pris en charge ou echec du traitement.';
+      'Fichier non pris en charge ou échec du traitement.';
 
   @override
   String previewReady(int count) {
@@ -137,7 +137,7 @@ class AppLocalizationsFr extends AppLocalizations {
       other: '$count fichiers',
       one: '1 fichier',
     );
-    return 'Apercu pret pour $_temp0. Vous pouvez les enregistrer ou les partager.';
+    return 'Aperçu prêt pour $_temp0. Vous pouvez les enregistrer ou les partager.';
   }
 
   @override
@@ -150,14 +150,14 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count fichiers enregistres',
-      one: '1 fichier enregistre',
+      other: '$count fichiers enregistrés',
+      one: '1 fichier enregistré',
     );
     return '$_temp0.';
   }
 
   @override
-  String get shareSubject => 'Fichiers filigranes';
+  String get shareSubject => 'Fichiers filigranés';
 
   @override
   String get shareText => 'Partage depuis Watermark App';
@@ -167,8 +167,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count fichiers partages',
-      one: '1 fichier partage',
+      other: '$count fichiers partagés',
+      one: '1 fichier partagé',
     );
     return '$_temp0.';
   }
