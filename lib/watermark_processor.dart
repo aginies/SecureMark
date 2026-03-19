@@ -163,6 +163,10 @@ class WatermarkProcessor {
     required String watermarkText,
     required bool useRandomColor,
     required int selectedColorValue,
+    required double fontSize,
+    int jpegQuality = 75,
+    int? targetSize = 1280,
+    bool includeTimestamp = false,
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
@@ -190,8 +194,12 @@ class WatermarkProcessor {
       watermarkText,
       useRandomColor,
       selectedColorValue,
+      fontSize,
+      jpegQuality,
+      targetSize,
+      includeTimestamp,
     );
-    
+
     if (_resultCache.containsKey(cacheKey)) {
       onProgress?.call(1.0, 'Retrieved from cache');
       return _resultCache[cacheKey]!;
@@ -212,6 +220,9 @@ class WatermarkProcessor {
           watermarkText: resolvedText,
           useRandomColor: useRandomColor,
           selectedColorValue: selectedColorValue,
+          fontSize: fontSize,
+          jpegQuality: jpegQuality,
+          includeTimestamp: includeTimestamp,
           onProgress: onProgress,
           cancellationToken: cancellationToken,
         );
@@ -223,6 +234,10 @@ class WatermarkProcessor {
           watermarkText: resolvedText,
           useRandomColor: useRandomColor,
           selectedColorValue: selectedColorValue,
+          fontSize: fontSize,
+          jpegQuality: jpegQuality,
+          targetSize: targetSize,
+          includeTimestamp: includeTimestamp,
           onProgress: onProgress,
           cancellationToken: cancellationToken,
         );
@@ -236,7 +251,7 @@ class WatermarkProcessor {
 
       // Cache the result (with size limit)
       _addToCache(cacheKey, result);
-      
+
       onProgress?.call(1.0, 'Processing complete');
       return result;
 
@@ -342,8 +357,12 @@ class WatermarkProcessor {
     String watermarkText,
     bool useRandomColor,
     int selectedColorValue,
+    double fontSize,
+    int jpegQuality,
+    int? targetSize,
+    bool includeTimestamp,
   ) {
-    return '$filePath-$transparency-$density-$watermarkText-$useRandomColor-$selectedColorValue';
+    return '$filePath-$transparency-$density-$watermarkText-$useRandomColor-$selectedColorValue-$fontSize-$jpegQuality-$targetSize-$includeTimestamp';
   }
 
   /// Add result to cache with size management
@@ -364,6 +383,10 @@ class WatermarkProcessor {
     required String watermarkText,
     required bool useRandomColor,
     required int selectedColorValue,
+    required double fontSize,
+    int jpegQuality = 75,
+    int? targetSize = 1280,
+    bool includeTimestamp = false,
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
@@ -396,6 +419,10 @@ class WatermarkProcessor {
           watermarkText: watermarkText,
           useRandomColor: useRandomColor,
           selectedColorValue: selectedColorValue,
+          fontSize: fontSize,
+          jpegQuality: jpegQuality,
+          targetSize: targetSize,
+          includeTimestamp: includeTimestamp,
           onProgress: (progress, message) {
             final totalProgress = fileProgress + (progress / totalFiles);
             onProgress?.call(totalProgress, message);
@@ -427,12 +454,16 @@ class WatermarkProcessor {
     required String watermarkText,
     required bool useRandomColor,
     required int selectedColorValue,
+    required double fontSize,
+    required int jpegQuality,
+    int? targetSize,
+    bool includeTimestamp = false,
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
     try {
       onProgress?.call(0.2, 'Reading image file...');
-      
+
       if (cancellationToken?.isCancelled == true) {
         throw const WatermarkError(
           type: WatermarkErrorType.operationCancelled,
@@ -442,7 +473,7 @@ class WatermarkProcessor {
 
       final inputBytes = await file.readAsBytes();
       final extension = p.extension(file.path).toLowerCase();
-      
+
       onProgress?.call(0.4, 'Processing image...');
 
       final outputBytes = await Isolate.run(
@@ -453,6 +484,9 @@ class WatermarkProcessor {
           watermarkText: watermarkText,
           useRandomColor: useRandomColor,
           selectedColorValue: selectedColorValue,
+          fontSize: fontSize,
+          jpegQuality: jpegQuality,
+          targetSize: targetSize,
           filePath: file.path,
           originalExtension: extension,
         ),
@@ -466,9 +500,9 @@ class WatermarkProcessor {
       }
 
       onProgress?.call(0.9, 'Finalizing image...');
-      
+
       // Use original extension instead of always converting to PNG
-      final outputPath = _outputPath(file.path, extension);
+      final outputPath = _outputPath(file.path, extension, includeTimestamp);
 
       return ProcessResult(
         outputPath: outputPath,
@@ -495,12 +529,15 @@ class WatermarkProcessor {
     required String watermarkText,
     required bool useRandomColor,
     required int selectedColorValue,
+    required double fontSize,
+    required int jpegQuality,
+    bool includeTimestamp = false,
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
     try {
       onProgress?.call(0.2, 'Reading PDF file...');
-      
+
       if (cancellationToken?.isCancelled == true) {
         throw const WatermarkError(
           type: WatermarkErrorType.operationCancelled,
@@ -527,7 +564,7 @@ class WatermarkProcessor {
 
         hasPages = true;
         pageCount++;
-        
+
         final pngBytes = await page.toPng();
         if (pngBytes == null) {
           continue;
@@ -546,6 +583,7 @@ class WatermarkProcessor {
           density,
           useRandomColor,
           selectedColorValue,
+          fontSize,
         );
 
         final encoded = _encodePngForSharing(watermarked);
@@ -583,7 +621,7 @@ class WatermarkProcessor {
       onProgress?.call(0.9, 'Finalizing PDF...');
 
       final outputBytes = await doc.save();
-      final outputPath = _outputPath(file.path, '.pdf');
+      final outputPath = _outputPath(file.path, '.pdf', includeTimestamp);
 
       return ProcessResult(
         outputPath: outputPath,
@@ -610,6 +648,9 @@ class WatermarkProcessor {
     required String watermarkText,
     required bool useRandomColor,
     required int selectedColorValue,
+    required double fontSize,
+    required int jpegQuality,
+    int? targetSize,
     required String filePath,
     required String originalExtension,
   }) {
@@ -623,9 +664,9 @@ class WatermarkProcessor {
         );
       }
 
-      final resized = _resizeForSharing(decoded);
+      final resized = _resizeToTarget(decoded, targetSize);
       final outputImage = img.Image.from(resized);
-      
+
       _applyWatermarkField(
         outputImage,
         watermarkText,
@@ -633,10 +674,11 @@ class WatermarkProcessor {
         density,
         useRandomColor,
         selectedColorValue,
+        fontSize,
       );
-      
+
       // Encode in the original format
-      return _encodeImageInOriginalFormat(outputImage, originalExtension);
+      return _encodeImageInOriginalFormat(outputImage, originalExtension, jpegQuality);
     } catch (e) {
       if (e is WatermarkError) {
         rethrow;
@@ -657,13 +699,16 @@ class WatermarkProcessor {
     required String watermarkText,
     required bool useRandomColor,
     required int selectedColorValue,
+    required double fontSize,
+    int jpegQuality = 75,
+    int? targetSize = 1280,
   }) {
     final decoded = img.decodeImage(inputBytes);
     if (decoded == null) {
       return null;
     }
 
-    final resized = _resizeForSharing(decoded);
+    final resized = _resizeToTarget(decoded, targetSize);
     final outputImage = img.Image.from(resized);
     _applyWatermarkField(
       outputImage,
@@ -672,13 +717,14 @@ class WatermarkProcessor {
       density,
       useRandomColor,
       selectedColorValue,
+      fontSize,
     );
     return _encodePngForSharing(outputImage);
   }
 
   static img.Image _buildWatermarkStamp(String watermarkText, _Placement placement) {
-    final baseTextWidth = max(1, watermarkText.length * 18);
-    final baseTextHeight = 48;
+    final baseTextWidth = max(1, (watermarkText.length * 18 * (placement.fontSize / 24)).round());
+    final baseTextHeight = (48 * (placement.fontSize / 24)).round();
     final textImage = img.Image(
       width: baseTextWidth,
       height: baseTextHeight,
@@ -686,12 +732,16 @@ class WatermarkProcessor {
     );
     textImage.clear(img.ColorRgba8(0, 0, 0, 0));
     textImage.backgroundColor = img.ColorRgba8(0, 0, 0, 0);
+
+    // Select font based on size
+    final font = _getFontForSize(placement.fontSize);
+
     img.drawString(
       textImage,
       watermarkText,
-      font: img.arial24,
+      font: font,
       x: 0,
-      y: 12,
+      y: (12 * (placement.fontSize / 24)).round(),
       color: placement.color,
     );
 
@@ -704,6 +754,12 @@ class WatermarkProcessor {
     return rotated;
   }
 
+  static img.BitmapFont _getFontForSize(int fontSize) {
+    if (fontSize <= 18) return img.arial14;
+    if (fontSize <= 32) return img.arial24;
+    return img.arial48;
+  }
+
   static void _applyWatermarkField(
     img.Image image,
     String watermarkText,
@@ -711,6 +767,7 @@ class WatermarkProcessor {
     double density,
     bool useRandomColor,
     int selectedColorValue,
+    double fontSize,
   ) {
     final placements = _buildPlacements(
       width: image.width,
@@ -720,6 +777,7 @@ class WatermarkProcessor {
       density: density,
       useRandomColor: useRandomColor,
       selectedColorValue: selectedColorValue,
+      fontSize: fontSize.round(),
     );
     final stampCache = <String, img.Image>{};
 
@@ -747,6 +805,7 @@ class WatermarkProcessor {
     required double density,
     required bool useRandomColor,
     required int selectedColorValue,
+    required int fontSize,
   }) {
     final placements = <_Placement>[];
     final targetCount = _watermarkCount(width, height, density);
@@ -779,6 +838,7 @@ class WatermarkProcessor {
         cellWidth: cellWidth,
         cellHeight: cellHeight,
         colorPool: colorPool,
+        fontSize: fontSize,
       );
 
       if (placement != null) {
@@ -794,6 +854,7 @@ class WatermarkProcessor {
         height: height,
         watermarkText: watermarkText,
         colorPool: colorPool,
+        fontSize: fontSize,
       );
       if (placement != null) {
         placements.add(placement);
@@ -812,10 +873,11 @@ class WatermarkProcessor {
     required double cellWidth,
     required double cellHeight,
     required List<_ResolvedColor> colorPool,
+    required int fontSize,
   }) {
     for (var attempt = 0; attempt < 6; attempt++) {
       final angle = _randomAngle();
-      final rotatedSize = _rotatedStampSize(watermarkText, _fixedFontSize, angle);
+      final rotatedSize = _rotatedStampSize(watermarkText, fontSize, angle);
       if (rotatedSize.$1 >= width || rotatedSize.$2 >= height) {
         continue;
       }
@@ -844,7 +906,7 @@ class WatermarkProcessor {
       return _Placement(
         x: x,
         y: y,
-        fontSize: _fixedFontSize,
+        fontSize: fontSize,
         angle: angle,
         colorKey: resolvedColor.key,
         color: resolvedColor.color,
@@ -859,10 +921,11 @@ class WatermarkProcessor {
     required int height,
     required String watermarkText,
     required List<_ResolvedColor> colorPool,
+    required int fontSize,
   }) {
     for (var attempt = 0; attempt < 12; attempt++) {
       final angle = _randomAngle();
-      final rotatedSize = _rotatedStampSize(watermarkText, _fixedFontSize, angle);
+      final rotatedSize = _rotatedStampSize(watermarkText, fontSize, angle);
       if (rotatedSize.$1 >= width || rotatedSize.$2 >= height) {
         continue;
       }
@@ -877,7 +940,7 @@ class WatermarkProcessor {
       return _Placement(
         x: x,
         y: y,
-        fontSize: _fixedFontSize,
+        fontSize: fontSize,
         angle: angle,
         colorKey: resolvedColor.key,
         color: resolvedColor.color,
@@ -889,10 +952,10 @@ class WatermarkProcessor {
 
   static (int, int) _rotatedStampSize(String watermarkText, int fontSize, double angle) {
     final scale = fontSize / 24.0;
-    final baseWidth = max(1, watermarkText.length * 18);
-    final baseHeight = 48;
-    final scaledWidth = max(1, (baseWidth * scale).round());
-    final scaledHeight = max(1, (baseHeight * scale).round());
+    final baseWidth = max(1, (watermarkText.length * 18 * scale).round());
+    final baseHeight = (48 * scale).round();
+    final scaledWidth = max(1, baseWidth);
+    final scaledHeight = max(1, baseHeight);
     final radians = angle * pi / 180.0;
     final rotatedWidth =
         (scaledWidth * cos(radians).abs() + scaledHeight * sin(radians).abs()).ceil();
@@ -913,36 +976,31 @@ class WatermarkProcessor {
     return (opacity * 255).round();
   }
 
-  static img.Image _resizeForSharing(img.Image image) {
+  static img.Image _resizeToTarget(img.Image image, int? targetSize) {
+    if (targetSize == null) {
+      return image;
+    }
+
     final width = image.width;
     final height = image.height;
     final longestSide = max(width, height);
 
-    if (longestSide <= _maxImageDimension) {
-      return image;
+    if (longestSide <= targetSize) {
+      return image; // Do not upscale
     }
 
-    // Use more efficient resizing for very large images
-    final scale = _maxImageDimension / longestSide;
+    // Downscale while preserving aspect ratio
+    final scale = targetSize / longestSide;
     final newWidth = (width * scale).round();
     final newHeight = (height * scale).round();
 
     try {
-      if (width >= height) {
-        return img.copyResize(
-          image,
-          width: newWidth,
-          height: newHeight,
-          interpolation: img.Interpolation.average,
-        );
-      } else {
-        return img.copyResize(
-          image,
-          width: newWidth,
-          height: newHeight,
-          interpolation: img.Interpolation.average,
-        );
-      }
+      return img.copyResize(
+        image,
+        width: newWidth,
+        height: newHeight,
+        interpolation: img.Interpolation.average,
+      );
     } catch (e) {
       throw WatermarkError(
         type: WatermarkErrorType.memoryLimitExceeded,
@@ -957,11 +1015,11 @@ class WatermarkProcessor {
   }
 
   /// Encode image in the original format to preserve file type
-  static Uint8List _encodeImageInOriginalFormat(img.Image image, String extension) {
+  static Uint8List _encodeImageInOriginalFormat(img.Image image, String extension, int jpegQuality) {
     switch (extension.toLowerCase()) {
       case '.jpg':
       case '.jpeg':
-        return Uint8List.fromList(img.encodeJpg(image, quality: 95));
+        return Uint8List.fromList(img.encodeJpg(image, quality: jpegQuality));
       case '.png':
         return Uint8List.fromList(img.encodePng(image, level: 2));
       default:
@@ -1060,10 +1118,18 @@ class WatermarkProcessor {
     return img.ColorRgba8(red, green, blue, alpha);
   }
 
-  static String _outputPath(String originalPath, String targetExtension) {
+  static String _outputPath(String originalPath, String targetExtension, [bool includeTimestamp = false]) {
     final directory = p.dirname(originalPath);
     final baseName = p.basenameWithoutExtension(originalPath);
-    return p.join(directory, 'watermarked-$baseName$targetExtension');
+
+    String suffix = '';
+    if (includeTimestamp) {
+      final now = DateTime.now();
+      suffix = '-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}'
+               '-${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
+    }
+
+    return p.join(directory, 'watermarked-$baseName$suffix$targetExtension');
   }
 
   static String _resolvedWatermarkText(String userText) {
@@ -1076,4 +1142,5 @@ class WatermarkProcessor {
     }
     return '$trimmed $date $time';
   }
-}
+  }
+

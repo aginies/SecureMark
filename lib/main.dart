@@ -42,9 +42,20 @@ class WatermarkApp extends StatelessWidget {
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
       ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      themeMode: ThemeMode.system,
       home: const WatermarkPage(),
     );
   }
@@ -62,6 +73,10 @@ class _WatermarkPageState extends State<WatermarkPage> {
   final TransformationController _transformationController = TransformationController();
   double _transparency = 90;
   double _density = 35;
+  double _fontSize = 24;
+  int _jpegQuality = 75;
+  int? _targetSize = 1280;
+  bool _includeTimestamp = true;
   bool _useRandomColor = true;
   Color _selectedColor = Colors.red;
   bool _dragging = false;
@@ -101,6 +116,14 @@ class _WatermarkPageState extends State<WatermarkPage> {
       appBar: AppBar(
         title: Text(l10n.appTitle),
         centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_suggest_outlined),
+            onPressed: _showExpertOptions,
+            tooltip: l10n.expertOptions,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: Stack(
@@ -158,7 +181,6 @@ class _WatermarkPageState extends State<WatermarkPage> {
       ),
     );
   }
-
   Widget _buildControlsPanel(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
 
@@ -219,6 +241,118 @@ class _WatermarkPageState extends State<WatermarkPage> {
           _buildDropArea(theme),
         ],
       ],
+    );
+  }
+
+  void _showExpertOptions() {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final theme = Theme.of(context);
+            return AlertDialog(
+              title: Row(
+                children: [
+                  const Icon(Icons.settings_suggest_outlined),
+                  const SizedBox(width: 12),
+                  Text(l10n.expertOptions),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.fontSizeValue(_fontSize.round()), style: theme.textTheme.titleSmall),
+                  Slider(
+                    value: _fontSize,
+                    min: 8,
+                    max: 48,
+                    divisions: 10,
+                    onChanged: (value) {
+                      setDialogState(() {
+                        _fontSize = value;
+                      });
+                      setState(() {
+                        _fontSize = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Text(l10n.jpegQualityValue(_jpegQuality), style: theme.textTheme.titleSmall),
+                  Slider(
+                    value: _jpegQuality.toDouble(),
+                    min: 10,
+                    max: 100,
+                    divisions: 18,
+                    onChanged: (value) {
+                      setDialogState(() {
+                        _jpegQuality = value.round();
+                      });
+                      setState(() {
+                        _jpegQuality = value.round();
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.imageResizingLabel(_targetSize?.toString() ?? l10n.resizeNone), 
+                    style: theme.textTheme.titleSmall,
+                  ),
+                  DropdownButton<int?>(
+                    value: _targetSize,
+                    isExpanded: true,
+                    items: [
+                      DropdownMenuItem<int?>(value: null, child: Text(l10n.resizeNone)),
+                      const DropdownMenuItem<int?>(value: 2048, child: Text('2048 px')),
+                      const DropdownMenuItem<int?>(value: 1600, child: Text('1600 px')),
+                      const DropdownMenuItem<int?>(value: 1280, child: Text('1280 px')),
+                      const DropdownMenuItem<int?>(value: 1024, child: Text('1024 px')),
+                      const DropdownMenuItem<int?>(value: 800, child: Text('800 px')),
+                    ],
+                    onChanged: (value) {
+                      setDialogState(() {
+                        _targetSize = value;
+                      });
+                      setState(() {
+                        _targetSize = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  CheckboxListTile(
+                    title: Text(l10n.includeTimestampFilename),
+                    value: _includeTimestamp,
+                    contentPadding: EdgeInsets.zero,
+                    onChanged: (value) {
+                      setDialogState(() {
+                        _includeTimestamp = value ?? false;
+                      });
+                      setState(() {
+                        _includeTimestamp = value ?? false;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Text(l10n.fontStyleLabel),
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.fontSelectionNote,
+                    style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(l10n.close),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -864,6 +998,10 @@ class _WatermarkPageState extends State<WatermarkPage> {
             watermarkText: _textController.text,
             useRandomColor: _useRandomColor,
             selectedColorValue: _selectedColor.toARGB32(),
+            fontSize: _fontSize,
+            jpegQuality: _jpegQuality,
+            targetSize: _targetSize,
+            includeTimestamp: _includeTimestamp,
             onProgress: (progress, message) {
               if (mounted) {
                 setState(() {
