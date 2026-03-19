@@ -8,13 +8,13 @@ import 'package:path/path.dart' as p;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart' as sync;
 
 import 'font_manager.dart';
 
 final Random _random = Random();
 const int _fixedFontSize = 24;
 const int _maxImageDimension = 1600;
-const double _pdfRasterDpi = 96;
 const double _angleStepDegrees = 15;
 const int _randomColorPoolSize = 6;
 const int _maxFileSize = 50 * 1024 * 1024; // 50MB
@@ -556,110 +556,122 @@ class WatermarkProcessor {
     CancellationToken? cancellationToken,
   }) async {
     try {
-      onProgress?.call(0.2, 'Reading PDF file...');
-
+      onProgress?.call(0.1, 'Reading PDF file...');
+      
       if (cancellationToken?.isCancelled == true) {
         throw const WatermarkError(
           type: WatermarkErrorType.operationCancelled,
-          message: 'Operation cancelled during PDF reading',
+          message: 'Operation cancelled',
         );
       }
 
       final inputBytes = await file.readAsBytes();
-      final doc = pw.Document();
-      Uint8List? preview;
-      var hasPages = false;
-      var pageCount = 0;
-      var processedPages = 0;
+      final document = sync.PdfDocument(inputBytes: inputBytes);
+      final pageCount = document.pages.count;
 
-      onProgress?.call(0.3, 'Processing PDF pages...');
+      onProgress?.call(0.2, 'Adding watermark layer...');
 
-      await for (final page in Printing.raster(inputBytes, dpi: _pdfRasterDpi)) {
+      // Color and transparency
+      final alpha = (100 - transparency).clamp(10, 90) / 100;
+      final pdfFont = sync.PdfStandardFont(sync.PdfFontFamily.helvetica, fontSize);
+
+      for (var i = 0; i < pageCount; i++) {
         if (cancellationToken?.isCancelled == true) {
+          document.dispose();
           throw const WatermarkError(
             type: WatermarkErrorType.operationCancelled,
-            message: 'Operation cancelled during PDF processing',
+            message: 'Operation cancelled',
           );
         }
 
-        hasPages = true;
-        pageCount++;
+        final page = document.pages[i];
+        final pageSize = page.size;
+        final graphics = page.graphics;
 
-        final pngBytes = await page.toPng();
-        if (pngBytes == null) {
-          continue;
+        // Draw multiple watermarks based on density
+        final targetCount = _watermarkCount(pageSize.width.toInt(), pageSize.height.toInt(), density);
+        final columns = max<int>(2, sqrt(targetCount * (pageSize.width / max<double>(1.0, pageSize.height))).round());
+        final rows = max<int>(2, (targetCount / columns).ceil());
+        
+        final cellWidth = pageSize.width / columns;
+        final cellHeight = pageSize.height / rows;
+
+        for (var row = 0; row < rows; row++) {
+          for (var col = 0; col < columns; col++) {
+            graphics.save();
+            
+            // Resolve color for this instance
+            final color = _resolveSyncfusionColor(useRandomColor, selectedColorValue, alpha);
+            final brush = sync.PdfSolidBrush(color);
+
+            // Randomize position within cell slightly
+            final x = (col * cellWidth) + (_random.nextDouble() * (cellWidth * 0.3));
+            final y = (row * cellHeight) + (_random.nextDouble() * (cellHeight * 0.3));
+            final angle = _randomAngle();
+
+            graphics.translateTransform(x, y);
+            graphics.rotateTransform(angle);
+            graphics.drawString(watermarkText, pdfFont, brush: brush);
+            
+            graphics.restore();
+          }
         }
 
-        final decoded = img.decodeImage(pngBytes);
-        if (decoded == null) {
-          continue;
-        }
-
-        final watermarked = img.Image.from(decoded);
-        _applyWatermarkField(
-          watermarked,
-          watermarkText,
-          transparency,
-          density,
-          useRandomColor,
-          selectedColorValue,
-          fontSize,
-          font,
-        );
-
-        final encoded = _encodePngForSharing(watermarked);
-        preview ??= encoded;
-
-        final provider = pw.MemoryImage(encoded);
-        final format = PdfPageFormat(
-          page.width.toDouble(),
-          page.height.toDouble(),
-        );
-
-        doc.addPage(
-          pw.Page(
-            pageFormat: format,
-            margin: pw.EdgeInsets.zero,
-            build: (_) => pw.SizedBox.expand(
-              child: pw.Image(provider, fit: pw.BoxFit.fill),
-            ),
-          ),
-        );
-
-        processedPages++;
-        final progress = 0.3 + (processedPages / pageCount) * 0.5;
-        onProgress?.call(progress, 'Processing page $processedPages...');
+        onProgress?.call(0.2 + (i / pageCount) * 0.6, 'Processing page ${i + 1} of $pageCount...');
       }
 
-      if (!hasPages) {
-        throw WatermarkError(
-          type: WatermarkErrorType.invalidPdfData,
-          message: 'PDF contains no readable pages',
-          filePath: file.path,
-        );
-      }
-
-      onProgress?.call(0.9, 'Finalizing PDF...');
-
-      final outputBytes = await doc.save();
+      onProgress?.call(0.9, 'Saving PDF...');
+      final List<int> bytes = await document.save();
+      document.dispose();
+      
+      final outputBytes = Uint8List.fromList(bytes);
       final outputPath = _outputPath(file.path, '.pdf', includeTimestamp);
+
+      // Generate a preview of the first page using the existing Printing logic
+      final preview = await Printing.raster(outputBytes, pages: [0], dpi: 72).first;
+      final previewBytes = await preview.toPng();
 
       return ProcessResult(
         outputPath: outputPath,
         outputBytes: outputBytes,
-        previewBytes: preview,
+        previewBytes: previewBytes,
       );
     } catch (e) {
-      if (e is WatermarkError) {
-        rethrow;
-      }
+      if (e is WatermarkError) rethrow;
       throw WatermarkError(
         type: WatermarkErrorType.invalidPdfData,
-        message: 'Failed to process PDF',
+        message: 'Failed to process PDF with vector engine',
         filePath: file.path,
         originalError: e,
       );
     }
+  }
+
+  static sync.PdfColor _resolveSyncfusionColor(bool useRandomColor, int selectedColorValue, double opacity) {
+    int r, g, b;
+    if (useRandomColor) {
+      final hue = _random.nextDouble() * 360;
+      const saturation = 0.8;
+      const value = 0.95;
+      final chroma = value * saturation;
+      final x = chroma * (1 - (((hue / 60) % 2) - 1).abs());
+      final m = value - chroma;
+      double rf, gf, bf;
+      if (hue < 60) { rf = chroma; gf = x; bf = 0; }
+      else if (hue < 120) { rf = x; gf = chroma; bf = 0; }
+      else if (hue < 180) { rf = 0; gf = chroma; bf = x; }
+      else if (hue < 240) { rf = 0; gf = x; bf = chroma; }
+      else if (hue < 300) { rf = x; gf = 0; bf = chroma; }
+      else { rf = chroma; gf = 0; bf = x; }
+      r = ((rf + m) * 255).round();
+      g = ((gf + m) * 255).round();
+      b = ((bf + m) * 255).round();
+    } else {
+      r = (selectedColorValue >> 16) & 0xFF;
+      g = (selectedColorValue >> 8) & 0xFF;
+      b = selectedColorValue & 0xFF;
+    }
+    return sync.PdfColor(r, g, b, (opacity * 255).round());
   }
 
   static Uint8List _renderWatermarkedImageBytesWithValidation({
