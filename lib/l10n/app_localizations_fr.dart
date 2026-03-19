@@ -186,4 +186,8 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get cancel => 'Annuler';
+
+  @override
+  String get saveLocationInfo =>
+      'Les fichiers seront sauvés dans le même dossier que les originaux avec le préfixe \'watermarked-\'';
 }

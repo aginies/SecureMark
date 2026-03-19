@@ -325,6 +325,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get cancel;
+
+  /// No description provided for @saveLocationInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Files will be saved in the same folder as originals with \'watermarked-\' prefix'**
+  String get saveLocationInfo;
 }
 
 class _AppLocalizationsDelegate

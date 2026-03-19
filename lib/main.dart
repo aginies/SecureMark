@@ -108,6 +108,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
             LayoutBuilder(
               builder: (context, constraints) {
                 final isWide = constraints.maxWidth >= 900;
+                final isMobile = !kIsWeb && (Platform.isIOS || Platform.isAndroid);
                 final controls = _buildControlsPanel(theme);
                 final preview = _buildPreviewPanel(theme);
 
@@ -128,6 +129,12 @@ class _WatermarkPageState extends State<WatermarkPage> {
                   );
                 }
 
+                // Mobile layout with larger preview area
+                final screenHeight = constraints.maxHeight;
+                final previewHeight = isMobile 
+                    ? (screenHeight * 0.6).clamp(400.0, 600.0) // 60% of screen height, min 400px, max 600px
+                    : 420.0; // Default height for web/desktop narrow screens
+
                 return SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -135,7 +142,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
                     children: [
                       controls,
                       const SizedBox(height: 16),
-                      SizedBox(height: 420, child: preview),
+                      SizedBox(height: previewHeight, child: preview),
                       const SizedBox(height: 16),
                       _buildAuthorFooter(theme),
                     ],
@@ -174,33 +181,36 @@ class _WatermarkPageState extends State<WatermarkPage> {
             l10n.readyToSaveFiles(_processedFiles.length),
             style: theme.textTheme.bodySmall,
           ),
-          const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.folder_outlined, 
-                  size: 16, 
-                  color: theme.colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _getSaveLocationInfo(),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.primary,
+          // Only show save location info on desktop platforms where Save button is visible
+          if (!kIsWeb && (Platform.isMacOS || Platform.isLinux || Platform.isWindows)) ...[
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.folder_outlined, 
+                    size: 16, 
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _getSaveLocationInfo(),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
         ],
         if (_supportsDesktopDrop) ...[
           const SizedBox(height: 16),
@@ -489,6 +499,7 @@ class _WatermarkPageState extends State<WatermarkPage> {
 
   Widget _buildActionButtons() {
     final l10n = AppLocalizations.of(context)!;
+    final isMobile = !kIsWeb && (Platform.isIOS || Platform.isAndroid);
 
     return Card(
       child: Padding(
@@ -505,14 +516,16 @@ class _WatermarkPageState extends State<WatermarkPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               ),
             ),
-            FilledButton.icon(
-              onPressed: _processing || _processedFiles.isEmpty ? null : _saveCurrent,
-              icon: const Icon(Icons.save_alt),
-              label: Text(l10n.saveAll),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            // Hide Save button on mobile platforms (iOS/Android)
+            if (!isMobile)
+              FilledButton.icon(
+                onPressed: _processing || _processedFiles.isEmpty ? null : _saveCurrent,
+                icon: const Icon(Icons.save_alt),
+                label: Text(l10n.saveAll),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                ),
               ),
-            ),
             FilledButton.icon(
               onPressed: _processing || _processedFiles.isEmpty ? null : _shareCurrent,
               icon: const Icon(Icons.share_outlined),

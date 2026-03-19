@@ -184,4 +184,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cancel => 'Cancel';
+
+  @override
+  String get saveLocationInfo =>
+      'Files will be saved in the same folder as originals with \'watermarked-\' prefix';
 }
