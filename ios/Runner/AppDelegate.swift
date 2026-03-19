@@ -16,10 +16,9 @@ import UIKit
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     
-    let controller = engineBridge.viewController
-    let methodChannel = FlutterMethodChannel(name: CHANNEL, binaryMessenger: controller.binaryMessenger)
+    let methodChannel = FlutterMethodChannel(name: CHANNEL, binaryMessenger: engineBridge.binaryMessenger)
     
-    methodChannel.setMethodCallHandler { [weak self] (call, result) in
+    methodChannel.setMethodCallHandler { [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
       switch call.method {
       case "getSharedFiles":
         result(self?.sharedFiles ?? [])
