@@ -91,6 +91,7 @@ jobs:
           # Prepare AppDir
           mkdir -p AppDir/usr/bin
           cp -r build/linux/x64/release/bundle/* AppDir/usr/bin/
+          cp web/icons/Icon-512.png secure-mark.png
           
           # Use linuxdeploy to create the AppImage
           # We use --appimage-extract-and-run because FUSE might not be available in CI
@@ -98,7 +99,7 @@ jobs:
           ./linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
             --executable AppDir/usr/bin/SecureMark \
             --desktop-file secure-mark.desktop \
-            --icon-file web/icons/Icon-512.png \
+            --icon-file secure-mark.png \
             --appdir AppDir \
             --output appimage
           
