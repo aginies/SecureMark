@@ -335,7 +335,7 @@ abstract class AppLocalizations {
   /// No description provided for @saveLocationInfo.
   ///
   /// In en, this message translates to:
-  /// **'Files will be saved in the same folder as originals with \'watermarked-\' prefix'**
+  /// **'Files will be saved in the same folder as originals with \'securemark-\' prefix'**
   String get saveLocationInfo;
 
   /// No description provided for @expertOptions.

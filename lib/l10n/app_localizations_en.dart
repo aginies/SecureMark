@@ -198,7 +198,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get saveLocationInfo =>
-      'Files will be saved in the same folder as originals with \'watermarked-\' prefix';
+      'Files will be saved in the same folder as originals with \'securemark-\' prefix';
 
   @override
   String get expertOptions => 'Expert Options';
