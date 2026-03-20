@@ -204,6 +204,8 @@
   "preserveExifData": "Preserve File Metadata (EXIF/PDF Info)",
   "rasterizePdfTitle": "Rasterize PDF (Flatten)",
   "rasterizePdfSubtitle": "Convert PDF pages to images for maximum security (bigger size and slower)",
+  "steganographyTitle": "Steganography (Invisible Signature)",
+  "steganographySubtitle": "Embed text secretly in pixels (Forces PNG output & flattened PDF)",
   "filePrefixLabel": "File Prefix",
   "filePrefixHint": "e.g., watermark-",
   "resetExpertHint": "This will reset all expert settings and file prefix to defaults.",
@@ -251,6 +253,28 @@
   "githubRepository": "GitHub Repository",
   "privacyPolicy": "Privacy Policy",
   "viewUpdate": "View",
+  "analyzeFile": "Analyze File (LSB)",
+  "fileAnalyzerTitle": "File Analyzer (LSB)",
+  "fileAnalyzerDescription": "Select a file to check for hidden SecureMark signatures.",
+  "pickAndAnalyze": "Pick and Analyze",
+  "signatureFound": "✅ Signature found: \"{message}\"",
+  "@signatureFound": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "noSignatureFound": "❌ No SecureMark signature detected in this file.",
+  "analysisError": "Error during analysis: {error}",
+  "@analysisError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "analysisResult": "Result:",
   "processingCancelled": "Processing cancelled",
   "processingStatusMultiple": "Processed {successCount} files successfully. {failedCount} files failed.",
   "@processingStatusMultiple": {

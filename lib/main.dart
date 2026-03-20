@@ -122,7 +122,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   double _fontSize = 24;
   WatermarkFont _selectedFont = FontManager.getDefaultFont();
   int _jpegQuality = 75;
-  int? _targetSize = 1280;
+  int? _targetSize;
   bool _includeTimestamp = true;
   bool _preserveMetadata = false;
   bool _rasterizePdf = false;
@@ -178,13 +178,16 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     final timestamp = DateTime.now().toString().split('.').first;
     final logEntry = '[$timestamp] $message';
     debugPrint(logEntry);
-    setState(() {
-      _logs.insert(0, logEntry);
-      // Keep only last 100 logs
-      if (_logs.length > 100) {
-        _logs.removeLast();
-      }
-    });
+    
+    // Safety check for mounted before setState, but always update the list
+    _logs.insert(0, logEntry);
+    if (_logs.length > 100) {
+      _logs.removeLast();
+    }
+    
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _pickOutputDirectory() async {
@@ -223,6 +226,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           _rasterizePdf = prefs.getBool('rasterizePdf') ?? false;
           _filePrefix = prefs.getString('filePrefix') ?? 'securemark-';
           _antiAiLevel = prefs.getDouble('antiAiLevel') ?? 50.0;
+          _useSteganography = prefs.getBool('useSteganography') ?? false;
           _useRandomColor = prefs.getBool('useRandomColor') ?? true;
           final colorValue = prefs.getInt('selectedColor');
           if (colorValue != null) {
@@ -301,6 +305,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         _appVersion = info.version;
       });
     }
+    _addLog('App initialized: v$_appVersion');
   }
 
   @override
@@ -378,13 +383,23 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.appTitle),
+        title: Row(
+          children: [
+            Text(l10n.appTitle),
+            const SizedBox(width: 4),
+            IconButton(
+              icon: const Icon(Icons.info_outline, size: 20),
+              onPressed: _showAboutDialog,
+              tooltip: l10n.aboutApp,
+            ),
+          ],
+        ),
         centerTitle: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: _showAboutDialog,
-            tooltip: l10n.aboutApp,
+            icon: const Icon(Icons.search_rounded),
+            onPressed: _showFileAnalyzer,
+            tooltip: l10n.analyzeFile,
           ),
           IconButton(
             icon: const Icon(Icons.settings_suggest_outlined),
@@ -705,6 +720,112 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     }
   }
 
+  void _showFileAnalyzer() {
+    final l10n = AppLocalizations.of(context)!;
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final theme = Theme.of(context);
+          return AlertDialog(
+            title: Row(
+              children: [
+                const Icon(Icons.search_rounded),
+                const SizedBox(width: 12),
+                Text(l10n.fileAnalyzerTitle),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(l10n.fileAnalyzerDescription),
+                const SizedBox(height: 24),
+                if (_analyzingFile)
+                  const CircularProgressIndicator()
+                else if (_analysisResult != null)
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: theme.colorScheme.secondary),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l10n.analysisResult, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Text(_analysisResult!),
+                      ],
+                    ),
+                  )
+                else
+                  const Icon(Icons.insert_drive_file_outlined, size: 48, color: Colors.grey),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: _analyzingFile ? null : () => _pickAndAnalyze(setDialogState),
+                  icon: const Icon(Icons.file_open),
+                  label: Text(l10n.pickAndAnalyze),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  _analysisResult = null;
+                  Navigator.of(context).pop();
+                },
+                child: Text(l10n.close),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  bool _analyzingFile = false;
+  String? _analysisResult;
+
+  Future<void> _pickAndAnalyze(StateSetter setDialogState) async {
+    final l10n = AppLocalizations.of(context)!;
+    const group = XTypeGroup(
+      label: 'Images',
+      extensions: <String>['jpg', 'jpeg', 'png', 'webp'],
+    );
+
+    final file = await openFile(acceptedTypeGroups: <XTypeGroup>[group]);
+    if (file == null) return;
+
+    setDialogState(() {
+      _analyzingFile = true;
+      _analysisResult = null;
+    });
+
+    try {
+      final bytes = await File(file.path).readAsBytes();
+      // Extract LSB logic using the static async helper to avoid capturing 'this'
+      final result = await WatermarkProcessor.extractLSBAsync(bytes);
+      
+      setDialogState(() {
+        if (result != null && result.isNotEmpty) {
+          _analysisResult = l10n.signatureFound(result);
+        } else {
+          _analysisResult = l10n.noSignatureFound;
+        }
+      });
+    } catch (e) {
+      setDialogState(() {
+        _analysisResult = l10n.analysisError(e.toString());
+      });
+    } finally {
+      setDialogState(() {
+        _analyzingFile = false;
+      });
+    }
+  }
+
   void _showExpertOptions() {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
@@ -726,6 +847,22 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const SizedBox(height: 8),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: l10n.filePrefixLabel,
+                        hintText: l10n.filePrefixHint,
+                        border: const OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _filePrefix = value;
+                        });
+                        _savePreference('filePrefix', value);
+                      },
+                      controller: TextEditingController(text: _filePrefix),
+                    ),
+                    const SizedBox(height: 16),
                     Text(l10n.fontSizeValue(_fontSize.round()), style: theme.textTheme.titleSmall),
                     Slider(
                       value: _fontSize,
@@ -743,6 +880,36 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       },
                     ),
                     const SizedBox(height: 16),
+                    Text(l10n.fontStyleLabel),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: theme.dividerColor),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<WatermarkFont>(
+                          value: _selectedFont,
+                          isExpanded: true,
+                          onChanged: (WatermarkFont? newFont) {
+                            if (newFont != null) {
+                              setState(() {
+                                _selectedFont = newFont;
+                              });
+                              _savePreference('selectedFont', newFont.fontFamily);
+                            }
+                          },
+                          items: _buildFontDropdownItems(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _getFontSourceDescription(context),
+                      style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
+                    ),
+                    const SizedBox(height: 16),
                     Text(l10n.jpegQualityValue(_jpegQuality), style: theme.textTheme.titleSmall),
                     Slider(
                       value: _jpegQuality.toDouble(),
@@ -757,32 +924,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                           _jpegQuality = value.round();
                         });
                         _savePreference('jpegQuality', value.round());
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      l10n.imageResizingLabel(_targetSize?.toString() ?? l10n.resizeNone), 
-                      style: theme.textTheme.titleSmall,
-                    ),
-                    DropdownButton<int?>(
-                      value: _targetSize,
-                      isExpanded: true,
-                      items: [
-                        DropdownMenuItem<int?>(value: null, child: Text(l10n.resizeNone)),
-                        DropdownMenuItem<int?>(value: 2048, child: Text(l10n.pixelUnit(2048))),
-                        DropdownMenuItem<int?>(value: 1600, child: Text(l10n.pixelUnit(1600))),
-                        DropdownMenuItem<int?>(value: 1280, child: Text(l10n.pixelUnit(1280))),
-                        DropdownMenuItem<int?>(value: 1024, child: Text(l10n.pixelUnit(1024))),
-                        DropdownMenuItem<int?>(value: 800, child: Text(l10n.pixelUnit(800))),
-                      ],
-                      onChanged: (value) {
-                        setDialogState(() {
-                          _targetSize = value;
-                        });
-                        setState(() {
-                          _targetSize = value;
-                        });
-                        _savePreference('targetSize', value);
                       },
                     ),
                     const SizedBox(height: 16),
@@ -830,21 +971,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       },
                     ),
                     const SizedBox(height: 16),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: l10n.filePrefixLabel,
-                        hintText: l10n.filePrefixHint,
-                        border: const OutlineInputBorder(),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _filePrefix = value;
-                        });
-                        _savePreference('filePrefix', value);
-                      },
-                      controller: TextEditingController(text: _filePrefix),
-                    ),
-                    const SizedBox(height: 16),
                     Text('Anti-AI Protection: ${_antiAiLevel.round()}%', style: theme.textTheme.titleSmall),
                     Slider(
                       value: _antiAiLevel,
@@ -862,7 +988,36 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       },
                     ),
                     const SizedBox(height: 16),
-                    Text(l10n.fontStyleLabel),
+                    CheckboxListTile(
+                      title: Text(l10n.steganographyTitle),
+                      subtitle: Text(l10n.steganographySubtitle),
+                      value: _useSteganography,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (value) {
+                        final bool enabled = value ?? false;
+                        setDialogState(() {
+                          _useSteganography = enabled;
+                          if (enabled) {
+                            _rasterizePdf = true;
+                          }
+                        });
+                        setState(() {
+                          _useSteganography = enabled;
+                          if (enabled) {
+                            _rasterizePdf = true;
+                          }
+                        });
+                        _savePreference('useSteganography', enabled);
+                        if (enabled) {
+                          _savePreference('rasterizePdf', true);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.imageResizingLabel('').replaceAll(': ', ''), 
+                      style: theme.textTheme.titleSmall,
+                    ),
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -871,25 +1026,28 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: DropdownButtonHideUnderline(
-                        child: DropdownButton<WatermarkFont>(
-                          value: _selectedFont,
+                        child: DropdownButton<int?>(
+                          value: _targetSize,
                           isExpanded: true,
-                          onChanged: (WatermarkFont? newFont) {
-                            if (newFont != null) {
-                              setState(() {
-                                _selectedFont = newFont;
-                              });
-                              _savePreference('selectedFont', newFont.fontFamily);
-                            }
+                          items: [
+                            DropdownMenuItem<int?>(value: null, child: Text(l10n.resizeNone)),
+                            DropdownMenuItem<int?>(value: 2048, child: Text(l10n.pixelUnit(2048))),
+                            DropdownMenuItem<int?>(value: 1600, child: Text(l10n.pixelUnit(1600))),
+                            DropdownMenuItem<int?>(value: 1280, child: Text(l10n.pixelUnit(1280))),
+                            DropdownMenuItem<int?>(value: 1024, child: Text(l10n.pixelUnit(1024))),
+                            DropdownMenuItem<int?>(value: 800, child: Text(l10n.pixelUnit(800))),
+                          ],
+                          onChanged: (value) {
+                            setDialogState(() {
+                              _targetSize = value;
+                            });
+                            setState(() {
+                              _targetSize = value;
+                            });
+                            _savePreference('targetSize', value);
                           },
-                          items: _buildFontDropdownItems(),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _getFontSourceDescription(context),
-                      style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
                     ),
                     if (!kIsWeb && (Platform.isLinux || Platform.isMacOS || Platform.isWindows)) ...[
                       const SizedBox(height: 24),
@@ -921,11 +1079,13 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         setDialogState(() {
                           _fontSize = 24.0;
                           _jpegQuality = 75;
-                          _targetSize = 1280;
+                          _targetSize = null;
                           _includeTimestamp = true;
                           _preserveMetadata = false;
                           _rasterizePdf = false;
                           _filePrefix = 'securemark-';
+                          _antiAiLevel = 50.0;
+                          _useSteganography = false;
                           _useRandomColor = true;
                           _selectedColor = Colors.deepPurple;
                           _selectedFont = WatermarkFont.arial;
@@ -934,11 +1094,13 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         setState(() {
                           _fontSize = 24.0;
                           _jpegQuality = 75;
-                          _targetSize = 1280;
+                          _targetSize = null;
                           _includeTimestamp = true;
                           _preserveMetadata = false;
                           _rasterizePdf = false;
                           _filePrefix = 'securemark-';
+                          _antiAiLevel = 50.0;
+                          _useSteganography = false;
                           _useRandomColor = true;
                           _selectedColor = Colors.deepPurple;
                           _selectedFont = WatermarkFont.arial;
@@ -1503,9 +1665,11 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
     final files = await openFiles(acceptedTypeGroups: <XTypeGroup>[group]);
     if (files.isEmpty) {
+      _addLog('File picker cancelled or no files selected.');
       return;
     }
 
+    _addLog('Picked ${files.length} files via picker.');
     _selectPaths(files.map((file) => file.path).toList());
   }
 
@@ -1668,6 +1832,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
             rasterizePdf: _rasterizePdf,
             filePrefix: _filePrefix,
             antiAiLevel: _antiAiLevel,
+            useSteganography: _useSteganography,
             onProgress: (progress, message) {
               if (mounted) {
                 setState(() {
@@ -1784,12 +1949,13 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       // Reset expert settings
       _fontSize = 24.0;
       _jpegQuality = 75;
-      _targetSize = 1280;
+      _targetSize = null;
       _includeTimestamp = true;
       _preserveMetadata = false;
       _rasterizePdf = false;
       _filePrefix = 'securemark-';
       _antiAiLevel = 50.0;
+      _useSteganography = false;
       _useRandomColor = true;
       _selectedColor = Colors.deepPurple;
       _selectedFont = WatermarkFont.arial;

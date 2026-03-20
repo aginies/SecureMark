@@ -204,6 +204,8 @@
   "preserveExifData": "Préserver les métadonnées (EXIF/Infos PDF)",
   "rasterizePdfTitle": "Rasteriser le PDF (Aplatir)",
   "rasterizePdfSubtitle": "Convertir les pages PDF en images pour une sécurité maximale (plus lourd et plus lent)",
+  "steganographyTitle": "Stéganographie (Signature Invisible)",
+  "steganographySubtitle": "Masquer secrètement du texte dans les pixels (Force Format PNG et PDF aplati)",
   "filePrefixLabel": "Préfixe de fichier",
   "filePrefixHint": "ex: filigrane-",
   "resetExpertHint": "Cela réinitialisera tous les réglages experts et le préfixe de fichier aux valeurs par défaut.",
@@ -251,6 +253,28 @@
   "githubRepository": "Dépôt GitHub",
   "privacyPolicy": "Politique de confidentialité",
   "viewUpdate": "Voir",
+  "analyzeFile": "Analyser un fichier (LSB)",
+  "fileAnalyzerTitle": "Analyseur de fichiers (LSB)",
+  "fileAnalyzerDescription": "Sélectionnez un fichier pour rechercher des signatures SecureMark cachées.",
+  "pickAndAnalyze": "Choisir et analyser",
+  "signatureFound": "✅ Signature trouvée : \"{message}\"",
+  "@signatureFound": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "noSignatureFound": "❌ Aucune signature SecureMark détectée dans ce fichier.",
+  "analysisError": "Erreur pendant l'analyse : {error}",
+  "@analysisError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "analysisResult": "Résultat :",
   "processingCancelled": "Traitement annulé",
   "processingStatusMultiple": "{successCount} fichiers traités avec succès. {failedCount} fichiers ont échoué.",
   "@processingStatusMultiple": {

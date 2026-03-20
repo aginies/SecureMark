@@ -257,6 +257,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Convertir les pages PDF en images pour une sécurité maximale (plus lourd et plus lent)';
 
   @override
+  String get steganographyTitle => 'Stéganographie (Signature Invisible)';
+
+  @override
+  String get steganographySubtitle =>
+      'Masquer secrètement du texte dans les pixels (Force Format PNG et PDF aplati)';
+
+  @override
   String get filePrefixLabel => 'Préfixe de fichier';
 
   @override
@@ -344,6 +351,36 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get viewUpdate => 'Voir';
+
+  @override
+  String get analyzeFile => 'Analyser un fichier (LSB)';
+
+  @override
+  String get fileAnalyzerTitle => 'Analyseur de fichiers (LSB)';
+
+  @override
+  String get fileAnalyzerDescription =>
+      'Sélectionnez un fichier pour rechercher des signatures SecureMark cachées.';
+
+  @override
+  String get pickAndAnalyze => 'Choisir et analyser';
+
+  @override
+  String signatureFound(String message) {
+    return '✅ Signature trouvée : \"$message\"';
+  }
+
+  @override
+  String get noSignatureFound =>
+      '❌ Aucune signature SecureMark détectée dans ce fichier.';
+
+  @override
+  String analysisError(String error) {
+    return 'Erreur pendant l\'analyse : $error';
+  }
+
+  @override
+  String get analysisResult => 'Résultat :';
 
   @override
   String get processingCancelled => 'Traitement annulé';

@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -176,6 +178,7 @@ class WatermarkProcessor {
     bool rasterizePdf = false,
     String filePrefix = 'securemark-',
     double antiAiLevel = 0.0,
+    bool useSteganography = false,
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
@@ -212,6 +215,7 @@ class WatermarkProcessor {
       rasterizePdf,
       filePrefix,
       antiAiLevel,
+      useSteganography,
     );
 
     if (_resultCache.containsKey(cacheKey)) {
@@ -242,6 +246,7 @@ class WatermarkProcessor {
           rasterizePdf: rasterizePdf,
           filePrefix: filePrefix,
           antiAiLevel: antiAiLevel,
+          useSteganography: useSteganography,
           onProgress: onProgress,
           cancellationToken: cancellationToken,
         );
@@ -261,6 +266,7 @@ class WatermarkProcessor {
           preserveMetadata: preserveMetadata,
           filePrefix: filePrefix,
           antiAiLevel: antiAiLevel,
+          useSteganography: useSteganography,
           onProgress: onProgress,
           cancellationToken: cancellationToken,
         );
@@ -389,8 +395,9 @@ class WatermarkProcessor {
     bool rasterizePdf,
     String filePrefix,
     double antiAiLevel,
+    bool useSteganography,
   ) {
-    return '$filePath-$transparency-$density-$watermarkText-$useRandomColor-$selectedColorValue-$fontSize-${font.fontFamily}-$jpegQuality-$targetSize-$includeTimestamp-$preserveMetadata-$rasterizePdf-$filePrefix-$antiAiLevel';
+    return '$filePath-$transparency-$density-$watermarkText-$useRandomColor-$selectedColorValue-$fontSize-${font.fontFamily}-$jpegQuality-$targetSize-$includeTimestamp-$preserveMetadata-$rasterizePdf-$filePrefix-$antiAiLevel-$useSteganography';
   }
 
   /// Add result to cache with size management
@@ -492,6 +499,7 @@ class WatermarkProcessor {
     bool preserveMetadata = false,
     String filePrefix = 'securemark-',
     double antiAiLevel = 0.0,
+    bool useSteganography = false,
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
@@ -545,6 +553,7 @@ class WatermarkProcessor {
           originalExtension: extension,
           preserveMetadata: preserveMetadata,
           antiAiLevel: antiAiLevel,
+          useSteganography: useSteganography,
           preRenderedStamps: preRenderedStamps,
         ),
       );
@@ -600,6 +609,7 @@ class WatermarkProcessor {
     bool rasterizePdf = false,
     String filePrefix = 'securemark-',
     double antiAiLevel = 0.0,
+    bool useSteganography = false,
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
@@ -622,6 +632,7 @@ class WatermarkProcessor {
           includeTimestamp: includeTimestamp,
           filePrefix: filePrefix,
           antiAiLevel: antiAiLevel,
+          useSteganography: useSteganography,
           onProgress: onProgress,
           cancellationToken: cancellationToken,
         );
@@ -673,6 +684,7 @@ class WatermarkProcessor {
           includeTimestamp: includeTimestamp,
           filePrefix: filePrefix,
           antiAiLevel: antiAiLevel,
+          useSteganography: useSteganography,
           onProgress: onProgress,
           cancellationToken: cancellationToken,
         );
@@ -845,6 +857,7 @@ class WatermarkProcessor {
     required String originalExtension,
     bool preserveMetadata = false,
     double antiAiLevel = 0.0,
+    bool useSteganography = false,
     Map<String, Uint8List>? preRenderedStamps,
   }) {
     try {
@@ -858,7 +871,7 @@ class WatermarkProcessor {
       }
 
       final resized = _resizeToTarget(decoded, targetSize);
-      final outputImage = img.Image.from(resized);
+      var outputImage = img.Image.from(resized);
 
       if (preserveMetadata && !decoded.exif.isEmpty) {
         outputImage.exif = decoded.exif.clone();
@@ -882,8 +895,13 @@ class WatermarkProcessor {
         antiAiLevel: antiAiLevel,
       );
 
-      // Encode in the original format
-      return _encodeImageInOriginalFormat(outputImage, originalExtension, jpegQuality);
+      // Apply steganography if requested (LSB embedding)
+      if (useSteganography) {
+        outputImage = _embedLSB(outputImage, watermarkText);
+      }
+
+      // Encode in the original format (or force PNG if steganography is used)
+      return _encodeImageInOriginalFormat(outputImage, originalExtension, jpegQuality, useSteganography);
     } catch (e) {
       if (e is WatermarkError) {
         rethrow;
@@ -941,6 +959,135 @@ class WatermarkProcessor {
     // Convert to PNG bytes
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     return byteData!.buffer.asUint8List();
+  }
+
+  /// Embeds a text message into an image using LSB (Least Significant Bit) steganography
+  /// Currently uses the Blue channel for embedding as it's the least sensitive to human eye
+  static img.Image _embedLSB(img.Image image, String message) {
+    // 1. Prepare the data: Magic Header ('SM') + Length (32-bit) + Message
+    final messageBytes = utf8.encode(message);
+    final headerBytes = utf8.encode('SM'); // SecureMark Identifier
+    
+    final fullPayload = BytesBuilder();
+    fullPayload.add(headerBytes);
+    
+    // Add length as 4 bytes (32-bit big endian)
+    final length = messageBytes.length;
+    fullPayload.add([
+      (length >> 24) & 0xFF,
+      (length >> 16) & 0xFF,
+      (length >> 8) & 0xFF,
+      length & 0xFF,
+    ]);
+    fullPayload.add(messageBytes);
+    
+    final payload = fullPayload.toBytes();
+    final totalBits = payload.length * 8;
+    
+    if (totalBits > image.width * image.height) {
+      // Image too small for this message, skip or truncate
+      return image;
+    }
+
+    final result = image.clone();
+    var bitIndex = 0;
+    
+    for (final pixel in result) {
+      if (bitIndex >= totalBits) break;
+      
+      // Get the bit to embed
+      final byteIdx = bitIndex ~/ 8;
+      final bitOffset = 7 - (bitIndex % 8);
+      final bit = (payload[byteIdx] >> bitOffset) & 1;
+      
+      // Embed in Blue channel (least noticeable)
+      // For img library, we need to handle different pixel formats
+      // result.setPixelRgba is safest or direct component access
+      
+      final b = pixel.b.toInt();
+      // Clear last bit and set the new bit
+      final newB = (b & ~1) | bit;
+      pixel.b = newB;
+      
+      bitIndex++;
+    }
+    
+    return result;
+  }
+
+  /// Static helper to run extraction in a background isolate safely
+  static Future<String?> extractLSBAsync(Uint8List bytes) async {
+    return await Isolate.run(() => extractLSB(bytes));
+  }
+
+  /// Extracts a hidden message from an image using LSB steganography
+  static String? extractLSB(Uint8List imageBytes) {
+    try {
+      final image = img.decodeImage(imageBytes);
+      if (image == null) return null;
+
+      final totalPixels = image.width * image.height;
+      
+      // We need at least SM (16 bits) + Length (32 bits) = 48 bits to start
+      if (totalPixels < 48) return null;
+
+      // 1. Extract all LSBs from Blue channel
+      // We only extract as much as needed to avoid scanning millions of pixels if not necessary
+      // But for simplicity in this implementation, we'll scan until we find our marker or reach a limit
+      
+      var bitCount = 0;
+      final bytes = <int>[];
+      var currentByte = 0;
+
+      for (final pixel in image) {
+        final b = pixel.b.toInt();
+        final bit = b & 1;
+        
+        currentByte = (currentByte << 1) | bit;
+        bitCount++;
+
+        if (bitCount % 8 == 0) {
+          bytes.add(currentByte);
+          currentByte = 0;
+          
+          // Optimization: check for header early
+          if (bytes.length == 2) {
+            final header = utf8.decode(bytes, allowMalformed: true);
+            if (header != 'SM') return null; // Not our format
+          }
+          
+          // If we have header + length (6 bytes), we know how much to read
+          if (bytes.length == 6) {
+            final length = (bytes[2] << 24) | (bytes[3] << 16) | (bytes[4] << 8) | bytes[5];
+            // Safety limit: 10KB message max for extraction
+            if (length <= 0 || length > 10240) return null;
+            
+            // Total bytes needed = header (2) + length (4) + message
+            final totalBytesNeeded = 6 + length;
+            
+            // If the image is too small for the claimed length, it's malformed
+            if (totalBytesNeeded * 8 > totalPixels) return null;
+          }
+          
+          // Check if we finished reading based on the length we found at byte 6
+          if (bytes.length >= 6) {
+            final length = (bytes[2] << 24) | (bytes[3] << 16) | (bytes[4] << 8) | bytes[5];
+            if (bytes.length >= 6 + length) {
+              final messageBytes = bytes.sublist(6, 6 + length);
+              return utf8.decode(messageBytes, allowMalformed: true);
+            }
+          }
+        }
+        
+        // Hard limit to avoid infinite loops on huge empty images
+        if (bytes.length > 11000) break;
+      }
+      
+      return null;
+    } catch (e) {
+      debugPrint('LSB extraction error: $e');
+      return null;
+    }
   }
 
   static img.Image _buildWatermarkStamp(
@@ -1329,7 +1476,12 @@ class WatermarkProcessor {
   }
 
   /// Encode image in the original format to preserve file type
-  static Uint8List _encodeImageInOriginalFormat(img.Image image, String extension, int jpegQuality) {
+  static Uint8List _encodeImageInOriginalFormat(img.Image image, String extension, int jpegQuality, bool useSteganography) {
+    if (useSteganography) {
+      // Always force PNG for steganography as JPEG/WebP (lossy) destroys LSB data
+      return Uint8List.fromList(img.encodePng(image, level: 2));
+    }
+
     switch (extension.toLowerCase()) {
       case '.jpg':
       case '.jpeg':
@@ -1450,6 +1602,7 @@ class WatermarkProcessor {
     bool includeTimestamp = false,
     String filePrefix = 'securemark-',
     double antiAiLevel = 0.0,
+    bool useSteganography = false,
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
@@ -1477,7 +1630,7 @@ class WatermarkProcessor {
         final pngBytes = await page.toPng();
         final decoded = img.decodeImage(pngBytes);
 
-        final watermarked = img.Image.from(decoded!);
+        var watermarked = img.Image.from(decoded!);
 
         // For PDF processing, we can pre-render the stamp here (not in isolate)
         Map<String, Uint8List>? pdfStamps;
@@ -1504,6 +1657,11 @@ class WatermarkProcessor {
           pdfStamps,
           antiAiLevel: antiAiLevel,
         );
+
+        // Apply steganography if requested (LSB embedding)
+        if (useSteganography) {
+          watermarked = _embedLSB(watermarked, watermarkText);
+        }
 
         final encoded = _encodePngForSharing(watermarked);
         preview ??= encoded;

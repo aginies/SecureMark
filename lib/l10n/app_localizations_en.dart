@@ -255,6 +255,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Convert PDF pages to images for maximum security (bigger size and slower)';
 
   @override
+  String get steganographyTitle => 'Steganography (Invisible Signature)';
+
+  @override
+  String get steganographySubtitle =>
+      'Embed text secretly in pixels (Forces PNG output & flattened PDF)';
+
+  @override
   String get filePrefixLabel => 'File Prefix';
 
   @override
@@ -342,6 +349,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewUpdate => 'View';
+
+  @override
+  String get analyzeFile => 'Analyze File (LSB)';
+
+  @override
+  String get fileAnalyzerTitle => 'File Analyzer (LSB)';
+
+  @override
+  String get fileAnalyzerDescription =>
+      'Select a file to check for hidden SecureMark signatures.';
+
+  @override
+  String get pickAndAnalyze => 'Pick and Analyze';
+
+  @override
+  String signatureFound(String message) {
+    return '✅ Signature found: \"$message\"';
+  }
+
+  @override
+  String get noSignatureFound =>
+      '❌ No SecureMark signature detected in this file.';
+
+  @override
+  String analysisError(String error) {
+    return 'Error during analysis: $error';
+  }
+
+  @override
+  String get analysisResult => 'Result:';
 
   @override
   String get processingCancelled => 'Processing cancelled';

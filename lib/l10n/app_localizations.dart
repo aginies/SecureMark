@@ -428,6 +428,18 @@ abstract class AppLocalizations {
   /// **'Convert PDF pages to images for maximum security (bigger size and slower)'**
   String get rasterizePdfSubtitle;
 
+  /// No description provided for @steganographyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Steganography (Invisible Signature)'**
+  String get steganographyTitle;
+
+  /// No description provided for @steganographySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Embed text secretly in pixels (Forces PNG output & flattened PDF)'**
+  String get steganographySubtitle;
+
   /// No description provided for @filePrefixLabel.
   ///
   /// In en, this message translates to:
@@ -583,6 +595,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View'**
   String get viewUpdate;
+
+  /// No description provided for @analyzeFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyze File (LSB)'**
+  String get analyzeFile;
+
+  /// No description provided for @fileAnalyzerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'File Analyzer (LSB)'**
+  String get fileAnalyzerTitle;
+
+  /// No description provided for @fileAnalyzerDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a file to check for hidden SecureMark signatures.'**
+  String get fileAnalyzerDescription;
+
+  /// No description provided for @pickAndAnalyze.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick and Analyze'**
+  String get pickAndAnalyze;
+
+  /// No description provided for @signatureFound.
+  ///
+  /// In en, this message translates to:
+  /// **'✅ Signature found: \"{message}\"'**
+  String signatureFound(String message);
+
+  /// No description provided for @noSignatureFound.
+  ///
+  /// In en, this message translates to:
+  /// **'❌ No SecureMark signature detected in this file.'**
+  String get noSignatureFound;
+
+  /// No description provided for @analysisError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error during analysis: {error}'**
+  String analysisError(String error);
+
+  /// No description provided for @analysisResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Result:'**
+  String get analysisResult;
 
   /// No description provided for @processingCancelled.
   ///
