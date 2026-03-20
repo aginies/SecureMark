@@ -4,6 +4,8 @@ Watermark App is a Flutter application for adding visible watermarks to images a
 
 The project is designed for lightweight document distribution workflows: choose one or more files, preview the result, adjust watermark settings, then save or share the processed outputs.
 
+![App Screenshot](app.jpg)
+
 Author: Antoine Ginies
 Version: 1.0.5
 
