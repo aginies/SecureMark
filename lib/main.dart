@@ -100,7 +100,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     final timestamp = DateTime.now().toString().split('.').first;
     final logEntry = '[$timestamp] $message';
     debugPrint(logEntry);
-    print(logEntry); // Restore for development debugging
     setState(() {
       _logs.insert(0, logEntry);
       // Keep only last 100 logs

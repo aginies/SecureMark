@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:pdf/pdf.dart';
@@ -447,7 +447,7 @@ class WatermarkProcessor {
         results.add(result);
       } catch (e) {
         // Continue processing other files even if one fails
-        print('Failed to process ${files[i].path}: $e');
+        debugPrint('Failed to process ${files[i].path}: $e');
         continue;
       }
     }
@@ -597,10 +597,10 @@ class WatermarkProcessor {
             preserveMetadata: preserveMetadata,
           ),
         );
-      } catch (e) {
-        onProgress?.call(0.3, 'Vector engine failed, falling back to raster engine...');
-        // Log the error to help debug why vector engine failed
-        print('Vector engine error: $e');
+      } catch (e, stackTrace) {
+        debugPrint('Vector engine error: $e');
+        debugPrint('Stack trace: $stackTrace');
+        onProgress?.call(0.3, 'Vector engine failed ($e), falling back to raster engine...');
         // Fallback to raster engine for malformed PDFs
         return await _processPdfRasterFallback(
           inputBytes: inputBytes,
