@@ -1356,7 +1356,7 @@ class WatermarkProcessor {
                '-${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
     }
 
-    return p.join(directory, 'watermarked-$baseName$suffix$targetExtension');
+    return p.join(directory, 'securemark-$baseName$suffix$targetExtension');
   }
 
   static String _resolvedWatermarkText(String userText) {
