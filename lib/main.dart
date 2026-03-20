@@ -12,6 +12,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'l10n/app_localizations.dart';
@@ -199,10 +200,70 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   CancellationToken? _cancellationToken;
   static const MethodChannel _platform = MethodChannel('secure_mark/sharing');
 
+  Future<void> _loadPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) {
+        setState(() {
+          _transparency = prefs.getDouble('transparency') ?? 75.0;
+          _density = prefs.getDouble('density') ?? 35.0;
+          _fontSize = prefs.getDouble('fontSize') ?? 24.0;
+          _jpegQuality = prefs.getInt('jpegQuality') ?? 75;
+          _targetSize = prefs.getInt('targetSize');
+          if (prefs.containsKey('targetSizeIsNull') && prefs.getBool('targetSizeIsNull') == true) {
+            _targetSize = null;
+          }
+          _includeTimestamp = prefs.getBool('includeTimestamp') ?? true;
+          _preserveMetadata = prefs.getBool('preserveMetadata') ?? false;
+          _rasterizePdf = prefs.getBool('rasterizePdf') ?? false;
+          _filePrefix = prefs.getString('filePrefix') ?? 'securemark-';
+          _useRandomColor = prefs.getBool('useRandomColor') ?? true;
+          final colorValue = prefs.getInt('selectedColor');
+          if (colorValue != null) {
+            _selectedColor = Color(colorValue);
+          }
+          final fontFamily = prefs.getString('selectedFont');
+          if (fontFamily != null) {
+            try {
+              _selectedFont = WatermarkFont.values.firstWhere((f) => f.fontFamily == fontFamily);
+            } catch (_) {
+              // Keep default if not found
+            }
+          }
+        });
+      }
+    } catch (e) {
+      _addLog('Error loading preferences: $e');
+    }
+  }
+
+  Future<void> _savePreference(String key, dynamic value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (value is double) {
+        await prefs.setDouble(key, value);
+      } else if (value is int) {
+        await prefs.setInt(key, value);
+      } else if (value is bool) {
+        await prefs.setBool(key, value);
+      } else if (value is String) {
+        await prefs.setString(key, value);
+      } else if (value == null) {
+        if (key == 'targetSize') {
+          await prefs.setBool('targetSizeIsNull', true);
+        }
+        await prefs.remove(key);
+      }
+    } catch (e) {
+      _addLog('Error saving preference $key: $e');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadPreferences();
     _loadShader();
     _handleSharedContent();
     _initPackageInfo();
@@ -506,6 +567,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         setState(() {
                           _fontSize = value;
                         });
+                        _savePreference('fontSize', value);
                       },
                     ),
                     const SizedBox(height: 16),
@@ -522,6 +584,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         setState(() {
                           _jpegQuality = value.round();
                         });
+                        _savePreference('jpegQuality', value.round());
                       },
                     ),
                     const SizedBox(height: 16),
@@ -547,6 +610,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         setState(() {
                           _targetSize = value;
                         });
+                        _savePreference('targetSize', value);
                       },
                     ),
                     const SizedBox(height: 16),
@@ -561,6 +625,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         setState(() {
                           _includeTimestamp = value ?? false;
                         });
+                        _savePreference('includeTimestamp', value ?? false);
                       },
                     ),
                     CheckboxListTile(
@@ -574,11 +639,12 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         setState(() {
                           _preserveMetadata = value ?? false;
                         });
+                        _savePreference('preserveMetadata', value ?? false);
                       },
                     ),
                     CheckboxListTile(
-                      title: const Text('Rasterize PDF (Flatten)'),
-                      subtitle: const Text('Convert PDF pages to images for maximum security (bigger size and slower)'),
+                      title: Text(l10n.rasterizePdfTitle),
+                      subtitle: Text(l10n.rasterizePdfSubtitle),
                       value: _rasterizePdf,
                       contentPadding: EdgeInsets.zero,
                       onChanged: (value) {
@@ -588,19 +654,21 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         setState(() {
                           _rasterizePdf = value ?? false;
                         });
+                        _savePreference('rasterizePdf', value ?? false);
                       },
                     ),
                     const SizedBox(height: 16),
                     TextField(
-                      decoration: const InputDecoration(
-                        labelText: 'File Prefix',
-                        hintText: 'e.g., watermark-',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.filePrefixLabel,
+                        hintText: l10n.filePrefixHint,
+                        border: const OutlineInputBorder(),
                       ),
                       onChanged: (value) {
                         setState(() {
                           _filePrefix = value;
                         });
+                        _savePreference('filePrefix', value);
                       },
                       controller: TextEditingController(text: _filePrefix),
                     ),
@@ -622,6 +690,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                               setState(() {
                                 _selectedFont = newFont;
                               });
+                              _savePreference('selectedFont', newFont.fontFamily);
                             }
                           },
                           items: _buildFontDropdownItems(),
@@ -655,6 +724,45 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       ),
                     ],
                     const SizedBox(height: 24),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.clear();
+                        
+                        setDialogState(() {
+                          _fontSize = 24.0;
+                          _jpegQuality = 75;
+                          _targetSize = 1280;
+                          _includeTimestamp = true;
+                          _preserveMetadata = false;
+                          _rasterizePdf = false;
+                          _filePrefix = 'securemark-';
+                          _useRandomColor = true;
+                          _selectedColor = Colors.deepPurple;
+                          _selectedFont = WatermarkFont.arial;
+                        });
+                        
+                        setState(() {
+                          _fontSize = 24.0;
+                          _jpegQuality = 75;
+                          _targetSize = 1280;
+                          _includeTimestamp = true;
+                          _preserveMetadata = false;
+                          _rasterizePdf = false;
+                          _filePrefix = 'securemark-';
+                          _useRandomColor = true;
+                          _selectedColor = Colors.deepPurple;
+                          _selectedFont = WatermarkFont.arial;
+                        });
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: Text(l10n.resetToDefaults),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 44),
+                        foregroundColor: theme.colorScheme.error,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     OutlinedButton.icon(
                       onPressed: () {
                         Navigator.of(context).pop();
@@ -1170,6 +1278,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                   setState(() {
                     _transparency = value;
                   });
+                  _savePreference('transparency', value);
                 },
         ),
       ],
@@ -1194,6 +1303,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                   setState(() {
                     _density = value;
                   });
+                  _savePreference('density', value);
                 },
         ),
       ],
@@ -1460,9 +1570,18 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     }
   }
 
-  void _reset() {
+  Future<void> _reset() async {
     _cancellationToken?.cancel();
     _textController.clear();
+    
+    // Clear all preferences
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+    } catch (e) {
+      _addLog('Error clearing preferences: $e');
+    }
+
     if (_previewController.hasClients) {
       _previewController.jumpToPage(0);
     }
@@ -1478,6 +1597,18 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       _previewIndex = 0;
       _statusMessage = '';
       _cancellationToken = null;
+      
+      // Reset expert settings
+      _fontSize = 24.0;
+      _jpegQuality = 75;
+      _targetSize = 1280;
+      _includeTimestamp = true;
+      _preserveMetadata = false;
+      _rasterizePdf = false;
+      _filePrefix = 'securemark-';
+      _useRandomColor = true;
+      _selectedColor = Colors.deepPurple;
+      _selectedFont = WatermarkFont.arial;
     });
   }
 
@@ -1706,12 +1837,14 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     setState(() {
       _useRandomColor = useRandomColor;
     });
+    _savePreference('useRandomColor', useRandomColor);
   }
 
   void _selectColor(Color color) {
     setState(() {
       _selectedColor = color;
     });
+    _savePreference('selectedColor', color.value);
   }
 
   List<DropdownMenuItem<WatermarkFont>> _buildFontDropdownItems() {
