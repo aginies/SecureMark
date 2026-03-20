@@ -583,17 +583,38 @@ class WatermarkProcessor {
       onProgress?.call(0.2, 'Adding watermark layer (background)...');
 
       // Move heavy PDF processing to Isolate
-      final outputBytes = await Isolate.run(
-        () => _renderWatermarkedPdfBytes(
+      Uint8List outputBytes;
+      try {
+        outputBytes = await Isolate.run(
+          () => _renderWatermarkedPdfBytes(
+            inputBytes: inputBytes,
+            transparency: transparency,
+            density: density,
+            watermarkText: watermarkText,
+            useRandomColor: useRandomColor,
+            selectedColorValue: selectedColorValue,
+            fontSize: fontSize,
+          ),
+        );
+      } catch (e) {
+        onProgress?.call(0.3, 'Vector engine failed, falling back to raster engine...');
+        // Fallback to raster engine for malformed PDFs
+        return await _processPdfRasterFallback(
           inputBytes: inputBytes,
+          file: file,
           transparency: transparency,
           density: density,
           watermarkText: watermarkText,
           useRandomColor: useRandomColor,
           selectedColorValue: selectedColorValue,
           fontSize: fontSize,
-        ),
-      );
+          font: font,
+          jpegQuality: jpegQuality,
+          includeTimestamp: includeTimestamp,
+          onProgress: onProgress,
+          cancellationToken: cancellationToken,
+        );
+      }
 
       if (cancellationToken?.isCancelled == true) {
         throw const WatermarkError(
@@ -636,7 +657,18 @@ class WatermarkProcessor {
     required int selectedColorValue,
     required double fontSize,
   }) {
-    final document = sync.PdfDocument(inputBytes: inputBytes);
+    sync.PdfDocument document;
+    try {
+      document = sync.PdfDocument(inputBytes: inputBytes);
+    } catch (e) {
+      // If direct loading fails, try repairing common cross-reference issues
+      throw WatermarkError(
+        type: WatermarkErrorType.invalidPdfData,
+        message: 'The PDF file appears to be malformed or corrupted. Error: $e',
+        originalError: e,
+      );
+    }
+    
     final pageCount = document.pages.count;
 
     // Color and transparency
@@ -1228,6 +1260,109 @@ class WatermarkProcessor {
     final green = (selectedColorValue >> 8) & 0xFF;
     final blue = selectedColorValue & 0xFF;
     return img.ColorRgba8(red, green, blue, alpha);
+  }
+
+  static Future<ProcessResult> _processPdfRasterFallback({
+    required Uint8List inputBytes,
+    required File file,
+    required double transparency,
+    required double density,
+    required String watermarkText,
+    required bool useRandomColor,
+    required int selectedColorValue,
+    required double fontSize,
+    required WatermarkFont font,
+    required int jpegQuality,
+    bool includeTimestamp = false,
+    ProgressCallback? onProgress,
+    CancellationToken? cancellationToken,
+  }) async {
+    try {
+      final doc = pw.Document();
+      Uint8List? preview;
+      var hasPages = false;
+      var pageCount = 0;
+      var processedPages = 0;
+
+      // Use a safe DPI for fallback processing
+      const double fallbackDpi = 150;
+
+      await for (final page in Printing.raster(inputBytes, dpi: fallbackDpi)) {
+        if (cancellationToken?.isCancelled == true) {
+          throw const WatermarkError(
+            type: WatermarkErrorType.operationCancelled,
+            message: 'Operation cancelled during PDF fallback processing',
+          );
+        }
+
+        hasPages = true;
+        pageCount++;
+
+        final pngBytes = await page.toPng();
+        if (pngBytes == null) continue;
+
+        final decoded = img.decodeImage(pngBytes);
+        if (decoded == null) continue;
+
+        final watermarked = img.Image.from(decoded);
+        _applyWatermarkField(
+          watermarked,
+          watermarkText,
+          transparency,
+          density,
+          useRandomColor,
+          selectedColorValue,
+          fontSize,
+          font,
+        );
+
+        final encoded = _encodePngForSharing(watermarked);
+        preview ??= encoded;
+
+        final provider = pw.MemoryImage(encoded);
+        final format = PdfPageFormat(
+          page.width.toDouble(),
+          page.height.toDouble(),
+        );
+
+        doc.addPage(
+          pw.Page(
+            pageFormat: format,
+            margin: pw.EdgeInsets.zero,
+            build: (_) => pw.SizedBox.expand(
+              child: pw.Image(provider, fit: pw.BoxFit.fill),
+            ),
+          ),
+        );
+
+        processedPages++;
+        onProgress?.call(0.3 + (processedPages / (pageCount + 1)) * 0.6, 'Processing page $processedPages (fallback)...');
+      }
+
+      if (!hasPages) {
+        throw WatermarkError(
+          type: WatermarkErrorType.invalidPdfData,
+          message: 'PDF contains no readable pages in fallback mode',
+          filePath: file.path,
+        );
+      }
+
+      final outputBytes = await doc.save();
+      final outputPath = _outputPath(file.path, '.pdf', includeTimestamp);
+
+      return ProcessResult(
+        outputPath: outputPath,
+        outputBytes: outputBytes,
+        previewBytes: preview,
+      );
+    } catch (e) {
+      throw WatermarkError(
+        type: WatermarkErrorType.invalidPdfData,
+        message: 'Completely failed to process PDF (both vector and raster engines)',
+        filePath: file.path,
+        originalError: e,
+      );
+    }
   }
 
   static String _outputPath(String originalPath, String targetExtension, [bool includeTimestamp = false]) {

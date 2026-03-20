@@ -1380,7 +1380,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           savedFiles.add(outputPath);
         } catch (e) {
           failedFiles.add(file.sourcePath);
-          _addLog('Failed to save to $_outputDirectory: $e');
+          final logPath = _outputDirectory ?? p.dirname(file.result.outputPath);
+          _addLog('Failed to save to $logPath: $e');
         }
       }
 
