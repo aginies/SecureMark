@@ -136,6 +136,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   double _progress = 0.0;
   String _statusMessage = '';
   String _progressMessage = '';
+  String _elapsedTime = '00:00';
   String _appVersion = '';
   String? _outputDirectory;
   ui.Image? _rawImage;
@@ -143,6 +144,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   final List<String> _tempFiles = <String>[];
   List<String> _selectedPaths = <String>[];
   ui.FragmentProgram? _shaderProgram;
+  Stopwatch? _stopwatch;
+  Timer? _timer;
 
   Future<void> _loadShader() async {
     try {
@@ -1918,8 +1921,34 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     }
   }
 
+  void _startStopwatch() {
+    _stopwatch?.stop();
+    _timer?.cancel();
+    _stopwatch = Stopwatch()..start();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_stopwatch == null || !_stopwatch!.isRunning) {
+        timer.cancel();
+        return;
+      }
+      final duration = _stopwatch!.elapsed;
+      final minutes = duration.inMinutes.toString().padLeft(2, '0');
+      final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+      if (mounted) {
+        setState(() {
+          _elapsedTime = '$minutes:$seconds';
+        });
+      }
+    });
+  }
+
+  void _stopStopwatch() {
+    _stopwatch?.stop();
+    _timer?.cancel();
+  }
+
   Future<void> _reset() async {
     _cancellationToken?.cancel();
+    _stopStopwatch();
     _textController.clear();
     
     // Clear all preferences
@@ -1938,6 +1967,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       _processing = false;
       _progress = 0.0;
       _progressMessage = '';
+      _elapsedTime = '00:00';
       _transparency = 75;
       _density = 35;
       _selectedPaths = <String>[];
@@ -1945,6 +1975,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       _previewIndex = 0;
       _statusMessage = '';
       _cancellationToken = null;
+      _rawImage = null;
       
       // Reset expert settings
       _fontSize = 24.0;
