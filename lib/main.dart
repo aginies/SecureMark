@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/foundation.dart';
@@ -84,6 +85,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   int? _targetSize = 1280;
   bool _includeTimestamp = true;
   bool _preserveMetadata = false;
+  bool _rasterizePdf = false;
   bool _useRandomColor = true;
   Color _selectedColor = Colors.red;
   bool _dragging = false;
@@ -96,6 +98,20 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   final List<String> _logs = <String>[];
   final List<String> _tempFiles = <String>[];
   List<String> _selectedPaths = <String>[];
+  ui.FragmentProgram? _shaderProgram;
+
+  Future<void> _loadShader() async {
+    try {
+      final program = await ui.FragmentProgram.fromAsset('shaders/watermark.frag');
+      if (mounted) {
+        setState(() {
+          _shaderProgram = program;
+        });
+      }
+    } catch (e) {
+      _addLog('Failed to load shader: $e');
+    }
+  }
 
   Future<void> _cleanupTempFiles() async {
     if (_tempFiles.isEmpty) return;
@@ -149,6 +165,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadShader();
     _handleSharedContent();
     _initPackageInfo();
     _initOutputDirectory();
@@ -518,6 +535,20 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         });
                         setState(() {
                           _preserveMetadata = value ?? false;
+                        });
+                      },
+                    ),
+                    CheckboxListTile(
+                      title: const Text('Rasterize PDF (Flatten)'),
+                      subtitle: const Text('Convert PDF pages to images for maximum security (drawbacks: bigger size and slower process.)'),
+                      value: _rasterizePdf,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          _rasterizePdf = value ?? false;
+                        });
+                        setState(() {
+                          _rasterizePdf = value ?? false;
                         });
                       },
                     ),
@@ -1248,6 +1279,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
             targetSize: _targetSize,
             includeTimestamp: _includeTimestamp,
             preserveMetadata: _preserveMetadata,
+            rasterizePdf: _rasterizePdf,
             onProgress: (progress, message) {
               if (mounted) {
                 setState(() {
