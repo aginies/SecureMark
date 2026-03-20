@@ -1,4 +1,4 @@
-package com.example.watermark_app
+package org.ginies.secure_mark
 
 import android.content.Intent
 import android.net.Uri
