@@ -206,10 +206,12 @@
   "rasterizePdfSubtitle": "Convertir les pages PDF en images pour une sécurité maximale (plus lourd et plus lent)",
   "filePrefixLabel": "Préfixe de fichier",
   "filePrefixHint": "ex: filigrane-",
+  "resetExpertHint": "Cela réinitialisera tous les réglages experts et le préfixe de fichier aux valeurs par défaut.",
   "fontStyleLabel": "Style de police",
   "fontSelectionNote": "Note : Utilisation de polices bitmap optimisées pour un rendu rapide multi-plateforme.",
   "fontSelectionNoteGoogle": "Note : Utilisation de Google Fonts pour une typographie améliorée. Internet requis pour la première utilisation.",
   "fontSelectionNoteAsset": "Note : Utilisation d'une police TTF personnalisée pour une typographie améliorée. Nécessite des fichiers de police dans assets/fonts/.",
+  "resetToDefaults": "Réinitialiser par défaut",
   "outputDirectoryLabel": "Dossier de sortie : {path}",
   "@outputDirectoryLabel": {
     "placeholders": {

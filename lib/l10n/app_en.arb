@@ -206,10 +206,12 @@
   "rasterizePdfSubtitle": "Convert PDF pages to images for maximum security (bigger size and slower)",
   "filePrefixLabel": "File Prefix",
   "filePrefixHint": "e.g., watermark-",
+  "resetExpertHint": "This will reset all expert settings and file prefix to defaults.",
   "fontStyleLabel": "Font Style",
   "fontSelectionNote": "Note: Using optimized bitmap fonts for fast cross-platform rendering.",
   "fontSelectionNoteGoogle": "Note: Using Google Fonts for enhanced typography. Requires internet for first use.",
   "fontSelectionNoteAsset": "Note: Using custom TTF font for enhanced typography. Requires font files in assets/fonts/.",
+  "resetToDefaults": "Reset to Defaults",
   "outputDirectoryLabel": "Output Directory: {path}",
   "@outputDirectoryLabel": {
     "placeholders": {
