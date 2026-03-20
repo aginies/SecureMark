@@ -127,9 +127,41 @@ jobs:
           path: watermark-app-windows.zip
           if-no-files-found: error
 
+  build-macos:
+    name: Build macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Build macOS
+        run: flutter build macos --release
+      - name: Package macOS Build
+        run: |
+          cd build/macos/Build/Products/Release
+          if [ -d "watermark_app.app" ]; then
+            zip -r ../../../../../watermark-app-macos.zip watermark_app.app
+            echo "✅ macOS app packaged successfully"
+            ls -la ../../../../../watermark-app-macos.zip
+          else
+            echo "❌ watermark_app.app not found"
+            find . -name "*.app" -exec ls -la {} \;
+          fi
+      - name: Upload macOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-release-app
+          path: watermark-app-macos.zip
+          if-no-files-found: error
+
   create-release:
     name: Create GitHub Release
-    needs: [build-android, build-ios, build-windows]
+    needs: [build-android, build-ios, build-windows, build-macos]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -151,6 +183,12 @@ jobs:
         with:
           name: windows-release-exe
           path: ./artifacts/windows
+
+      - name: Download macOS Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-release-app
+          path: ./artifacts/macos
 
       - name: Debug - List Downloaded Files
         run: |
@@ -190,6 +228,15 @@ jobs:
             echo "❌ Windows ZIP not found"
             find ./artifacts/windows -name "*.zip" -exec ls -la {} \;
           fi
+
+          # Copy and rename macOS ZIP
+          if [ -f "./artifacts/macos/watermark-app-macos.zip" ]; then
+            cp "./artifacts/macos/watermark-app-macos.zip" "./release/WatermarkApp-macOS.zip"
+            echo "✅ macOS ZIP copied successfully"
+          else
+            echo "❌ macOS ZIP not found"
+            find ./artifacts/macos -name "*.zip" -exec ls -la {} \;
+          fi
           
           echo "=== Final release files ==="
           ls -la ./release/
@@ -218,6 +265,13 @@ jobs:
             MISSING_FILES=$((MISSING_FILES + 1))
           else
             echo "✅ Windows ZIP present"
+          fi
+
+          if [ ! -f "./release/WatermarkApp-macOS.zip" ]; then
+            echo "❌ macOS ZIP missing"
+            MISSING_FILES=$((MISSING_FILES + 1))
+          else
+            echo "✅ macOS ZIP present"
           fi
           
           if [ $MISSING_FILES -gt 0 ]; then
@@ -253,6 +307,7 @@ jobs:
           echo "## Downloads" >> release_notes.md
           echo "- **Android**: Install the APK file on your Android device" >> release_notes.md
           echo "- **iOS**: For development/verification purposes only (requires Xcode)" >> release_notes.md
+          echo "- **macOS**: Extract and run the application" >> release_notes.md
           echo "- **Windows**: Extract and run the executable" >> release_notes.md
 
       - name: Release
