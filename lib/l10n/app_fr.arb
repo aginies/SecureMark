@@ -30,7 +30,7 @@
   "processingCached": "Récupéré du cache",
   "processingComplete": "Traitement terminé",
   "processingFlattening": "Rasterisation du PDF (aplatissement)...",
-  "authorFooter": "Auteur : guibo",
+  "authorFooter": "Auteur : Antoine Giniès",
   "pickFiles": "Images ou PDF",
   "selectedFile": "Fichier sélectionné : {name}",
   "@selectedFile": {
