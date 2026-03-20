@@ -239,6 +239,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Note: Using Google Fonts for enhanced typography. Requires internet for first use.';
 
   @override
+  String outputDirectoryLabel(String path) {
+    return 'Output Directory: $path';
+  }
+
+  @override
+  String get selectOutputDirectory => 'Select Output Directory';
+
+  @override
   String get viewLogs => 'View Logs';
 
   @override

@@ -398,6 +398,18 @@ abstract class AppLocalizations {
   /// **'Note: Using Google Fonts for enhanced typography. Requires internet for first use.'**
   String get fontSelectionNoteGoogle;
 
+  /// No description provided for @outputDirectoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Output Directory: {path}'**
+  String outputDirectoryLabel(String path);
+
+  /// No description provided for @selectOutputDirectory.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Output Directory'**
+  String get selectOutputDirectory;
+
   /// No description provided for @viewLogs.
   ///
   /// In en, this message translates to:

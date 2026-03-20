@@ -192,6 +192,15 @@
   "fontStyleLabel": "Style de police",
   "fontSelectionNote": "Note : Utilisation de polices bitmap optimisées pour un rendu rapide multi-plateforme.",
   "fontSelectionNoteGoogle": "Note : Utilisation de Google Fonts pour une typographie améliorée. Internet requis pour la première utilisation.",
+  "outputDirectoryLabel": "Dossier de sortie : {path}",
+  "@outputDirectoryLabel": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "selectOutputDirectory": "Choisir le dossier de sortie",
   "viewLogs": "Voir les logs",
   "appLogs": "Logs de l'application",
   "close": "Fermer"

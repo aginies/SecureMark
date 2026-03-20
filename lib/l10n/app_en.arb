@@ -192,6 +192,15 @@
   "fontStyleLabel": "Font Style",
   "fontSelectionNote": "Note: Using optimized bitmap fonts for fast cross-platform rendering.",
   "fontSelectionNoteGoogle": "Note: Using Google Fonts for enhanced typography. Requires internet for first use.",
+  "outputDirectoryLabel": "Output Directory: {path}",
+  "@outputDirectoryLabel": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "selectOutputDirectory": "Select Output Directory",
   "viewLogs": "View Logs",
   "appLogs": "App Logs",
   "close": "Close"

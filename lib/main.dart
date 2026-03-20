@@ -92,6 +92,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   String _statusMessage = '';
   String _progressMessage = '';
   String _appVersion = '';
+  String? _outputDirectory;
   final List<String> _logs = <String>[];
   List<String> _selectedPaths = <String>[];
 
@@ -106,6 +107,20 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         _logs.removeLast();
       }
     });
+  }
+
+  Future<void> _pickOutputDirectory() async {
+    try {
+      final String? directoryPath = await getDirectoryPath();
+      if (directoryPath != null) {
+        _addLog('Selected output directory: $directoryPath');
+        setState(() {
+          _outputDirectory = directoryPath;
+        });
+      }
+    } catch (e) {
+      _addLog('Error picking directory: $e');
+    }
   }
   List<_ProcessedFile> _processedFiles = <_ProcessedFile>[];
   int _previewIndex = 0;
@@ -507,6 +522,27 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       _getFontSourceDescription(context),
                       style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
                     ),
+                    if (!kIsWeb && (Platform.isLinux || Platform.isMacOS || Platform.isWindows)) ...[
+                      const SizedBox(height: 24),
+                      const Divider(),
+                      const SizedBox(height: 16),
+                      Text(
+                        l10n.outputDirectoryLabel(_outputDirectory ?? l10n.resizeNone),
+                        style: theme.textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          await _pickOutputDirectory();
+                          setDialogState(() {}); // Update dialog state
+                        },
+                        icon: const Icon(Icons.folder_open),
+                        label: Text(l10n.selectOutputDirectory),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 44),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     OutlinedButton.icon(
                       onPressed: () {
@@ -1325,8 +1361,15 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     try {
       for (final file in _processedFiles) {
         try {
-          // Create the directory if it doesn't exist
-          final outputFile = File(file.result.outputPath);
+          String outputPath = file.result.outputPath;
+          
+          // If a custom output directory is selected (Desktop only), use it
+          if (_outputDirectory != null) {
+            final fileName = p.basename(file.result.outputPath);
+            outputPath = p.join(_outputDirectory!, fileName);
+          }
+
+          final outputFile = File(outputPath);
           final directory = outputFile.parent;
           
           if (!await directory.exists()) {
@@ -1334,10 +1377,10 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           }
           
           await outputFile.writeAsBytes(file.result.outputBytes);
-          savedFiles.add(file.result.outputPath);
+          savedFiles.add(outputPath);
         } catch (e) {
           failedFiles.add(file.sourcePath);
-          print('Failed to save ${file.result.outputPath}: $e');
+          _addLog('Failed to save to $_outputDirectory: $e');
         }
       }
 
