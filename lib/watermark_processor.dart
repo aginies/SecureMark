@@ -13,8 +13,6 @@ import 'package:syncfusion_flutter_pdf/pdf.dart' as sync;
 import 'font_manager.dart';
 
 final Random _random = Random();
-const int _fixedFontSize = 24;
-const int _maxImageDimension = 1600;
 const double _angleStepDegrees = 15;
 const int _randomColorPoolSize = 6;
 const int _maxFileSize = 50 * 1024 * 1024; // 50MB
@@ -405,7 +403,7 @@ class WatermarkProcessor {
     CancellationToken? cancellationToken,
   }) async {
     if (files.length > _maxFilesInBatch) {
-      throw WatermarkError(
+      throw const WatermarkError(
         type: WatermarkErrorType.unknownError,
         message: 'Too many files in batch (max $_maxFilesInBatch)',
       );
@@ -723,11 +721,11 @@ class WatermarkProcessor {
     int r, g, b;
     if (useRandomColor) {
       final hue = _random.nextDouble() * 360;
-      const saturation = 0.8;
-      const value = 0.95;
-      final chroma = value * saturation;
+      const double saturation = 0.8;
+      const double value = 0.95;
+      const double chroma = value * saturation;
       final x = chroma * (1 - (((hue / 60) % 2) - 1).abs());
-      final m = value - chroma;
+      const double m = value - chroma;
       double rf, gf, bf;
       if (hue < 60) { rf = chroma; gf = x; bf = 0; }
       else if (hue < 120) { rf = x; gf = chroma; bf = 0; }
@@ -802,38 +800,6 @@ class WatermarkProcessor {
         originalError: e,
       );
     }
-  }
-
-  static Uint8List? _renderWatermarkedImageBytes({
-    required Uint8List inputBytes,
-    required double transparency,
-    required double density,
-    required String watermarkText,
-    required bool useRandomColor,
-    required int selectedColorValue,
-    required double fontSize,
-    required WatermarkFont font,
-    int jpegQuality = 75,
-    int? targetSize = 1280,
-  }) {
-    final decoded = img.decodeImage(inputBytes);
-    if (decoded == null) {
-      return null;
-    }
-
-    final resized = _resizeToTarget(decoded, targetSize);
-    final outputImage = img.Image.from(resized);
-    _applyWatermarkField(
-      outputImage,
-      watermarkText,
-      transparency,
-      density,
-      useRandomColor,
-      selectedColorValue,
-      fontSize,
-      font,
-    );
-    return _encodePngForSharing(outputImage);
   }
 
   static img.Image _buildWatermarkStamp(String watermarkText, _Placement placement) {
@@ -1203,11 +1169,11 @@ class WatermarkProcessor {
 
   static img.Color _randomWatermarkColor(int alpha) {
     final hue = _random.nextDouble() * 360;
-    const saturation = 0.8;
-    const value = 0.95;
-    final chroma = value * saturation;
+    const double saturation = 0.8;
+    const double value = 0.95;
+    const double chroma = value * saturation;
     final x = chroma * (1 - (((hue / 60) % 2) - 1).abs());
-    final m = value - chroma;
+    const double m = value - chroma;
 
     double red;
     double green;
@@ -1299,12 +1265,9 @@ class WatermarkProcessor {
         pageCount++;
 
         final pngBytes = await page.toPng();
-        if (pngBytes == null) continue;
-
         final decoded = img.decodeImage(pngBytes);
-        if (decoded == null) continue;
 
-        final watermarked = img.Image.from(decoded);
+        final watermarked = img.Image.from(decoded!);
         _applyWatermarkField(
           watermarked,
           watermarkText,

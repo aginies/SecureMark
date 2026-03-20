@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/foundation.dart';
@@ -11,7 +10,6 @@ import 'package:file_selector/file_selector.dart';
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:collection/collection.dart';
 
 import 'l10n/app_localizations.dart';
 import 'watermark_processor.dart';
@@ -99,7 +97,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   void _addLog(String message) {
     final timestamp = DateTime.now().toString().split('.').first;
     final logEntry = '[$timestamp] $message';
-    print(logEntry);
+    debugPrint(logEntry);
+    print(logEntry); // Restore for development debugging
     setState(() {
       _logs.insert(0, logEntry);
       // Keep only last 100 logs
@@ -356,7 +355,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     showDialog(
       context: context,
       builder: (context) {
-        final theme = Theme.of(context);
         return AlertDialog(
           title: Text(l10n.appLogs),
           content: SizedBox(
@@ -651,7 +649,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                                   HapticFeedback.lightImpact();
                                 }
                                 
-                                _transformationController.value = Matrix4.identity()..scale(targetScale);
+                                _transformationController.value = Matrix4.diagonal3Values(targetScale, targetScale, 1.0);
                               },
                               child: InteractiveViewer(
                                 transformationController: _transformationController,
@@ -969,7 +967,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                     spacing: 10,
                     runSpacing: 10,
                     children: palette.map((color) {
-                      final isSelected = color.value == _selectedColor.value;
+                      final isSelected = color.toARGB32() == _selectedColor.toARGB32();
                       return InkWell(
                         onTap: _processing
                             ? null
@@ -1141,8 +1139,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
     final group = XTypeGroup(
       label: l10n.pickerLabel,
-      extensions: <String>['jpg', 'jpeg', 'png', 'webp', 'pdf', 'heic', 'heif'],
-      uniformTypeIdentifiers: <String>['public.jpeg', 'public.png', 'public.webp', 'com.adobe.pdf', 'public.heic', 'public.heif'],
+      extensions: const <String>['jpg', 'jpeg', 'png', 'webp', 'pdf', 'heic', 'heif'],
+      uniformTypeIdentifiers: const <String>['public.jpeg', 'public.png', 'public.webp', 'com.adobe.pdf', 'public.heic', 'public.heif'],
     );
 
     final files = await openFiles(acceptedTypeGroups: <XTypeGroup>[group]);
@@ -1242,7 +1240,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         } catch (e) {
           _addLog('Failed to process $fileName: $e');
           failedFiles.add(path);
-          print('Failed to process $path: $e');
           
           // Show user-friendly error message if it's a WatermarkError
           if (e is WatermarkError && mounted) {
@@ -1493,6 +1490,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
   Future<void> _shareCurrent() async {
     final l10n = AppLocalizations.of(context)!;
+    final box = context.findRenderObject() as RenderBox?;
+    final sharePositionOrigin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
 
     if (_processedFiles.isEmpty) {
       return;
@@ -1511,10 +1510,13 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         )
         .toList();
 
-    final result = await Share.shareXFiles(
-      shareFiles,
-      subject: l10n.shareSubject,
-      text: l10n.shareText,
+    final result = await SharePlus.instance.share(
+      ShareParams(
+        files: shareFiles,
+        subject: l10n.shareSubject,
+        text: l10n.shareText,
+        sharePositionOrigin: sharePositionOrigin,
+      ),
     );
 
     if (!mounted) {
