@@ -96,7 +96,8 @@ assets/fonts/
 
 - **Font Licensing**: Ensure you have proper licensing for any fonts you add
 - **File Size**: TTF files can be large (1-2MB each) - this affects app size
-- **Watermark Rendering**: Custom fonts will show in UI previews. Actual watermark rendering currently uses bitmap fallback for performance, but this may be enhanced in future versions
+- **Watermark Rendering**: ✅ **Custom fonts now render in actual watermarks using TrueType font rendering!** Font selection in UI previews matches the actual watermark output. The app uses Flutter's canvas rendering engine to create high-quality text with your selected font, then composites it onto images and PDFs.
 - **Platform Support**: TTF/OTF fonts work across all Flutter platforms (iOS, Android, Windows, macOS, Linux, Web)
+- **Performance**: TTF fonts are pre-rendered before watermark processing for optimal performance. The app automatically falls back to bitmap fonts if TTF rendering fails.
 
 After adding fonts and rebuilding the app, the new custom fonts will appear in the font selection dropdown in Expert Settings!

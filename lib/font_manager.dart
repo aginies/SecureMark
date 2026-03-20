@@ -129,6 +129,61 @@ enum WatermarkFont {
         return 'Vera';
     }
   }
+
+  /// Get asset path for asset-based fonts
+  /// Returns null for bitmap and Google fonts
+  String? getAssetPath() {
+    if (source != FontSource.asset) return null;
+
+    switch (this) {
+      case WatermarkFont.customRoboto:
+        return 'assets/fonts/Roboto-Regular.ttf';
+      case WatermarkFont.customOpenSans:
+        return 'assets/fonts/OpenSans-Regular.ttf';
+      case WatermarkFont.charis:
+        return 'assets/fonts/Charis-Regular.ttf';
+      case WatermarkFont.liberationMono:
+        return 'assets/fonts/LiberationMono-Regular.ttf';
+      case WatermarkFont.liberationSerif:
+        return 'assets/fonts/LiberationSerif-Regular.ttf';
+      case WatermarkFont.vera:
+        return 'assets/fonts/Vera.ttf';
+      default:
+        return null;
+    }
+  }
+
+  /// Get Google Fonts API URL for downloading TTF files
+  /// Returns null for bitmap and asset fonts
+  String? getGoogleFontUrl() {
+    if (source != FontSource.google) return null;
+
+    // Google Fonts API v1 URL format for regular weight
+    const apiBase = 'https://fonts.gstatic.com/s/';
+
+    switch (this) {
+      case WatermarkFont.roboto:
+        return '${apiBase}roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2';
+      case WatermarkFont.openSans:
+        return '${apiBase}opensans/v35/memSYaGs126MiZpBA-UvWbX2vVnXBbObj2OVZyOOSr4dVJWUgsjZ0C4nY1M2xLER.ttf';
+      case WatermarkFont.lato:
+        return '${apiBase}lato/v24/S6uyw4BMUTPHjx4wXg.woff2';
+      case WatermarkFont.montserrat:
+        return '${apiBase}montserrat/v25/JTUSjIg1_i6t8kCHKm459WlhyyTh89Y.woff2';
+      case WatermarkFont.poppins:
+        return '${apiBase}poppins/v20/pxiEyp8kv8JHgFVrJJfecg.woff2';
+      case WatermarkFont.notoSans:
+        return '${apiBase}notosans/v30/o-0IIpQlx3QUlC5A4PNr5TRA.woff2';
+      case WatermarkFont.sourceCodePro:
+        return '${apiBase}sourcecodepro/v22/HI_diYsKILxRpg3hIP6sJ7fM7PqPMcMnZFqUwX28DEyQhM5hTXUcdJg.ttf';
+      case WatermarkFont.playfairDisplay:
+        return '${apiBase}playfairdisplay/v36/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKdFvUDQZNLo_U2r.ttf';
+      case WatermarkFont.oswald:
+        return '${apiBase}oswald/v53/TK3_WkUHHAIjg75cFRf3bXL8LICs1_FvsUtiZTaR.ttf';
+      default:
+        return null;
+    }
+  }
 }
 
 class FontManager {

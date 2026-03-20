@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show TextPainter, TextSpan, TextAlign, TextDirection, FontWeight;
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:pdf/pdf.dart';
@@ -500,6 +502,25 @@ class WatermarkProcessor {
       final inputBytes = await file.readAsBytes();
       final extension = p.extension(file.path).toLowerCase();
 
+      // Pre-render TTF stamps if using non-bitmap fonts
+      Map<String, Uint8List>? preRenderedStamps;
+      if (!font.isBitmap) {
+        onProgress?.call(0.3, 'Rendering font...');
+        final stampKey = '${font.fontFamily}-${fontSize.round()}';
+        try {
+          final stampBytes = await _renderTextWithFlutterCanvas(
+            text: watermarkText,
+            font: font,
+            fontSize: fontSize.round(),
+            color: const ui.Color.fromARGB(255, 255, 255, 255), // White base, will be colorized
+          );
+          preRenderedStamps = {stampKey: stampBytes};
+        } catch (e) {
+          debugPrint('TTF pre-rendering failed, will use bitmap fallback: $e');
+          // Continue without pre-rendered stamps, will use bitmap fallback
+        }
+      }
+
       onProgress?.call(0.4, 'Processing image...');
 
       final outputBytes = await Isolate.run(
@@ -517,6 +538,7 @@ class WatermarkProcessor {
           filePath: file.path,
           originalExtension: extension,
           preserveMetadata: preserveMetadata,
+          preRenderedStamps: preRenderedStamps,
         ),
       );
 
@@ -805,6 +827,7 @@ class WatermarkProcessor {
     required String filePath,
     required String originalExtension,
     bool preserveMetadata = false,
+    Map<String, Uint8List>? preRenderedStamps,
   }) {
     try {
       final decoded = img.decodeImage(inputBytes);
@@ -837,6 +860,7 @@ class WatermarkProcessor {
         selectedColorValue,
         fontSize,
         font,
+        preRenderedStamps,
       );
 
       // Encode in the original format
@@ -854,7 +878,57 @@ class WatermarkProcessor {
     }
   }
 
-  static img.Image _buildWatermarkStamp(String watermarkText, _Placement placement) {
+  /// Render text using Flutter canvas with TTF fonts (high quality)
+  /// This must be called outside of isolates since it uses Flutter rendering
+  static Future<Uint8List> _renderTextWithFlutterCanvas({
+    required String text,
+    required WatermarkFont font,
+    required int fontSize,
+    required ui.Color color,
+  }) async {
+    // Create text painter with the specified font
+    final textStyle = font.getTextStyle(
+      fontSize: fontSize.toDouble(),
+      fontWeight: FontWeight.normal,
+    );
+
+    final textSpan = TextSpan(
+      text: text,
+      style: textStyle.copyWith(color: color),
+    );
+
+    final textPainter = TextPainter(
+      text: textSpan,
+      textAlign: TextAlign.left,
+      textDirection: TextDirection.ltr,
+    );
+
+    textPainter.layout();
+
+    // Create a picture recorder and canvas
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+
+    // Paint the text on the canvas
+    textPainter.paint(canvas, ui.Offset.zero);
+
+    // Convert to image
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(
+      textPainter.width.ceil(),
+      textPainter.height.ceil(),
+    );
+
+    // Convert to PNG bytes
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    return byteData!.buffer.asUint8List();
+  }
+
+  static img.Image _buildWatermarkStamp(
+    String watermarkText,
+    _Placement placement,
+    Map<String, Uint8List>? preRenderedStamps,
+  ) {
     final baseTextWidth = max(1, (watermarkText.length * 18 * (placement.fontSize / 24)).round());
     final baseTextHeight = (48 * (placement.fontSize / 24)).round();
     final textImage = img.Image(
@@ -865,9 +939,62 @@ class WatermarkProcessor {
     textImage.clear(img.ColorRgba8(0, 0, 0, 0));
     textImage.backgroundColor = img.ColorRgba8(0, 0, 0, 0);
 
-    // Select font based on the placement font type
+    // Check if we have a pre-rendered TTF stamp for this font/size combo
+    final stampKey = '${placement.font.fontFamily}-${placement.fontSize}';
+    if (preRenderedStamps != null && preRenderedStamps.containsKey(stampKey)) {
+      // Use the pre-rendered TTF stamp
+      final stampBytes = preRenderedStamps[stampKey]!;
+      final ttfStamp = img.decodePng(stampBytes);
+
+      if (ttfStamp != null) {
+        // Colorize the stamp with the placement color
+        final colorized = img.Image.from(ttfStamp);
+        for (var y = 0; y < colorized.height; y++) {
+          for (var x = 0; x < colorized.width; x++) {
+            final pixel = colorized.getPixel(x, y);
+            final alpha = pixel.a;
+            if (alpha > 0) {
+              colorized.setPixel(x, y, img.ColorRgba8(
+                placement.color.r.toInt(),
+                placement.color.g.toInt(),
+                placement.color.b.toInt(),
+                (alpha * (placement.color.a / 255.0)).round(),
+              ));
+            }
+          }
+        }
+
+        // Composite onto text image (center it)
+        final offsetX = max(0, (baseTextWidth - colorized.width) ~/ 2);
+        final offsetY = max(0, (baseTextHeight - colorized.height) ~/ 2);
+        img.compositeImage(
+          textImage,
+          colorized,
+          dstX: offsetX,
+          dstY: offsetY,
+          blend: img.BlendMode.alpha,
+        );
+      } else {
+        // Fallback to bitmap if decoding failed
+        _drawBitmapText(textImage, watermarkText, placement);
+      }
+    } else {
+      // Use bitmap font (for Arial or when TTF not available)
+      _drawBitmapText(textImage, watermarkText, placement);
+    }
+
+    final rotated = img.copyRotate(
+      textImage,
+      angle: placement.angle,
+      interpolation: img.Interpolation.linear,
+    );
+    rotated.backgroundColor = img.ColorRgba8(0, 0, 0, 0);
+    return rotated;
+  }
+
+  /// Helper to draw text using bitmap fonts
+  static void _drawBitmapText(img.Image textImage, String watermarkText, _Placement placement) {
     if (placement.font.isBitmap) {
-      // Use bitmap font for Arial (legacy support)
       final bitmapFont = placement.font.getBitmapFont(placement.fontSize);
       if (bitmapFont != null) {
         img.drawString(
@@ -880,8 +1007,6 @@ class WatermarkProcessor {
         );
       }
     } else {
-      // For Google Fonts, fall back to bitmap font for now
-      // In a future enhancement, this could use TrueType font rendering
       final font = _getFontForSize(placement.fontSize);
       img.drawString(
         textImage,
@@ -892,14 +1017,6 @@ class WatermarkProcessor {
         color: placement.color,
       );
     }
-
-    final rotated = img.copyRotate(
-      textImage,
-      angle: placement.angle,
-      interpolation: img.Interpolation.linear,
-    );
-    rotated.backgroundColor = img.ColorRgba8(0, 0, 0, 0);
-    return rotated;
   }
 
   static img.BitmapFont _getFontForSize(int fontSize) {
@@ -917,6 +1034,7 @@ class WatermarkProcessor {
     int selectedColorValue,
     double fontSize,
     WatermarkFont font,
+    Map<String, Uint8List>? preRenderedStamps,
   ) {
     final placements = _buildPlacements(
       width: image.width,
@@ -936,7 +1054,7 @@ class WatermarkProcessor {
       final stampKey = '${placement.angle.round()}-${placement.colorKey}';
       final stamp = stampCache.putIfAbsent(
         stampKey,
-        () => _buildWatermarkStamp(watermarkText, placement),
+        () => _buildWatermarkStamp(watermarkText, placement, preRenderedStamps),
       );
       img.compositeImage(
         image,
@@ -1321,6 +1439,20 @@ class WatermarkProcessor {
         final decoded = img.decodeImage(pngBytes);
 
         final watermarked = img.Image.from(decoded!);
+
+        // For PDF processing, we can pre-render the stamp here (not in isolate)
+        Map<String, Uint8List>? pdfStamps;
+        if (!font.isBitmap) {
+          final stampKey = '${font.fontFamily}-${fontSize.round()}';
+          final stampBytes = await _renderTextWithFlutterCanvas(
+            text: watermarkText,
+            font: font,
+            fontSize: fontSize.round(),
+            color: const ui.Color.fromARGB(255, 255, 255, 255), // White base, will be colorized
+          );
+          pdfStamps = {stampKey: stampBytes};
+        }
+
         _applyWatermarkField(
           watermarked,
           watermarkText,
@@ -1330,6 +1462,7 @@ class WatermarkProcessor {
           selectedColorValue,
           fontSize,
           font,
+          pdfStamps,
         );
 
         final encoded = _encodePngForSharing(watermarked);
