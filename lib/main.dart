@@ -18,6 +18,42 @@ import 'l10n/app_localizations.dart';
 import 'watermark_processor.dart';
 import 'font_manager.dart';
 
+class WatermarkShaderPainter extends CustomPainter {
+  WatermarkShaderPainter({
+    required this.shader,
+    required this.image,
+    required this.color,
+    required this.transparency,
+  });
+
+  final ui.FragmentShader shader;
+  final ui.Image image;
+  final Color color;
+  final double transparency;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    shader.setFloat(0, size.width);
+    shader.setFloat(1, size.height);
+    shader.setFloat(2, color.red / 255);
+    shader.setFloat(3, color.green / 255);
+    shader.setFloat(4, color.blue / 255);
+    shader.setFloat(5, color.opacity);
+    shader.setFloat(6, transparency / 100);
+    shader.setImageSampler(0, image);
+
+    final paint = Paint()..shader = shader;
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant WatermarkShaderPainter oldDelegate) {
+    return oldDelegate.color != color || 
+           oldDelegate.transparency != transparency ||
+           oldDelegate.image != image;
+  }
+}
+
 class _ProcessedFile {
   const _ProcessedFile({
     required this.sourcePath,
@@ -86,6 +122,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   bool _includeTimestamp = true;
   bool _preserveMetadata = false;
   bool _rasterizePdf = false;
+  String _filePrefix = 'securemark-';
   bool _useRandomColor = true;
   Color _selectedColor = Colors.red;
   bool _dragging = false;
@@ -95,6 +132,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   String _progressMessage = '';
   String _appVersion = '';
   String? _outputDirectory;
+  ui.Image? _rawImage;
   final List<String> _logs = <String>[];
   final List<String> _tempFiles = <String>[];
   List<String> _selectedPaths = <String>[];
@@ -539,8 +577,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       },
                     ),
                     CheckboxListTile(
-                      title: const Text('Rasterize PDF (Flatten)'),
-                      subtitle: const Text('Convert PDF pages to images for maximum security (drawbacks: bigger size and slower process.)'),
+                      title: Text(l10n.rasterizePdfTitle),
+                      subtitle: Text(l10n.rasterizePdfSubtitle),
                       value: _rasterizePdf,
                       contentPadding: EdgeInsets.zero,
                       onChanged: (value) {
@@ -654,19 +692,41 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.touch_app_outlined,
-                    size: 56,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _selectedPaths.isEmpty
-                        ? l10n.emptyPreviewHint
-                        : l10n.selectedPreviewHint,
-                    style: theme.textTheme.titleMedium,
-                    textAlign: TextAlign.center,
-                  ),
+                  if (_rawImage != null && _shaderProgram != null) ...[
+                    // Live Shader Preview!
+                    SizedBox(
+                      height: 250,
+                      child: CustomPaint(
+                        painter: WatermarkShaderPainter(
+                          shader: _shaderProgram!.fragmentShader(),
+                          image: _rawImage!,
+                          color: _useRandomColor ? Colors.deepPurple : _selectedColor,
+                          transparency: _transparency,
+                        ),
+                        child: Container(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      l10n.selectedPreviewHint,
+                      style: theme.textTheme.titleMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                  ] else ...[
+                    Icon(
+                      Icons.touch_app_outlined,
+                      size: 56,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _selectedPaths.isEmpty
+                          ? l10n.emptyPreviewHint
+                          : l10n.selectedPreviewHint,
+                      style: theme.textTheme.titleMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ],
               ),
             )
@@ -1151,10 +1211,28 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       _selectedPaths = uniquePaths;
       _processedFiles = <_ProcessedFile>[];
       _previewIndex = 0;
+      _rawImage = null; // Clear old image
       _statusMessage = uniquePaths.length == 1
           ? l10n.selectedApplySingle(File(uniquePaths.first).uri.pathSegments.last)
           : l10n.selectedApplyMultiple(uniquePaths.length);
     });
+
+    // Load the first image for live shader preview
+    if (uniquePaths.isNotEmpty) {
+      final firstPath = uniquePaths.first;
+      final extension = p.extension(firstPath).toLowerCase();
+      if (['.jpg', '.jpeg', '.png', '.webp'].contains(extension)) {
+        File(firstPath).readAsBytes().then((bytes) {
+          ui.decodeImageFromList(bytes, (image) {
+            if (mounted) {
+              setState(() {
+                _rawImage = image;
+              });
+            }
+          });
+        });
+      }
+    }
   }
 
   Future<void> _processPaths(List<String> paths) async {

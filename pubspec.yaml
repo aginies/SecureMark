@@ -70,6 +70,9 @@ flutter:
         - asset: assets/fonts/VeraBd.ttf
           weight: 700
 
+  shaders:
+    - shaders/watermark.frag
+
 flutter_launcher_icons:
   android: true
   ios: true

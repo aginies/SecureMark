@@ -15,7 +15,7 @@ import 'font_manager.dart';
 final Random _random = Random();
 const double _angleStepDegrees = 15;
 const int _randomColorPoolSize = 6;
-const int _maxFileSize = 50 * 1024 * 1024; // 50MB
+const int _maxFileSize = 100 * 1024 * 1024; // 100MiB
 const int _maxFilesInBatch = 100;
 
 /// Specific error types for better error handling
@@ -171,6 +171,7 @@ class WatermarkProcessor {
     int? targetSize = 1280,
     bool includeTimestamp = false,
     bool preserveMetadata = false,
+    bool rasterizePdf = false,
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
@@ -204,6 +205,7 @@ class WatermarkProcessor {
       targetSize,
       includeTimestamp,
       preserveMetadata,
+      rasterizePdf,
     );
 
     if (_resultCache.containsKey(cacheKey)) {
@@ -231,6 +233,7 @@ class WatermarkProcessor {
           jpegQuality: jpegQuality,
           includeTimestamp: includeTimestamp,
           preserveMetadata: preserveMetadata,
+          rasterizePdf: rasterizePdf,
           onProgress: onProgress,
           cancellationToken: cancellationToken,
         );
@@ -373,8 +376,9 @@ class WatermarkProcessor {
     int? targetSize,
     bool includeTimestamp,
     bool preserveMetadata,
+    bool rasterizePdf,
   ) {
-    return '$filePath-$transparency-$density-$watermarkText-$useRandomColor-$selectedColorValue-$fontSize-${font.fontFamily}-$jpegQuality-$targetSize-$includeTimestamp-$preserveMetadata';
+    return '$filePath-$transparency-$density-$watermarkText-$useRandomColor-$selectedColorValue-$fontSize-${font.fontFamily}-$jpegQuality-$targetSize-$includeTimestamp-$preserveMetadata-$rasterizePdf';
   }
 
   /// Add result to cache with size management
@@ -558,21 +562,34 @@ class WatermarkProcessor {
     required int jpegQuality,
     bool includeTimestamp = false,
     bool preserveMetadata = false,
+    bool rasterizePdf = false,
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
     try {
-      onProgress?.call(0.1, 'Reading PDF file...');
-      
-      if (cancellationToken?.isCancelled == true) {
-        throw const WatermarkError(
-          type: WatermarkErrorType.operationCancelled,
-          message: 'Operation cancelled',
+      final inputBytes = await file.readAsBytes();
+
+      if (rasterizePdf) {
+        onProgress?.call(0.2, 'Rasterizing PDF (flattening)...');
+        return await _processPdfRasterFallback(
+          inputBytes: inputBytes,
+          file: file,
+          transparency: transparency,
+          density: density,
+          watermarkText: watermarkText,
+          useRandomColor: useRandomColor,
+          selectedColorValue: selectedColorValue,
+          fontSize: fontSize,
+          font: font,
+          jpegQuality: jpegQuality,
+          includeTimestamp: includeTimestamp,
+          onProgress: onProgress,
+          cancellationToken: cancellationToken,
         );
       }
 
-      final inputBytes = await file.readAsBytes();
-
+      onProgress?.call(0.1, 'Reading PDF file...');
+      
       if (cancellationToken?.isCancelled == true) {
         throw const WatermarkError(
           type: WatermarkErrorType.operationCancelled,

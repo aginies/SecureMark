@@ -79,10 +79,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get watermarkTextHint => 'Saisissez le texte à tamponner';
 
   @override
-  String get randomColor => 'Couleur aléatoire';
+  String get randomColor => 'Couleurs aléatoires';
 
   @override
-  String get selectedColor => 'Couleur choisie';
+  String get selectedColor => 'Choix couleur';
 
   @override
   String transparencyValue(int value) {
@@ -191,7 +191,7 @@ class AppLocalizationsFr extends AppLocalizations {
       other: '$count fichiers',
       one: '1 fichier',
     );
-    return 'La feuille de partage est ouverte pour $_temp0.';
+    return 'Le partage est ouvert pour $_temp0.';
   }
 
   @override
