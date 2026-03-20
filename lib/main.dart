@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'l10n/app_localizations.dart';
 import 'watermark_processor.dart';
@@ -94,7 +95,25 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   String _appVersion = '';
   String? _outputDirectory;
   final List<String> _logs = <String>[];
+  final List<String> _tempFiles = <String>[];
   List<String> _selectedPaths = <String>[];
+
+  Future<void> _cleanupTempFiles() async {
+    if (_tempFiles.isEmpty) return;
+    
+    _addLog('Cleaning up ${_tempFiles.length} temporary files...');
+    for (final path in _tempFiles) {
+      try {
+        final file = File(path);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (e) {
+        _addLog('Error deleting temp file $path: $e');
+      }
+    }
+    _tempFiles.clear();
+  }
 
   void _addLog(String message) {
     final timestamp = DateTime.now().toString().split('.').first;
@@ -193,6 +212,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
   @override
   void dispose() {
+    _cleanupTempFiles();
     WidgetsBinding.instance.removeObserver(this);
     _textController.dispose();
     _transformationController.dispose();
@@ -389,10 +409,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
               ),
             ),
           ],
-        ],
-        if (_supportsDesktopDrop) ...[
-          const SizedBox(height: 16),
-          _buildDropArea(theme),
         ],
       ],
     );
@@ -597,6 +613,15 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       },
                       icon: const Icon(Icons.list_alt),
                       label: Text(l10n.viewLogs),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 44),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () => launchUrl(Uri.parse('https://github.com/aginies/SecureMark')),
+                      icon: const Icon(Icons.code),
+                      label: Text(l10n.openGitHub),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 44),
                       ),
@@ -872,8 +897,42 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   }
 
   Widget _buildPrimaryActionCard() {
+    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final selectedCount = _selectedPaths.length;
+
+    Widget buildButton(bool isDragging) {
+      return FilledButton(
+        onPressed: _processing ? null : _pickFile,
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 24),
+          backgroundColor: isDragging ? theme.colorScheme.primary.withValues(alpha: 0.8) : null,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: isDragging 
+                ? BorderSide(color: theme.colorScheme.onPrimary, width: 2)
+                : BorderSide.none,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isDragging ? Icons.file_upload : Icons.file_upload_outlined, 
+              size: 32,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.pickFiles,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onPrimary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Card(
       child: Padding(
@@ -881,20 +940,32 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            FilledButton.icon(
-              onPressed: _processing ? null : _pickFile,
-              icon: const Icon(Icons.file_open),
-              label: Text(l10n.pickFiles),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 18),
-              ),
-            ),
+            if (_supportsDesktopDrop)
+              DropTarget(
+                onDragEntered: (_) => setState(() => _dragging = true),
+                onDragExited: (_) => setState(() => _dragging = false),
+                onDragDone: (detail) async {
+                  setState(() => _dragging = false);
+                  if (detail.files.isEmpty) return;
+                  final paths = detail.files
+                      .map((file) => file.path)
+                      .whereType<String>()
+                      .toSet()
+                      .toList();
+                  if (paths.isNotEmpty) _selectPaths(paths);
+                },
+                child: buildButton(_dragging),
+              )
+            else
+              buildButton(false),
             if (selectedCount > 0) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Text(
                 selectedCount == 1
                     ? l10n.selectedFile(File(_selectedPaths.first).uri.pathSegments.last)
                     : l10n.selectedFiles(selectedCount),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium,
               ),
             ],
           ],
@@ -1122,66 +1193,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     );
   }
 
-  Widget _buildDropArea(ThemeData theme) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return DropTarget(
-      onDragEntered: (_) {
-        setState(() {
-          _dragging = true;
-        });
-      },
-      onDragExited: (_) {
-        setState(() {
-          _dragging = false;
-        });
-      },
-      onDragDone: (detail) async {
-        setState(() {
-          _dragging = false;
-        });
-
-        if (detail.files.isEmpty) {
-          return;
-        }
-
-        final paths = detail.files
-            .map((file) => file.path)
-            .whereType<String>()
-            .toSet()
-            .toList();
-        if (paths.isEmpty) {
-          setState(() {
-            _statusMessage = l10n.droppedPathUnavailable;
-          });
-          return;
-        }
-
-        _selectPaths(paths);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: _dragging ? theme.colorScheme.primaryContainer.withValues(alpha: 0.3) : theme.colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: _dragging ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
-            width: 2,
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.file_upload_outlined, size: 36),
-            const SizedBox(height: 10),
-            Text(l10n.desktopDropArea),
-          ],
-        ),
-      ),
-    );
-  }
-
   Future<void> _pickFile() async {
     final l10n = AppLocalizations.of(context)!;
 
@@ -1216,6 +1227,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   Future<void> _processPaths(List<String> paths) async {
     _addLog('Processing ${paths.length} paths');
     final l10n = AppLocalizations.of(context)!;
+    await _cleanupTempFiles();
 
     _cancellationToken = CancellationToken();
 
@@ -1588,6 +1600,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       }
 
       await File(outputPath).writeAsBytes(file.result.outputBytes);
+      _tempFiles.add(outputPath);
       shareFiles.add(XFile(
         outputPath,
         mimeType: _mimeTypeForPath(outputPath),

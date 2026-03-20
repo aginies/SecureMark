@@ -28,7 +28,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get selectedPreviewHint =>
-      'Files selected. Click Apply Watermark to generate previews';
+      'Files selected. Click Apply SecureMark to generate previews';
 
   @override
   String get previewUnavailable => 'Preview unavailable';
@@ -48,7 +48,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authorFooter => 'Author: guibo';
 
   @override
-  String get pickFiles => 'Pick Image or PDF Files';
+  String get pickFiles => 'Images or PDF';
 
   @override
   String selectedFile(String name) {
@@ -61,7 +61,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get applyWatermark => 'Apply Watermark';
+  String get applyWatermark => 'Apply SecureMark';
 
   @override
   String get saveAll => 'Save All';
@@ -73,10 +73,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reset => 'Reset';
 
   @override
-  String get watermarkTextLabel => 'Watermark text';
+  String get watermarkTextLabel => 'Text to Stamp (+Date-time)';
 
   @override
-  String get watermarkTextHint => 'Enter the text to stamp with date and time';
+  String get watermarkTextHint => 'Enter the text to stamp';
 
   @override
   String get randomColor => 'Random color';
@@ -99,19 +99,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'The dropped file paths are unavailable.';
 
   @override
-  String get desktopDropArea => 'Desktop drop area';
+  String get desktopDropArea => 'Drop Files Here';
 
   @override
   String get pickerLabel => 'Images and PDFs';
 
   @override
   String selectedApplySingle(String name) {
-    return 'Selected $name. Click Apply Watermark.';
+    return 'Selected $name. Click Apply SecureMark.';
   }
 
   @override
   String selectedApplyMultiple(int count) {
-    return 'Selected $count files. Click Apply Watermark.';
+    return 'Selected $count files. Click Apply SecureMark.';
   }
 
   @override
@@ -263,6 +263,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noLogsYet => 'No logs yet';
+
+  @override
+  String get openGitHub => 'Open GitHub Repository';
 
   @override
   String get close => 'Close';

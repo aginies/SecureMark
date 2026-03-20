@@ -119,7 +119,7 @@ abstract class AppLocalizations {
   /// No description provided for @selectedPreviewHint.
   ///
   /// In en, this message translates to:
-  /// **'Files selected. Click Apply Watermark to generate previews'**
+  /// **'Files selected. Click Apply SecureMark to generate previews'**
   String get selectedPreviewHint;
 
   /// No description provided for @previewUnavailable.
@@ -155,7 +155,7 @@ abstract class AppLocalizations {
   /// No description provided for @pickFiles.
   ///
   /// In en, this message translates to:
-  /// **'Pick Image or PDF Files'**
+  /// **'Images or PDF'**
   String get pickFiles;
 
   /// No description provided for @selectedFile.
@@ -173,7 +173,7 @@ abstract class AppLocalizations {
   /// No description provided for @applyWatermark.
   ///
   /// In en, this message translates to:
-  /// **'Apply Watermark'**
+  /// **'Apply SecureMark'**
   String get applyWatermark;
 
   /// No description provided for @saveAll.
@@ -197,13 +197,13 @@ abstract class AppLocalizations {
   /// No description provided for @watermarkTextLabel.
   ///
   /// In en, this message translates to:
-  /// **'Watermark text'**
+  /// **'Text to Stamp (+Date-time)'**
   String get watermarkTextLabel;
 
   /// No description provided for @watermarkTextHint.
   ///
   /// In en, this message translates to:
-  /// **'Enter the text to stamp with date and time'**
+  /// **'Enter the text to stamp'**
   String get watermarkTextHint;
 
   /// No description provided for @randomColor.
@@ -239,7 +239,7 @@ abstract class AppLocalizations {
   /// No description provided for @desktopDropArea.
   ///
   /// In en, this message translates to:
-  /// **'Desktop drop area'**
+  /// **'Drop Files Here'**
   String get desktopDropArea;
 
   /// No description provided for @pickerLabel.
@@ -251,13 +251,13 @@ abstract class AppLocalizations {
   /// No description provided for @selectedApplySingle.
   ///
   /// In en, this message translates to:
-  /// **'Selected {name}. Click Apply Watermark.'**
+  /// **'Selected {name}. Click Apply SecureMark.'**
   String selectedApplySingle(String name);
 
   /// No description provided for @selectedApplyMultiple.
   ///
   /// In en, this message translates to:
-  /// **'Selected {count} files. Click Apply Watermark.'**
+  /// **'Selected {count} files. Click Apply SecureMark.'**
   String selectedApplyMultiple(int count);
 
   /// No description provided for @processingCount.
@@ -439,6 +439,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No logs yet'**
   String get noLogsYet;
+
+  /// No description provided for @openGitHub.
+  ///
+  /// In en, this message translates to:
+  /// **'Open GitHub Repository'**
+  String get openGitHub;
 
   /// No description provided for @close.
   ///

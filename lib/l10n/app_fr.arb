@@ -10,7 +10,7 @@
     }
   },
   "emptyPreviewHint": "Saisissez le texte du filigrane puis choisissez une ou plusieurs images ou PDF",
-  "selectedPreviewHint": "Fichiers sélectionnés. Cliquez sur Appliquer le filigrane pour générer les aperçus",
+  "selectedPreviewHint": "Fichiers sélectionnés. Cliquez sur Appliquer SecureMark pour générer les aperçus",
   "previewUnavailable": "Aperçu indisponible",
   "swipeHint": "Glissez à gauche pour le suivant, à droite pour le précédent ({current}/{total})",
   "@swipeHint": {
@@ -26,7 +26,7 @@
   "processingFile": "Traitement du fichier...",
   "applyingWatermark": "Application du filigrane...",
   "authorFooter": "Auteur : guibo",
-  "pickFiles": "Choisir des images ou PDF",
+  "pickFiles": "Images ou PDF",
   "selectedFile": "Fichier sélectionné : {name}",
   "@selectedFile": {
     "placeholders": {
@@ -43,12 +43,12 @@
       }
     }
   },
-  "applyWatermark": "Appliquer le filigrane",
+  "applyWatermark": "Appliquer SecureMark",
   "saveAll": "Tout enregistrer",
   "shareAll": "Tout partager",
   "reset": "Réinitialiser",
-  "watermarkTextLabel": "Texte du filigrane",
-  "watermarkTextHint": "Saisissez le texte à estampiller avec la date et l'heure",
+  "watermarkTextLabel": "Texte à tamponner (+Date-Heure)",
+  "watermarkTextHint": "Saisissez le texte à tamponner",
   "randomColor": "Couleur aléatoire",
   "selectedColor": "Couleur choisie",
   "transparencyValue": "Transparence du filigrane : {value}%",
@@ -68,9 +68,9 @@
     }
   },
   "droppedPathUnavailable": "Les chemins des fichiers déposés sont indisponibles.",
-  "desktopDropArea": "Zone de dépôt bureau",
+  "desktopDropArea": "Déposer les fichiers ici",
   "pickerLabel": "Images et PDF",
-  "selectedApplySingle": "{name} sélectionné. Cliquez sur Appliquer le filigrane.",
+  "selectedApplySingle": "{name} sélectionné. Cliquez sur Appliquer SecureMark.",
   "@selectedApplySingle": {
     "placeholders": {
       "name": {
@@ -78,7 +78,7 @@
       }
     }
   },
-  "selectedApplyMultiple": "{count} fichiers sélectionnés. Cliquez sur Appliquer le filigrane.",
+  "selectedApplyMultiple": "{count} fichiers sélectionnés. Cliquez sur Appliquer SecureMark.",
   "@selectedApplyMultiple": {
     "placeholders": {
       "count": {
@@ -213,6 +213,7 @@
   "viewLogs": "Voir les logs",
   "appLogs": "Logs de l'application",
   "noLogsYet": "Aucun log pour le moment",
+  "openGitHub": "Voir le dépôt GitHub",
   "close": "Fermer",
   "processingCancelled": "Traitement annulé",
   "processingStatusMultiple": "{successCount} fichiers traités avec succès. {failedCount} fichiers ont échoué.",

@@ -28,7 +28,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get selectedPreviewHint =>
-      'Fichiers sélectionnés. Cliquez sur Appliquer le filigrane pour générer les aperçus';
+      'Fichiers sélectionnés. Cliquez sur Appliquer SecureMark pour générer les aperçus';
 
   @override
   String get previewUnavailable => 'Aperçu indisponible';
@@ -48,7 +48,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get authorFooter => 'Auteur : guibo';
 
   @override
-  String get pickFiles => 'Choisir des images ou PDF';
+  String get pickFiles => 'Images ou PDF';
 
   @override
   String selectedFile(String name) {
@@ -61,7 +61,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get applyWatermark => 'Appliquer le filigrane';
+  String get applyWatermark => 'Appliquer SecureMark';
 
   @override
   String get saveAll => 'Tout enregistrer';
@@ -73,11 +73,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get reset => 'Réinitialiser';
 
   @override
-  String get watermarkTextLabel => 'Texte du filigrane';
+  String get watermarkTextLabel => 'Texte à tamponner (+Date-Heure)';
 
   @override
-  String get watermarkTextHint =>
-      'Saisissez le texte à estampiller avec la date et l\'heure';
+  String get watermarkTextHint => 'Saisissez le texte à tamponner';
 
   @override
   String get randomColor => 'Couleur aléatoire';
@@ -100,19 +99,19 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les chemins des fichiers déposés sont indisponibles.';
 
   @override
-  String get desktopDropArea => 'Zone de dépôt bureau';
+  String get desktopDropArea => 'Déposer les fichiers ici';
 
   @override
   String get pickerLabel => 'Images et PDF';
 
   @override
   String selectedApplySingle(String name) {
-    return '$name sélectionné. Cliquez sur Appliquer le filigrane.';
+    return '$name sélectionné. Cliquez sur Appliquer SecureMark.';
   }
 
   @override
   String selectedApplyMultiple(int count) {
-    return '$count fichiers sélectionnés. Cliquez sur Appliquer le filigrane.';
+    return '$count fichiers sélectionnés. Cliquez sur Appliquer SecureMark.';
   }
 
   @override
@@ -266,6 +265,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get noLogsYet => 'Aucun log pour le moment';
+
+  @override
+  String get openGitHub => 'Voir le dépôt GitHub';
 
   @override
   String get close => 'Fermer';

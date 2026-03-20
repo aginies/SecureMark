@@ -10,7 +10,7 @@
     }
   },
   "emptyPreviewHint": "Enter watermark text and pick one or more image or PDF files",
-  "selectedPreviewHint": "Files selected. Click Apply Watermark to generate previews",
+  "selectedPreviewHint": "Files selected. Click Apply SecureMark to generate previews",
   "previewUnavailable": "Preview unavailable",
   "swipeHint": "Swipe left for next, right for previous ({current}/{total})",
   "@swipeHint": {
@@ -26,7 +26,7 @@
   "processingFile": "Processing file...",
   "applyingWatermark": "Applying watermark...",
   "authorFooter": "Author: guibo",
-  "pickFiles": "Pick Image or PDF Files",
+  "pickFiles": "Images or PDF",
   "selectedFile": "Selected file: {name}",
   "@selectedFile": {
     "placeholders": {
@@ -43,12 +43,12 @@
       }
     }
   },
-  "applyWatermark": "Apply Watermark",
+  "applyWatermark": "Apply SecureMark",
   "saveAll": "Save All",
   "shareAll": "Share All",
   "reset": "Reset",
-  "watermarkTextLabel": "Watermark text",
-  "watermarkTextHint": "Enter the text to stamp with date and time",
+  "watermarkTextLabel": "Text to Stamp (+Date-time)",
+  "watermarkTextHint": "Enter the text to stamp",
   "randomColor": "Random color",
   "selectedColor": "Selected color",
   "transparencyValue": "Watermark Transparency: {value}%",
@@ -68,9 +68,9 @@
     }
   },
   "droppedPathUnavailable": "The dropped file paths are unavailable.",
-  "desktopDropArea": "Desktop drop area",
+  "desktopDropArea": "Drop Files Here",
   "pickerLabel": "Images and PDFs",
-  "selectedApplySingle": "Selected {name}. Click Apply Watermark.",
+  "selectedApplySingle": "Selected {name}. Click Apply SecureMark.",
   "@selectedApplySingle": {
     "placeholders": {
       "name": {
@@ -78,7 +78,7 @@
       }
     }
   },
-  "selectedApplyMultiple": "Selected {count} files. Click Apply Watermark.",
+  "selectedApplyMultiple": "Selected {count} files. Click Apply SecureMark.",
   "@selectedApplyMultiple": {
     "placeholders": {
       "count": {
@@ -213,6 +213,7 @@
   "viewLogs": "View Logs",
   "appLogs": "App Logs",
   "noLogsYet": "No logs yet",
+  "openGitHub": "Open GitHub Repository",
   "close": "Close",
   "processingCancelled": "Processing cancelled",
   "processingStatusMultiple": "Processed {successCount} files successfully. {failedCount} files failed.",
