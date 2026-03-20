@@ -84,7 +84,7 @@ jobs:
           Type=Application
           Name=SecureMark
           Icon=secure-mark
-          Exec=secure_mark
+          Exec=SecureMark
           Categories=Utility;
           EOF
           
@@ -96,7 +96,7 @@ jobs:
           # We use --appimage-extract-and-run because FUSE might not be available in CI
           export ARCH=x86_64
           ./linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
-            --executable AppDir/usr/bin/secure_mark \
+            --executable AppDir/usr/bin/SecureMark \
             --desktop-file secure-mark.desktop \
             --icon-file assets/icon/app_icon.png \
             --appdir AppDir \
