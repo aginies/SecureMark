@@ -423,12 +423,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         title: Row(
           children: [
             Text(l10n.appTitle),
-            const SizedBox(width: 4),
-            IconButton(
-              icon: const Icon(Icons.info_outline, size: 20),
-              onPressed: _showAboutDialog,
-              tooltip: l10n.aboutApp,
-            ),
           ],
         ),
         centerTitle: false,
@@ -488,7 +482,13 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                   children: [
                     SizedBox(
                       width: 360,
-                      child: SingleChildScrollView(child: controls),
+                      child: Column(
+                        children: [
+                          Expanded(child: SingleChildScrollView(child: controls)),
+                          const SizedBox(height: 16),
+                          _buildAuthorFooter(theme),
+                        ],
+                      ),
                     ),
                     const SizedBox(width: 20),
                     Expanded(child: preview),
@@ -2009,22 +2009,30 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   Widget _buildAuthorFooter(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Column(
-      children: [
-        Text(
-          l10n.authorFooter,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall,
-        ),
-        if (_appVersion.isNotEmpty)
-          Text(
-            'v$_appVersion',
-            textAlign: TextAlign.center,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.hintColor,
+    return InkWell(
+      onTap: _showAboutDialog,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              l10n.authorFooter,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall,
             ),
-          ),
-      ],
+            if (_appVersion.isNotEmpty)
+              Text(
+                'v$_appVersion',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.hintColor,
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
