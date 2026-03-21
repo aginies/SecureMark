@@ -246,6 +246,18 @@
   "analysisResult": "Résultat :",
   "steganographyVerified": "Stéganographie Vérifiée",
   "steganographyEnabledHint": "La stéganographie est activée et sera appliquée",
+  "hideFileWithSteganographyTitle": "Cacher un fichier (expérimental)",
+  "hideFileWithSteganographySubtitle": "Incorporer un fichier entier dans l'image (peut augmenter la taille de sortie)",
+  "selectFileToHide": "Sélectionner un fichier à cacher",
+  "selectedHiddenFile": "Fichier caché : {name}",
+  "@selectedHiddenFile": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "hiddenFileSecurityWarning": "Avis de sécurité : Les fichiers cachés ne sont sécurisés que s'ils sont chiffrés avant l'incorporation. La stéganographie obscurcit mais ne chiffre pas vos données.",
   "abToggleTooltipOriginal": "Afficher l'original",
   "abToggleTooltipProcessed": "Afficher le traité",
   "processingCancelled": "Traitement annulé",

@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -147,6 +148,9 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   Stopwatch? _stopwatch;
   Timer? _timer;
   bool _showOriginalPreview = false;
+  bool _hideFileWithSteganography = false;
+  Uint8List? _hiddenFileBytes;
+  String? _hiddenFileName;
 
   Future<void> _loadShader() async {
     try {
@@ -405,6 +409,11 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
             icon: const Icon(Icons.search_rounded),
             onPressed: _showFileAnalyzer,
             tooltip: l10n.analyzeFile,
+          ),
+          IconButton(
+            icon: const Icon(Icons.password_outlined),
+            onPressed: _showSteganographyOptions,
+            tooltip: l10n.steganographyTitle,
           ),
           IconButton(
             icon: const Icon(Icons.settings_suggest_outlined),
@@ -793,7 +802,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(l10n.analysisResult, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            if (_analysisResult != null && !_analysisResult!.contains(l10n.noSignatureFound))
+                            if (_extractedFile == null && _analysisResult != null && !_analysisResult!.contains(l10n.noSignatureFound))
                               IconButton(
                                 icon: const Icon(Icons.copy_rounded, size: 18),
                                 padding: EdgeInsets.zero,
@@ -803,7 +812,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                                   // Extract the actual signature text from the result message
                                   // The result message is usually l10n.signatureFound(result)
                                   // For simplicity, let's just copy the whole thing or try to find the part after the colon
-                                  final textToCopy = _analysisResult!.contains(': ') 
+                                  final textToCopy = _analysisResult!.contains(': ')
                                       ? _analysisResult!.split(': ').sublist(1).join(': ')
                                       : _analysisResult!;
                                   Clipboard.setData(ClipboardData(text: textToCopy));
@@ -816,6 +825,14 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         ),
                         const SizedBox(height: 8),
                         Text(_analysisResult!),
+                        if (_extractedFile != null) ...[
+                          const SizedBox(height: 16),
+                          FilledButton.icon(
+                            onPressed: () => _saveExtractedFile(),
+                            icon: const Icon(Icons.save_alt),
+                            label: const Text('Save Hidden File'),
+                          ),
+                        ],
                       ],
                     ),
                   )
@@ -833,6 +850,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
               TextButton(
                 onPressed: () {
                   _analysisResult = null;
+                  _extractedFile = null;
                   Navigator.of(context).pop();
                 },
                 child: Text(l10n.close),
@@ -846,6 +864,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
   bool _analyzingFile = false;
   String? _analysisResult;
+  ExtractedFileResult? _extractedFile;
 
   Future<void> _pickAndAnalyze(StateSetter setDialogState) async {
     final l10n = AppLocalizations.of(context)!;
@@ -860,20 +879,33 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     setDialogState(() {
       _analyzingFile = true;
       _analysisResult = null;
+      _extractedFile = null;
     });
 
     try {
       final bytes = await File(file.path).readAsBytes();
-      // Extract LSB logic using the static async helper to avoid capturing 'this'
-      final result = await WatermarkProcessor.extractLSBAsync(bytes);
-      
-      setDialogState(() {
-        if (result != null && result.isNotEmpty) {
-          _analysisResult = l10n.signatureFound(result);
-        } else {
-          _analysisResult = l10n.noSignatureFound;
-        }
-      });
+
+      // First try to extract a hidden file
+      final fileResult = await WatermarkProcessor.extractFileAsync(bytes);
+
+      if (fileResult != null) {
+        // Found a hidden file
+        setDialogState(() {
+          _extractedFile = fileResult;
+          _analysisResult = 'Hidden file detected: ${fileResult.fileName} (${_formatFileSize(fileResult.fileBytes.length)})';
+        });
+      } else {
+        // Try to extract LSB text signature
+        final textResult = await WatermarkProcessor.extractLSBAsync(bytes);
+
+        setDialogState(() {
+          if (textResult != null && textResult.isNotEmpty) {
+            _analysisResult = l10n.signatureFound(textResult);
+          } else {
+            _analysisResult = l10n.noSignatureFound;
+          }
+        });
+      }
     } catch (e) {
       setDialogState(() {
         _analysisResult = l10n.analysisError(e.toString());
@@ -883,6 +915,211 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         _analyzingFile = false;
       });
     }
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
+  }
+
+  Future<void> _saveExtractedFile() async {
+    if (_extractedFile == null) return;
+
+    try {
+      final FileSaveLocation? saveLocation = await getSaveLocation(
+        suggestedName: _extractedFile!.fileName,
+      );
+
+      if (saveLocation == null) {
+        _addLog('Save cancelled by user');
+        return;
+      }
+
+      final outputFile = XFile.fromData(
+        _extractedFile!.fileBytes,
+        name: _extractedFile!.fileName,
+      );
+
+      await outputFile.saveTo(saveLocation.path);
+
+      _addLog('Extracted file saved to: ${saveLocation.path}');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('File saved: ${p.basename(saveLocation.path)}'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      _addLog('Error saving extracted file: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving file: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showSteganographyOptions() {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(l10n.steganographyTitle),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  CheckboxListTile(
+                    title: Text(l10n.steganographyTitle),
+                    subtitle: Text(l10n.steganographySubtitle),
+                    value: _useSteganography,
+                    contentPadding: EdgeInsets.zero,
+                    onChanged: (value) {
+                      final bool enabled = value ?? false;
+                      WatermarkProcessor.isSteganographyEnabled = enabled; // Update static flag
+                      setDialogState(() {
+                        _useSteganography = enabled;
+                        if (enabled) {
+                          _rasterizePdf = true;
+                        }
+                        if (!enabled) { // If steganography is disabled, also disable file hiding
+                          _hideFileWithSteganography = false;
+                          _hiddenFileBytes = null;
+                          _hiddenFileName = null;
+                        }
+                      });
+                      setState(() {
+                        _useSteganography = enabled;
+                        if (enabled) {
+                          _rasterizePdf = true;
+                        }
+                        if (!enabled) { // If steganography is disabled, also disable file hiding
+                          _hideFileWithSteganography = false;
+                          _hiddenFileBytes = null;
+                          _hiddenFileName = null;
+                        }
+                      });
+                      _savePreference('useSteganography', enabled);
+                      if (enabled) {
+                        _savePreference('rasterizePdf', true);
+                      }
+                    },
+                  ),
+                  if (_useSteganography) ...[
+                    const SizedBox(height: 16),
+                    CheckboxListTile(
+                      title: Text(l10n.hideFileWithSteganographyTitle),
+                      subtitle: Text(l10n.hideFileWithSteganographySubtitle),
+                      value: _hideFileWithSteganography,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          _hideFileWithSteganography = value ?? false;
+                          if (!(_hideFileWithSteganography)) { // Clear hidden file if checkbox is unchecked
+                            _hiddenFileBytes = null;
+                            _hiddenFileName = null;
+                          }
+                        });
+                        setState(() {
+                          _hideFileWithSteganography = value ?? false;
+                          if (!(_hideFileWithSteganography)) { // Clear hidden file if checkbox is unchecked
+                            _hiddenFileBytes = null;
+                            _hiddenFileName = null;
+                          }
+                        });
+                      },
+                    ),
+                    if (_hideFileWithSteganography) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.errorContainer.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: theme.colorScheme.error.withValues(alpha: 0.5),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: theme.colorScheme.error,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                l10n.hiddenFileSecurityWarning,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onErrorContainer,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          final result = await FilePicker.platform.pickFiles(
+                            allowMultiple: false,
+                            type: FileType.any,
+                          );
+
+                          if (result != null && result.files.single.path != null) {
+                            final platformFile = result.files.single;
+                            final fileBytes = await File(platformFile.path!).readAsBytes();
+                            setDialogState(() {
+                              _hiddenFileBytes = fileBytes;
+                              _hiddenFileName = platformFile.name;
+                            });
+                            setState(() {
+                              _hiddenFileBytes = fileBytes;
+                              _hiddenFileName = platformFile.name;
+                            });
+                          }
+                        },
+                        icon: const Icon(Icons.attach_file),
+                        label: Text(l10n.selectFileToHide),
+                      ),
+                      if (_hiddenFileName != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          l10n.selectedHiddenFile(_hiddenFileName!),
+                          style: theme.textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ],
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(l10n.close),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   void _showExpertOptions() {
@@ -1047,33 +1284,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       },
                     ),
                     const SizedBox(height: 16),
-                    CheckboxListTile(
-                      title: Text(l10n.steganographyTitle),
-                      subtitle: Text(l10n.steganographySubtitle),
-                      value: _useSteganography,
-                      contentPadding: EdgeInsets.zero,
-                      onChanged: (value) {
-                        final bool enabled = value ?? false;
-                        WatermarkProcessor.isSteganographyEnabled = enabled; // Update static flag
-                        setDialogState(() {
-                          _useSteganography = enabled;
-                          if (enabled) {
-                            _rasterizePdf = true;
-                          }
-                        });
-                        setState(() {
-                          _useSteganography = enabled;
-                          if (enabled) {
-                            _rasterizePdf = true;
-                          }
-                        });
-                        _savePreference('useSteganography', enabled);
-                        if (enabled) {
-                          _savePreference('rasterizePdf', true);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
                     Text(
                       l10n.imageResizingLabel('').replaceAll(': ', ''), 
                       style: theme.textTheme.titleSmall,
@@ -1145,7 +1355,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                           _rasterizePdf = false;
                           _filePrefix = 'securemark-';
                           _antiAiLevel = 50.0;
-                          _useSteganography = false;
                           _useRandomColor = true;
                           _selectedColor = Colors.deepPurple;
                           _selectedFont = WatermarkFont.arial;
@@ -1160,7 +1369,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                           _rasterizePdf = false;
                           _filePrefix = 'securemark-';
                           _antiAiLevel = 50.0;
-                          _useSteganography = false;
                           _useRandomColor = true;
                           _selectedColor = Colors.deepPurple;
                           _selectedFont = WatermarkFont.arial;
@@ -1989,6 +2197,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
             filePrefix: _filePrefix,
             antiAiLevel: _antiAiLevel,
             useSteganography: _useSteganography,
+            hiddenFileName: _hideFileWithSteganography ? _hiddenFileName : null,
+            hiddenFileBytes: _hideFileWithSteganography ? _hiddenFileBytes : null,
             onProgress: (progress, message) {
               if (mounted) {
                 setState(() {
@@ -2153,6 +2363,9 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       _filePrefix = 'securemark-';
       _antiAiLevel = 50.0;
       _useSteganography = false;
+      _hideFileWithSteganography = false;
+      _hiddenFileBytes = null;
+      _hiddenFileName = null;
       _useRandomColor = true;
       _selectedColor = Colors.deepPurple;
       _selectedFont = WatermarkFont.arial;
@@ -2163,6 +2376,20 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     if (_selectedPaths.isEmpty) {
       return;
     }
+
+    // Reset preview state before starting new processing
+    setState(() {
+      _processedFiles = <_ProcessedFile>[];
+      _previewIndex = 0;
+      _showOriginalPreview = false;
+      _transformationController.value = Matrix4.identity();
+    });
+
+    // Reset preview controller to first page if it has clients
+    if (_previewController.hasClients) {
+      _previewController.jumpToPage(0);
+    }
+
     await _processPaths(_selectedPaths);
   }
 

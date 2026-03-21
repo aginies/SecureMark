@@ -638,6 +638,36 @@ abstract class AppLocalizations {
   /// **'Steganography is enabled and will be applied'**
   String get steganographyEnabledHint;
 
+  /// No description provided for @hideFileWithSteganographyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide a file (experimental)'**
+  String get hideFileWithSteganographyTitle;
+
+  /// No description provided for @hideFileWithSteganographySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Embed an entire file within the image (might increase output size)'**
+  String get hideFileWithSteganographySubtitle;
+
+  /// No description provided for @selectFileToHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Select File to Hide'**
+  String get selectFileToHide;
+
+  /// No description provided for @selectedHiddenFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden file: {name}'**
+  String selectedHiddenFile(String name);
+
+  /// No description provided for @hiddenFileSecurityWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Security Notice: Hidden files are only secure if encrypted before embedding. Steganography obscures but does not encrypt your data.'**
+  String get hiddenFileSecurityWarning;
+
   /// No description provided for @abToggleTooltipOriginal.
   ///
   /// In en, this message translates to:

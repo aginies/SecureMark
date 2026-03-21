@@ -356,6 +356,26 @@ class AppLocalizationsFr extends AppLocalizations {
       'La stéganographie est activée et sera appliquée';
 
   @override
+  String get hideFileWithSteganographyTitle =>
+      'Cacher un fichier (expérimental)';
+
+  @override
+  String get hideFileWithSteganographySubtitle =>
+      'Incorporer un fichier entier dans l\'image (peut augmenter la taille de sortie)';
+
+  @override
+  String get selectFileToHide => 'Sélectionner un fichier à cacher';
+
+  @override
+  String selectedHiddenFile(String name) {
+    return 'Fichier caché : $name';
+  }
+
+  @override
+  String get hiddenFileSecurityWarning =>
+      'Avis de sécurité : Les fichiers cachés ne sont sécurisés que s\'ils sont chiffrés avant l\'incorporation. La stéganographie obscurcit mais ne chiffre pas vos données.';
+
+  @override
   String get abToggleTooltipOriginal => 'Afficher l\'original';
 
   @override

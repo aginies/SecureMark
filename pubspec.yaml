@@ -1,7 +1,7 @@
 name: secure_mark
 description: SecureMark - A professional application to secure documents with watermarks for safe sharing.
 publish_to: 'none'
-version: 1.1.6+1
+version: 1.1.7+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -15,6 +15,7 @@ dependencies:
   printing: ^5.14.3
   desktop_drop: ^0.7.0
   file_selector: ^1.1.0
+  file_picker: ^8.1.4
   image: ^4.1.7
   intl: ^0.20.2
   path: ^1.9.1

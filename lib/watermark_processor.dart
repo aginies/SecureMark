@@ -104,6 +104,16 @@ class ProcessResult {
   final bool steganographyVerified;
 }
 
+class ExtractedFileResult {
+  const ExtractedFileResult({
+    required this.fileName,
+    required this.fileBytes,
+  });
+
+  final String fileName;
+  final Uint8List fileBytes;
+}
+
 /// Progress callback for reporting processing progress
 typedef ProgressCallback = void Function(double progress, String message);
 
@@ -187,6 +197,8 @@ class WatermarkProcessor {
     String filePrefix = 'securemark-',
     double antiAiLevel = 0.0,
     bool useSteganography = false,
+    String? hiddenFileName,
+    Uint8List? hiddenFileBytes,
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
@@ -224,6 +236,8 @@ class WatermarkProcessor {
       filePrefix,
       antiAiLevel,
       useSteganography,
+      hiddenFileName,
+      hiddenFileBytes,
     );
 
     if (_resultCache.containsKey(cacheKey)) {
@@ -255,6 +269,8 @@ class WatermarkProcessor {
           filePrefix: filePrefix,
           antiAiLevel: antiAiLevel,
           useSteganography: useSteganography,
+          hiddenFileName: hiddenFileName,
+          hiddenFileBytes: hiddenFileBytes,
           onProgress: onProgress,
           cancellationToken: cancellationToken,
         );
@@ -275,6 +291,8 @@ class WatermarkProcessor {
           filePrefix: filePrefix,
           antiAiLevel: antiAiLevel,
           useSteganography: useSteganography,
+          hiddenFileName: hiddenFileName,
+          hiddenFileBytes: hiddenFileBytes,
           onProgress: onProgress,
           cancellationToken: cancellationToken,
         );
@@ -404,8 +422,11 @@ class WatermarkProcessor {
     String filePrefix,
     double antiAiLevel,
     bool useSteganography,
+    String? hiddenFileName,
+    Uint8List? hiddenFileBytes,
   ) {
-    return '$filePath-$transparency-$density-$watermarkText-$useRandomColor-$selectedColorValue-$fontSize-${font.fontFamily}-$jpegQuality-$targetSize-$includeTimestamp-$preserveMetadata-$rasterizePdf-$filePrefix-$antiAiLevel-$useSteganography';
+    final hiddenFileHash = hiddenFileBytes != null ? hiddenFileBytes.length.toString() : 'none';
+    return '$filePath-$transparency-$density-$watermarkText-$useRandomColor-$selectedColorValue-$fontSize-${font.fontFamily}-$jpegQuality-$targetSize-$includeTimestamp-$preserveMetadata-$rasterizePdf-$filePrefix-$antiAiLevel-$useSteganography-$hiddenFileName-$hiddenFileHash';
   }
 
   /// Add result to cache with size management
@@ -508,6 +529,8 @@ class WatermarkProcessor {
     String filePrefix = 'securemark-',
     double antiAiLevel = 0.0,
     bool useSteganography = false,
+    String? hiddenFileName,
+    Uint8List? hiddenFileBytes,
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
@@ -562,6 +585,8 @@ class WatermarkProcessor {
           preserveMetadata: preserveMetadata,
           antiAiLevel: antiAiLevel,
           useSteganography: useSteganography,
+          hiddenFileName: hiddenFileName,
+          hiddenFileBytes: hiddenFileBytes,
           preRenderedStamps: preRenderedStamps,
         ),
       );
@@ -634,6 +659,8 @@ class WatermarkProcessor {
     String filePrefix = 'securemark-',
     double antiAiLevel = 0.0,
     bool useSteganography = false,
+    String? hiddenFileName,
+    Uint8List? hiddenFileBytes,
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
@@ -657,6 +684,8 @@ class WatermarkProcessor {
           filePrefix: filePrefix,
           antiAiLevel: antiAiLevel,
           useSteganography: useSteganography,
+          hiddenFileName: hiddenFileName,
+          hiddenFileBytes: hiddenFileBytes,
           onProgress: onProgress,
           cancellationToken: cancellationToken,
         );
@@ -709,6 +738,8 @@ class WatermarkProcessor {
           filePrefix: filePrefix,
           antiAiLevel: antiAiLevel,
           useSteganography: useSteganography,
+          hiddenFileName: hiddenFileName,
+          hiddenFileBytes: hiddenFileBytes,
           onProgress: onProgress,
           cancellationToken: cancellationToken,
         );
@@ -884,6 +915,8 @@ class WatermarkProcessor {
     bool preserveMetadata = false,
     double antiAiLevel = 0.0,
     bool useSteganography = false,
+    String? hiddenFileName,
+    Uint8List? hiddenFileBytes,
     Map<String, Uint8List>? preRenderedStamps,
   }) {
     try {
@@ -923,7 +956,13 @@ class WatermarkProcessor {
 
       // Apply steganography if requested (LSB embedding)
       if (useSteganography) {
-        outputImage = _embedLSB(outputImage, watermarkText);
+        if (hiddenFileName != null && hiddenFileBytes != null) {
+          // Embed a hidden file
+          outputImage = _embedFileIntoImage(outputImage, hiddenFileName, hiddenFileBytes);
+        } else {
+          // Embed text watermark signature
+          outputImage = _embedLSB(outputImage, watermarkText);
+        }
       }
 
       // Encode in the original format (or force PNG if steganography is used)
@@ -985,6 +1024,90 @@ class WatermarkProcessor {
     // Convert to PNG bytes
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     return byteData!.buffer.asUint8List();
+  }
+
+  /// Embeds a file into an image using LSB steganography
+  /// Format: 'SF' (2 bytes) + FilenameLen (2 bytes) + FileSize (4 bytes) + Filename + File + CRC16 (2 bytes)
+  static img.Image _embedFileIntoImage(img.Image image, String fileName, Uint8List fileBytes) {
+    final filenameBytes = utf8.encode(fileName);
+    if (filenameBytes.length > 255) {
+      debugPrint('Filename too long, truncating');
+      return image; // Skip if filename is too long
+    }
+
+    final crc = _crc16(fileBytes);
+    final headerBytes = utf8.encode('SF'); // SecureMark File Identifier
+
+    final fullPayload = BytesBuilder();
+    fullPayload.add(headerBytes);
+
+    // Add filename length as 2 bytes (16-bit big endian)
+    fullPayload.add([
+      (filenameBytes.length >> 8) & 0xFF,
+      filenameBytes.length & 0xFF,
+    ]);
+
+    // Add file size as 4 bytes (32-bit big endian)
+    final fileSize = fileBytes.length;
+    fullPayload.add([
+      (fileSize >> 24) & 0xFF,
+      (fileSize >> 16) & 0xFF,
+      (fileSize >> 8) & 0xFF,
+      fileSize & 0xFF,
+    ]);
+
+    fullPayload.add(filenameBytes);
+    fullPayload.add(fileBytes);
+
+    // Add CRC
+    fullPayload.add([
+      (crc >> 8) & 0xFF,
+      crc & 0xFF,
+    ]);
+
+    final payload = fullPayload.toBytes();
+    final totalBits = payload.length * 8;
+    final int width = image.width;
+    final int height = image.height;
+    final int totalPixels = width * height;
+
+    if (totalBits > totalPixels) {
+      debugPrint('Image too small for this file (${payload.length} bytes needed, ${totalPixels ~/ 8} bytes available)');
+      return image;
+    }
+
+    // Header (64 bits = 8 bytes) is sequential at the beginning
+    const int headerBits = 64;
+    for (var i = 0; i < headerBits && i < totalBits; i++) {
+      final byteIdx = i ~/ 8;
+      final bitOffset = 7 - (i % 8);
+      final bit = (payload[byteIdx] >> bitOffset) & 1;
+
+      final pixel = image.getPixel(i % width, i ~/ width);
+      pixel.b = (pixel.b.toInt() & ~1) | bit;
+    }
+
+    // Payload is spread across the remaining pixels
+    final int remainingBits = totalBits - headerBits;
+    if (remainingBits > 0) {
+      final int remainingPixels = totalPixels - headerBits;
+      final int stride = (remainingPixels ~/ remainingBits).clamp(1, 1000);
+
+      for (var i = 0; i < remainingBits; i++) {
+        final bitIdx = headerBits + i;
+        final byteIdx = bitIdx ~/ 8;
+        final bitOffset = 7 - (bitIdx % 8);
+        final bit = (payload[byteIdx] >> bitOffset) & 1;
+
+        final pixelIdx = headerBits + (i * stride);
+        if (pixelIdx >= totalPixels) break;
+
+        final pixel = image.getPixel(pixelIdx % width, pixelIdx ~/ width);
+        pixel.b = (pixel.b.toInt() & ~1) | bit;
+      }
+    }
+
+    return image;
   }
 
   /// Embeds a text message into an image using LSB (Least Significant Bit) steganography
@@ -1073,73 +1196,170 @@ class WatermarkProcessor {
       final int width = image.width;
       final int height = image.height;
       final int totalPixels = width * height;
-      
+
       // We need at least SM (16 bits) + Length (32 bits) = 48 bits to start
       if (totalPixels < 48) return null;
 
       const int headerBits = 48;
       final List<int> bytes = <int>[];
       var currentByte = 0;
-      
+
       // 1. Extract header bits sequentially
       for (var i = 0; i < headerBits; i++) {
         final pixel = image.getPixel(i % width, i ~/ width);
         final bit = pixel.b.toInt() & 1;
-        
+
         currentByte = (currentByte << 1) | bit;
         if ((i + 1) % 8 == 0) {
           bytes.add(currentByte);
           currentByte = 0;
         }
       }
-      
+
       // Check magic header
       if (utf8.decode(bytes.sublist(0, 2), allowMalformed: true) != 'SM') {
         return null;
       }
-      
+
       // Parse length
       final int payloadLength = (bytes[2] << 24) | (bytes[3] << 16) | (bytes[4] << 8) | bytes[5];
       // Safety limit: 1MB message max
       if (payloadLength <= 0 || payloadLength > 1024 * 1024) return null;
-      
+
       // 2. Extract payload and CRC
       final int payloadBytesNeeded = payloadLength + 2; // message + CRC16
       final int payloadBitsNeeded = payloadBytesNeeded * 8;
       final int remainingPixels = totalPixels - headerBits;
-      
+
       if (payloadBitsNeeded > remainingPixels) return null;
-      
+
       final int stride = (remainingPixels ~/ payloadBitsNeeded).clamp(1, 1000);
       currentByte = 0;
-      
+
       for (var i = 0; i < payloadBitsNeeded; i++) {
         final pixelIdx = headerBits + (i * stride);
         if (pixelIdx >= totalPixels) break;
-        
+
         final pixel = image.getPixel(pixelIdx % width, pixelIdx ~/ width);
         final bit = pixel.b.toInt() & 1;
-        
+
         currentByte = (currentByte << 1) | bit;
         if ((i + 1) % 8 == 0) {
           bytes.add(currentByte);
           currentByte = 0;
         }
       }
-      
+
       if (bytes.length < 6 + payloadBytesNeeded) return null;
-      
+
       final messageBytes = bytes.sublist(6, 6 + payloadLength);
       final extractedCrc = (bytes[6 + payloadLength] << 8) | bytes[6 + payloadLength + 1];
-      
+
       // Verify CRC
       if (_crc16(messageBytes) != extractedCrc) {
         return null;
       }
-      
+
       return utf8.decode(messageBytes, allowMalformed: true);
     } catch (e) {
       debugPrint('LSB extraction error: $e');
+      return null;
+    }
+  }
+
+  /// Extracts a hidden file from an image using LSB steganography
+  /// Returns ExtractedFileResult with filename and file bytes, or null if no file found
+  static Future<ExtractedFileResult?> extractFileAsync(Uint8List imageBytes) async {
+    return await Isolate.run(() => extractFile(imageBytes));
+  }
+
+  static ExtractedFileResult? extractFile(Uint8List imageBytes) {
+    try {
+      final image = img.decodeImage(imageBytes);
+      if (image == null) return null;
+
+      final int width = image.width;
+      final int height = image.height;
+      final int totalPixels = width * height;
+
+      // We need at least SF (16 bits) + FilenameLen (16 bits) + FileSize (32 bits) = 64 bits to start
+      if (totalPixels < 64) return null;
+
+      final List<int> bytes = <int>[];
+      var currentByte = 0;
+
+      // 1. Extract initial header bits (64 bits = 8 bytes)
+      const int initialHeaderBits = 64;
+      for (var i = 0; i < initialHeaderBits; i++) {
+        final pixel = image.getPixel(i % width, i ~/ width);
+        final bit = pixel.b.toInt() & 1;
+
+        currentByte = (currentByte << 1) | bit;
+        if ((i + 1) % 8 == 0) {
+          bytes.add(currentByte);
+          currentByte = 0;
+        }
+      }
+
+      // Check magic header for file ('SF' = SecureMark File)
+      if (utf8.decode(bytes.sublist(0, 2), allowMalformed: true) != 'SF') {
+        return null;
+      }
+
+      // Parse filename length (2 bytes)
+      final int filenameLength = (bytes[2] << 8) | bytes[3];
+      if (filenameLength <= 0 || filenameLength > 255) return null;
+
+      // Parse file size (4 bytes)
+      final int fileSize = (bytes[4] << 24) | (bytes[5] << 16) | (bytes[6] << 8) | bytes[7];
+      // Safety limit: 50MB max
+      if (fileSize <= 0 || fileSize > 50 * 1024 * 1024) return null;
+
+      // 2. Extract filename + file data + CRC
+      final int totalDataBytes = filenameLength + fileSize + 2; // filename + file + CRC16
+      final int dataBitsNeeded = totalDataBytes * 8;
+      final int remainingPixels = totalPixels - initialHeaderBits;
+
+      if (dataBitsNeeded > remainingPixels) return null;
+
+      final int stride = (remainingPixels ~/ dataBitsNeeded).clamp(1, 1000);
+      currentByte = 0;
+
+      for (var i = 0; i < dataBitsNeeded; i++) {
+        final pixelIdx = initialHeaderBits + (i * stride);
+        if (pixelIdx >= totalPixels) break;
+
+        final pixel = image.getPixel(pixelIdx % width, pixelIdx ~/ width);
+        final bit = pixel.b.toInt() & 1;
+
+        currentByte = (currentByte << 1) | bit;
+        if ((i + 1) % 8 == 0) {
+          bytes.add(currentByte);
+          currentByte = 0;
+        }
+      }
+
+      if (bytes.length < 8 + totalDataBytes) return null;
+
+      // Extract components
+      final filenameBytes = bytes.sublist(8, 8 + filenameLength);
+      final fileBytes = bytes.sublist(8 + filenameLength, 8 + filenameLength + fileSize);
+      final extractedCrc = (bytes[8 + filenameLength + fileSize] << 8) |
+                          bytes[8 + filenameLength + fileSize + 1];
+
+      // Verify CRC of file data
+      if (_crc16(fileBytes) != extractedCrc) {
+        return null;
+      }
+
+      final filename = utf8.decode(filenameBytes, allowMalformed: true);
+
+      return ExtractedFileResult(
+        fileName: filename,
+        fileBytes: Uint8List.fromList(fileBytes),
+      );
+    } catch (e) {
+      debugPrint('LSB file extraction error: $e');
       return null;
     }
   }
@@ -1677,6 +1897,8 @@ class WatermarkProcessor {
     String filePrefix = 'securemark-',
     double antiAiLevel = 0.0,
     bool useSteganography = false,
+    String? hiddenFileName,
+    Uint8List? hiddenFileBytes,
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
@@ -1736,7 +1958,13 @@ class WatermarkProcessor {
 
         // Apply steganography if requested (LSB embedding)
         if (useSteganography) {
-          watermarked = _embedLSB(watermarked, watermarkText);
+          if (hiddenFileName != null && hiddenFileBytes != null) {
+            // Embed a hidden file
+            watermarked = _embedFileIntoImage(watermarked, hiddenFileName, hiddenFileBytes);
+          } else {
+            // Embed text watermark signature
+            watermarked = _embedLSB(watermarked, watermarkText);
+          }
         }
 
         final encoded = _encodePngForSharing(watermarked);

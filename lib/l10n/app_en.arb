@@ -246,6 +246,18 @@
   "analysisResult": "Result:",
   "steganographyVerified": "Steganography Verified",
   "steganographyEnabledHint": "Steganography is enabled and will be applied",
+  "hideFileWithSteganographyTitle": "Hide a file (experimental)",
+  "hideFileWithSteganographySubtitle": "Embed an entire file within the image (might increase output size)",
+  "selectFileToHide": "Select File to Hide",
+  "selectedHiddenFile": "Hidden file: {name}",
+  "@selectedHiddenFile": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "hiddenFileSecurityWarning": "Security Notice: Hidden files are only secure if encrypted before embedding. Steganography obscures but does not encrypt your data.",
   "abToggleTooltipOriginal": "Show Original",
   "abToggleTooltipProcessed": "Show Processed",
   "processingCancelled": "Processing cancelled",

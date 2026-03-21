@@ -354,6 +354,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'Steganography is enabled and will be applied';
 
   @override
+  String get hideFileWithSteganographyTitle => 'Hide a file (experimental)';
+
+  @override
+  String get hideFileWithSteganographySubtitle =>
+      'Embed an entire file within the image (might increase output size)';
+
+  @override
+  String get selectFileToHide => 'Select File to Hide';
+
+  @override
+  String selectedHiddenFile(String name) {
+    return 'Hidden file: $name';
+  }
+
+  @override
+  String get hiddenFileSecurityWarning =>
+      'Security Notice: Hidden files are only secure if encrypted before embedding. Steganography obscures but does not encrypt your data.';
+
+  @override
   String get abToggleTooltipOriginal => 'Show Original';
 
   @override
