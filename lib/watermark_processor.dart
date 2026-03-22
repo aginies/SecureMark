@@ -1300,12 +1300,26 @@ class WatermarkProcessor {
       // We need at least SM (16 bits) + Length (32 bits) = 48 bits to start
       if (totalPixels < 48) return null;
 
-      const int headerBits = 48;
-      final List<int> bytes = <int>[];
-      var currentByte = 0;
+      // 1. Extract magic header first (16 bits)
+      for (var i = 0; i < 16; i++) {
+        final pixel = image.getPixel(i % width, i ~/ width);
+        final bit = pixel.b.toInt() & 1;
+        currentByte = (currentByte << 1) | bit;
+        if ((i + 1) % 8 == 0) {
+          bytes.add(currentByte);
+          currentByte = 0;
+        }
+      }
 
-      // 1. Extract header bits sequentially
-      for (var i = 0; i < headerBits; i++) {
+      final String magic = utf8.decode(bytes, allowMalformed: true);
+      if (magic == 'SF' || magic == 'SE') return null; // File detected, let extractFile handle it
+      
+      final bool isEncrypted = magic == 'SX';
+      if (magic != 'SM' && magic != 'SX') return null;
+
+      // 2. Extract the rest of the header (Length: 32 bits)
+      const int headerBits = 48;
+      for (var i = 16; i < headerBits; i++) {
         final pixel = image.getPixel(i % width, i ~/ width);
         final bit = pixel.b.toInt() & 1;
 
@@ -1314,17 +1328,6 @@ class WatermarkProcessor {
           bytes.add(currentByte);
           currentByte = 0;
         }
-      }
-
-      // Check magic header
-      final String magic = utf8.decode(bytes.sublist(0, 2), allowMalformed: true);
-      
-      // If we see a file magic, return null so extractFile can handle it
-      if (magic == 'SF' || magic == 'SE') return null;
-      
-      final bool isEncrypted = magic == 'SX';
-      if (magic != 'SM' && magic != 'SX') {
-        return null;
       }
 
       // Parse length
@@ -1406,12 +1409,10 @@ class WatermarkProcessor {
       final List<int> bytes = <int>[];
       var currentByte = 0;
 
-      // 1. Extract initial header bits (64 bits = 8 bytes)
-      const int initialHeaderBits = 64;
-      for (var i = 0; i < initialHeaderBits; i++) {
+      // 1. Extract initial magic header first (16 bits)
+      for (var i = 0; i < 16; i++) {
         final pixel = image.getPixel(i % width, i ~/ width);
         final bit = pixel.b.toInt() & 1;
-
         currentByte = (currentByte << 1) | bit;
         if ((i + 1) % 8 == 0) {
           bytes.add(currentByte);
@@ -1420,14 +1421,25 @@ class WatermarkProcessor {
       }
 
       // Check magic header for file ('SF' = Plain, 'SE' = Encrypted)
-      final String magic = utf8.decode(bytes.sublist(0, 2), allowMalformed: true);
+      final String magic = utf8.decode(bytes, allowMalformed: true);
       
       // If we see a text signature magic, return null so extractLSB can handle it
       if (magic == 'SM' || magic == 'SX') return null;
       
       final bool isEncrypted = magic == 'SE';
-      if (magic != 'SF' && magic != 'SE') {
-        return null;
+      if (magic != 'SF' && magic != 'SE') return null;
+
+      // 2. Extract the rest of the initial header bits (Total header: 64 bits = 8 bytes)
+      const int initialHeaderBits = 64;
+      for (var i = 16; i < initialHeaderBits; i++) {
+        final pixel = image.getPixel(i % width, i ~/ width);
+        final bit = pixel.b.toInt() & 1;
+
+        currentByte = (currentByte << 1) | bit;
+        if ((i + 1) % 8 == 0) {
+          bytes.add(currentByte);
+          currentByte = 0;
+        }
       }
 
       // Parse filename length (2 bytes)
