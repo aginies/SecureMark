@@ -455,7 +455,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
             continue;
           }
 
-          final filePath = file as String;
+          final filePath = file;
           _addLog('Checking file: $filePath');
 
           if (!File(filePath).existsSync()) {
