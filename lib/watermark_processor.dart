@@ -1320,10 +1320,14 @@ class WatermarkProcessor {
       }
       final int payloadLength =
           (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
-      if (payloadLength <= 0 || payloadLength > 1024 * 1024) return null;
+      if (payloadLength <= 0 || payloadLength > 1024 * 1024) {
+        return null;
+      }
       final int payloadBytesNeeded = payloadLength + 2;
       final int remainingPixels = totalPixels - 48;
-      if (payloadBytesNeeded * 8 > remainingPixels) return null;
+      if (payloadBytesNeeded * 8 > remainingPixels) {
+        return null;
+      }
       final int stride =
           (remainingPixels ~/ (payloadBytesNeeded * 8)).clamp(1, 1000);
       currentByte = 0;
@@ -1382,10 +1386,14 @@ class WatermarkProcessor {
       if (filenameLength <= 0 ||
           filenameLength > 255 ||
           fileSize <= 0 ||
-          fileSize > 50 * 1024 * 1024) return null;
+          fileSize > 50 * 1024 * 1024) {
+        return null;
+      }
       final int totalDataBytes = filenameLength + fileSize + 2;
       final int remainingPixels = totalPixels - 64;
-      if (totalDataBytes * 8 > remainingPixels) return null;
+      if (totalDataBytes * 8 > remainingPixels) {
+        return null;
+      }
       final int stride =
           (remainingPixels ~/ (totalDataBytes * 8)).clamp(1, 1000);
       currentByte = 0;
@@ -1518,7 +1526,9 @@ class WatermarkProcessor {
 
   static Uint8List? _decryptBytes(Uint8List encryptedData, String password) {
     try {
-      if (encryptedData.length < 16) return null;
+      if (encryptedData.length < 16) {
+        return null;
+      }
       final iv = enc.IV(encryptedData.sublist(0, 16));
       final data = encryptedData.sublist(16);
       final keyBytes = sha256.convert(utf8.encode(password)).bytes;
@@ -1538,8 +1548,9 @@ class WatermarkProcessor {
           QrCode.fromData(data: data, errorCorrectLevel: QrErrorCorrectLevel.H);
       final qrImage = QrImage(qrCode);
       final moduleCount = qrImage.moduleCount;
-      if (moduleCount == 0)
+      if (moduleCount == 0) {
         return img.Image(width: size, height: size, numChannels: 4);
+      }
       final image = img.Image(width: size, height: size, numChannels: 4);
       image.clear(img.ColorRgba8(255, 255, 255, 255));
       final moduleSize = size / moduleCount;
@@ -1677,12 +1688,13 @@ class WatermarkProcessor {
     final bitmapFont = placement.font.isBitmap
         ? placement.font.getBitmapFont(placement.fontSize)
         : _getFontForSize(placement.fontSize);
-    if (bitmapFont != null)
+    if (bitmapFont != null) {
       img.drawString(textImage, watermarkText,
           font: bitmapFont,
           x: 0,
           y: (12 * (placement.fontSize / 24)).round(),
           color: placement.color);
+    }
   }
 
   static img.BitmapFont _getFontForSize(int fontSize) {
@@ -1727,11 +1739,12 @@ class WatermarkProcessor {
       if (antiAiLevel > 0) {
         stamp = stamp.clone();
         for (final pixel in stamp) {
-          if (pixel.a > 0)
+          if (pixel.a > 0) {
             pixel.a = (pixel.a +
                     (antiAiLevel / 100.0) * 40 * (_random.nextDouble() - 0.5))
                 .clamp(0, 255)
                 .toInt();
+          }
         }
       }
       img.compositeImage(image, stamp,
@@ -1892,8 +1905,9 @@ class WatermarkProcessor {
       t >= 100 ? 0 : ((100 - t) / 100 * 255).round();
 
   static img.Image _resizeToTarget(img.Image image, int? targetSize) {
-    if (targetSize == null || max(image.width, image.height) <= targetSize)
+    if (targetSize == null || max(image.width, image.height) <= targetSize) {
       return image;
+    }
     final s = targetSize / max(image.width, image.height);
     try {
       return img.copyResize(image,
@@ -1913,8 +1927,9 @@ class WatermarkProcessor {
 
   static Uint8List _encodeImageInOriginalFormat(
       img.Image image, String ext, int q, bool stegan) {
-    if (stegan || ext.toLowerCase() == '.png' || ext.toLowerCase() == '.webp')
+    if (stegan || ext.toLowerCase() == '.png' || ext.toLowerCase() == '.webp') {
       return Uint8List.fromList(img.encodePng(image, level: 2));
+    }
     return Uint8List.fromList(img.encodeJpg(image, quality: q));
   }
 
