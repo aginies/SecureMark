@@ -1088,8 +1088,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         _useSteganography = enabled;
                         if (enabled) {
                           _rasterizePdf = true;
-                          // Disable invisible QR (mutual exclusion with LSB)
-                          _qrInvisible = false;
                         }
                         if (!enabled) { // If steganography is disabled, also disable file hiding
                           _hideFileWithSteganography = false;
@@ -1101,8 +1099,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         _useSteganography = enabled;
                         if (enabled) {
                           _rasterizePdf = true;
-                          // Disable invisible QR (mutual exclusion with LSB)
-                          _qrInvisible = false;
                         }
                         if (!enabled) { // If steganography is disabled, also disable file hiding
                           _hideFileWithSteganography = false;
@@ -1113,7 +1109,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       _savePreference('useSteganography', enabled);
                       if (enabled) {
                         _savePreference('rasterizePdf', true);
-                        _savePreference('qrInvisible', false);
                       }
                     },
                   ),
@@ -1128,10 +1123,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         final enabled = value ?? false;
                         setDialogState(() {
                           _hideFileWithSteganography = enabled;
-                          if (enabled) {
-                            // Disable invisible QR (mutual exclusion with LSB)
-                            _qrInvisible = false;
-                          }
                           if (!enabled) { // Clear hidden file if checkbox is unchecked
                             _hiddenFileBytes = null;
                             _hiddenFileName = null;
@@ -1139,18 +1130,11 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         });
                         setState(() {
                           _hideFileWithSteganography = enabled;
-                          if (enabled) {
-                            // Disable invisible QR (mutual exclusion with LSB)
-                            _qrInvisible = false;
-                          }
                           if (!enabled) { // Clear hidden file if checkbox is unchecked
                             _hiddenFileBytes = null;
                             _hiddenFileName = null;
                           }
                         });
-                        if (enabled) {
-                          _savePreference('qrInvisible', false);
-                        }
                       },
                     ),
                     if (_hideFileWithSteganography) ...[
@@ -1312,30 +1296,11 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         final enabled = value ?? false;
                         setDialogState(() {
                           _qrInvisible = enabled;
-                          if (enabled) {
-                            // Disable text steganography and file hiding (mutual exclusion with LSB)
-                            _useSteganography = false;
-                            _hideFileWithSteganography = false;
-                            _hiddenFileBytes = null;
-                            _hiddenFileName = null;
-                            WatermarkProcessor.isSteganographyEnabled = false;
-                          }
                         });
                         setState(() {
                           _qrInvisible = enabled;
-                          if (enabled) {
-                            // Disable text steganography and file hiding (mutual exclusion with LSB)
-                            _useSteganography = false;
-                            _hideFileWithSteganography = false;
-                            _hiddenFileBytes = null;
-                            _hiddenFileName = null;
-                            WatermarkProcessor.isSteganographyEnabled = false;
-                          }
                         });
                         _savePreference('qrInvisible', enabled);
-                        if (enabled) {
-                          _savePreference('useSteganography', false);
-                        }
                       },
                     ),
 
