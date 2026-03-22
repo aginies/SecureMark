@@ -854,6 +854,54 @@ abstract class AppLocalizations {
   /// **'QR Code Opacity: {value}%'**
   String qrOpacityValue(int value);
 
+  /// No description provided for @qrInvisibleNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note: To hide the QR code invisibly (LSB), use the Steganography menu.'**
+  String get qrInvisibleNote;
+
+  /// No description provided for @receivedFilesFromSharing.
+  ///
+  /// In en, this message translates to:
+  /// **'📥 Received {count} file(s) from sharing'**
+  String receivedFilesFromSharing(int count);
+
+  /// No description provided for @unsupportedSharedFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'⚠️ Shared files are not in a supported format (JPG, PNG, WebP, PDF, HEIC/HEIF)'**
+  String get unsupportedSharedFormat;
+
+  /// No description provided for @signatureCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Signature copied to clipboard'**
+  String get signatureCopied;
+
+  /// No description provided for @saveHiddenFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Hidden File'**
+  String get saveHiddenFile;
+
+  /// No description provided for @fileSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'File saved: {name}'**
+  String fileSaved(String name);
+
+  /// No description provided for @errorSavingFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Error saving file: {error}'**
+  String errorSavingFile(String error);
+
+  /// No description provided for @antiAiProtectionValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Anti-AI Protection: {value}%'**
+  String antiAiProtectionValue(int value);
+
   /// No description provided for @qrContentType.
   ///
   /// In en, this message translates to:

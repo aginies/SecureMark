@@ -481,6 +481,40 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get qrInvisibleNote =>
+      'Note : Pour cacher le QR code de façon invisible (LSB), utilisez le menu Stéganographie.';
+
+  @override
+  String receivedFilesFromSharing(int count) {
+    return '📥 $count fichier(s) reçu(s) depuis le partage';
+  }
+
+  @override
+  String get unsupportedSharedFormat =>
+      '⚠️ Les fichiers partagés ne sont pas dans un format supporté (JPG, PNG, WebP, PDF, HEIC/HEIF)';
+
+  @override
+  String get signatureCopied => 'Signature copiée dans le presse-papier';
+
+  @override
+  String get saveHiddenFile => 'Enregistrer le fichier caché';
+
+  @override
+  String fileSaved(String name) {
+    return 'Fichier enregistré : $name';
+  }
+
+  @override
+  String errorSavingFile(String error) {
+    return 'Erreur lors de l\'enregistrement : $error';
+  }
+
+  @override
+  String antiAiProtectionValue(int value) {
+    return 'Protection Anti-IA : $value%';
+  }
+
+  @override
   String get qrContentType => 'Type de contenu QR';
 
   @override

@@ -2,6 +2,7 @@
 
 # Configuration
 FLUTTER_PATH="/home/aginies/devel/flutter/bin/flutter"
+DART_PATH="/home/aginies/devel/flutter/bin/dart"
 APK_PATH="build/app/outputs/flutter-apk/app-release.apk"
 AAB_PATH="build/app/outputs/bundle/release/app-release.aab"
 APKSIGNER_PATH="$HOME/Android/Sdk/build-tools/36.1.0/apksigner"
@@ -24,7 +25,9 @@ function show_help() {
     echo "  create_keystore   - Generate a new upload-keystore.jks (interactive)"
     echo "  cleanup           - Remove build artifacts (flutter clean)"
     echo "  update_deps       - Update flutter dependencies (pub get)"
-    echo "  quality_checks    - Run analyze and tests"
+    echo "  format_code       - Format all dart files"
+    echo "  format_check      - Check if dart files are formatted"
+    echo "  quality_checks    - Run format check, analyze and tests"
     echo "  generate_assets   - Regenerate icons, splash screens and localizations"
     echo "  increment_version - Increment build number in pubspec.yaml"
     echo "  build_apk         - Build signed release APK"
@@ -49,7 +52,19 @@ function update_deps() {
     $FLUTTER_PATH pub get
 }
 
+function format_code() {
+    echo "[INFO] Formatting code..."
+    $DART_PATH format .
+}
+
+function format_check() {
+    echo "[INFO] Checking code formatting..."
+    $DART_PATH format --output=none --set-exit-if-changed . || { echo "[ERROR] Code not formatted. Run './build_and_verify.sh format_code'."; exit 1; }
+}
+
 function quality_checks() {
+    format_check
+
     echo "[INFO] Running static analysis..."
     $FLUTTER_PATH analyze || { echo "[ERROR] Analysis failed. Fix issues before building."; exit 1; }
     

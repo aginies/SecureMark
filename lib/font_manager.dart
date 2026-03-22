@@ -3,9 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image/image.dart' as img;
 
 enum FontSource {
-  bitmap,   // System bitmap fonts
-  google,   // Google Fonts
-  asset,    // Custom TTF files in assets
+  bitmap, // System bitmap fonts
+  google, // Google Fonts
+  asset, // Custom TTF files in assets
 }
 
 enum WatermarkFont {
@@ -16,18 +16,24 @@ enum WatermarkFont {
   montserrat('Montserrat', 'Montserrat (Bold)', false, FontSource.google),
   poppins('Poppins', 'Poppins (Rounded)', false, FontSource.google),
   notoSans('Noto Sans', 'Noto Sans (Universal)', false, FontSource.google),
-  sourceCodePro('Source Code Pro', 'Source Code Pro (Monospace)', false, FontSource.google),
-  playfairDisplay('Playfair Display', 'Playfair Display (Elegant)', false, FontSource.google),
+  sourceCodePro('Source Code Pro', 'Source Code Pro (Monospace)', false,
+      FontSource.google),
+  playfairDisplay('Playfair Display', 'Playfair Display (Elegant)', false,
+      FontSource.google),
   oswald('Oswald', 'Oswald (Strong)', false, FontSource.google),
   // Custom asset fonts (your actual font files)
   customRoboto('CustomRoboto', 'Roboto (Custom TTF)', false, FontSource.asset),
-  customOpenSans('CustomOpenSans', 'Open Sans (Custom TTF)', false, FontSource.asset),
+  customOpenSans(
+      'CustomOpenSans', 'Open Sans (Custom TTF)', false, FontSource.asset),
   charis('Charis', 'Charis SIL (Serif)', false, FontSource.asset),
-  liberationMono('LiberationMono', 'Liberation Mono (Monospace)', false, FontSource.asset),
-  liberationSerif('LiberationSerif', 'Liberation Serif (Traditional)', false, FontSource.asset),
+  liberationMono(
+      'LiberationMono', 'Liberation Mono (Monospace)', false, FontSource.asset),
+  liberationSerif('LiberationSerif', 'Liberation Serif (Traditional)', false,
+      FontSource.asset),
   vera('Vera', 'Bitstream Vera Sans', false, FontSource.asset);
 
-  const WatermarkFont(this.fontFamily, this.displayName, this.isBitmap, this.source);
+  const WatermarkFont(
+      this.fontFamily, this.displayName, this.isBitmap, this.source);
 
   final String fontFamily;
   final String displayName;
@@ -43,27 +49,35 @@ enum WatermarkFont {
           fontSize: fontSize,
           fontWeight: fontWeight,
         );
-      
+
       case FontSource.google:
         switch (this) {
           case WatermarkFont.roboto:
-            return GoogleFonts.roboto(fontSize: fontSize, fontWeight: fontWeight);
+            return GoogleFonts.roboto(
+                fontSize: fontSize, fontWeight: fontWeight);
           case WatermarkFont.openSans:
-            return GoogleFonts.openSans(fontSize: fontSize, fontWeight: fontWeight);
+            return GoogleFonts.openSans(
+                fontSize: fontSize, fontWeight: fontWeight);
           case WatermarkFont.lato:
             return GoogleFonts.lato(fontSize: fontSize, fontWeight: fontWeight);
           case WatermarkFont.montserrat:
-            return GoogleFonts.montserrat(fontSize: fontSize, fontWeight: fontWeight);
+            return GoogleFonts.montserrat(
+                fontSize: fontSize, fontWeight: fontWeight);
           case WatermarkFont.poppins:
-            return GoogleFonts.poppins(fontSize: fontSize, fontWeight: fontWeight);
+            return GoogleFonts.poppins(
+                fontSize: fontSize, fontWeight: fontWeight);
           case WatermarkFont.notoSans:
-            return GoogleFonts.notoSans(fontSize: fontSize, fontWeight: fontWeight);
+            return GoogleFonts.notoSans(
+                fontSize: fontSize, fontWeight: fontWeight);
           case WatermarkFont.sourceCodePro:
-            return GoogleFonts.sourceCodePro(fontSize: fontSize, fontWeight: fontWeight);
+            return GoogleFonts.sourceCodePro(
+                fontSize: fontSize, fontWeight: fontWeight);
           case WatermarkFont.playfairDisplay:
-            return GoogleFonts.playfairDisplay(fontSize: fontSize, fontWeight: fontWeight);
+            return GoogleFonts.playfairDisplay(
+                fontSize: fontSize, fontWeight: fontWeight);
           case WatermarkFont.oswald:
-            return GoogleFonts.oswald(fontSize: fontSize, fontWeight: fontWeight);
+            return GoogleFonts.oswald(
+                fontSize: fontSize, fontWeight: fontWeight);
           default:
             return TextStyle(
               fontFamily: fontFamily,
@@ -71,7 +85,7 @@ enum WatermarkFont {
               fontWeight: fontWeight,
             );
         }
-      
+
       case FontSource.asset:
         return TextStyle(
           fontFamily: fontFamily,
@@ -84,7 +98,7 @@ enum WatermarkFont {
   /// Get bitmap font for watermarking (for Arial) or null for TrueType fonts
   img.BitmapFont? getBitmapFont(int fontSize) {
     if (!isBitmap) return null;
-    
+
     // Only Arial uses bitmap fonts for backward compatibility and performance
     if (fontSize <= 18) return img.arial14;
     if (fontSize <= 32) return img.arial24;
@@ -231,40 +245,40 @@ class FontManager {
 
   /// Get appropriate fonts for different categories
   static List<WatermarkFont> get professionalFonts => [
-    WatermarkFont.arial,
-    WatermarkFont.roboto,
-    WatermarkFont.customRoboto,
-    WatermarkFont.openSans,
-    WatermarkFont.customOpenSans,
-    WatermarkFont.lato,
-    WatermarkFont.notoSans,
-    WatermarkFont.vera,
-  ];
+        WatermarkFont.arial,
+        WatermarkFont.roboto,
+        WatermarkFont.customRoboto,
+        WatermarkFont.openSans,
+        WatermarkFont.customOpenSans,
+        WatermarkFont.lato,
+        WatermarkFont.notoSans,
+        WatermarkFont.vera,
+      ];
 
   static List<WatermarkFont> get modernFonts => [
-    WatermarkFont.montserrat,
-    WatermarkFont.poppins,
-    WatermarkFont.roboto,
-    WatermarkFont.customRoboto,
-    WatermarkFont.oswald,
-    WatermarkFont.vera,
-  ];
+        WatermarkFont.montserrat,
+        WatermarkFont.poppins,
+        WatermarkFont.roboto,
+        WatermarkFont.customRoboto,
+        WatermarkFont.oswald,
+        WatermarkFont.vera,
+      ];
 
   static List<WatermarkFont> get decorativeFonts => [
-    WatermarkFont.playfairDisplay,
-    WatermarkFont.oswald,
-    WatermarkFont.montserrat,
-    WatermarkFont.charis,
-  ];
+        WatermarkFont.playfairDisplay,
+        WatermarkFont.oswald,
+        WatermarkFont.montserrat,
+        WatermarkFont.charis,
+      ];
 
   static List<WatermarkFont> get monospaceFonts => [
-    WatermarkFont.sourceCodePro,
-    WatermarkFont.liberationMono,
-  ];
+        WatermarkFont.sourceCodePro,
+        WatermarkFont.liberationMono,
+      ];
 
   static List<WatermarkFont> get serifFonts => [
-    WatermarkFont.charis,
-    WatermarkFont.liberationSerif,
-    WatermarkFont.playfairDisplay,
-  ];
+        WatermarkFont.charis,
+        WatermarkFont.liberationSerif,
+        WatermarkFont.playfairDisplay,
+      ];
 }

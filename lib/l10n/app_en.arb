@@ -310,6 +310,42 @@
       }
     }
   },
+  "qrInvisibleNote": "Note: To hide the QR code invisibly (LSB), use the Steganography menu.",
+  "receivedFilesFromSharing": "📥 Received {count} file(s) from sharing",
+  "@receivedFilesFromSharing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unsupportedSharedFormat": "⚠️ Shared files are not in a supported format (JPG, PNG, WebP, PDF, HEIC/HEIF)",
+  "signatureCopied": "Signature copied to clipboard",
+  "saveHiddenFile": "Save Hidden File",
+  "fileSaved": "File saved: {name}",
+  "@fileSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "errorSavingFile": "Error saving file: {error}",
+  "@errorSavingFile": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "antiAiProtectionValue": "Anti-AI Protection: {value}%",
+  "@antiAiProtectionValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
   "qrContentType": "QR Content Type",
   "qrTypeMetadata": "Metadata (JSON)",
   "qrTypeUrl": "Website Redirect",

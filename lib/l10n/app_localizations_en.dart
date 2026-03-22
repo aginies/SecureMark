@@ -476,6 +476,40 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get qrInvisibleNote =>
+      'Note: To hide the QR code invisibly (LSB), use the Steganography menu.';
+
+  @override
+  String receivedFilesFromSharing(int count) {
+    return '📥 Received $count file(s) from sharing';
+  }
+
+  @override
+  String get unsupportedSharedFormat =>
+      '⚠️ Shared files are not in a supported format (JPG, PNG, WebP, PDF, HEIC/HEIF)';
+
+  @override
+  String get signatureCopied => 'Signature copied to clipboard';
+
+  @override
+  String get saveHiddenFile => 'Save Hidden File';
+
+  @override
+  String fileSaved(String name) {
+    return 'File saved: $name';
+  }
+
+  @override
+  String errorSavingFile(String error) {
+    return 'Error saving file: $error';
+  }
+
+  @override
+  String antiAiProtectionValue(int value) {
+    return 'Anti-AI Protection: $value%';
+  }
+
+  @override
   String get qrContentType => 'QR Content Type';
 
   @override

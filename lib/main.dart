@@ -55,9 +55,9 @@ class WatermarkShaderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant WatermarkShaderPainter oldDelegate) {
-    return oldDelegate.color != color || 
-           oldDelegate.transparency != transparency ||
-           oldDelegate.image != image;
+    return oldDelegate.color != color ||
+        oldDelegate.transparency != transparency ||
+        oldDelegate.image != image;
   }
 }
 
@@ -116,19 +116,25 @@ class WatermarkPage extends StatefulWidget {
   State<WatermarkPage> createState() => _WatermarkPageState();
 }
 
-class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserver {
+class _WatermarkPageState extends State<WatermarkPage>
+    with WidgetsBindingObserver {
   final TextEditingController _textController = TextEditingController();
   final TextEditingController _qrAuthorController = TextEditingController();
   final TextEditingController _qrUrlController = TextEditingController();
-  final TextEditingController _vCardFirstNameController = TextEditingController();
-  final TextEditingController _vCardLastNameController = TextEditingController();
+  final TextEditingController _vCardFirstNameController =
+      TextEditingController();
+  final TextEditingController _vCardLastNameController =
+      TextEditingController();
   final TextEditingController _vCardPhoneController = TextEditingController();
   final TextEditingController _vCardEmailController = TextEditingController();
   final TextEditingController _vCardOrgController = TextEditingController();
-  final TextEditingController _hidingPasswordController = TextEditingController();
-  final TextEditingController _extractionPasswordController = TextEditingController();
+  final TextEditingController _hidingPasswordController =
+      TextEditingController();
+  final TextEditingController _extractionPasswordController =
+      TextEditingController();
   final TextEditingController _filePrefixController = TextEditingController();
-  final TransformationController _transformationController = TransformationController();
+  final TransformationController _transformationController =
+      TransformationController();
   final PageController _previewController = PageController();
   double _transparency = 75;
   double _density = 35;
@@ -186,7 +192,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
   Future<void> _loadShader() async {
     try {
-      final program = await ui.FragmentProgram.fromAsset('shaders/watermark.frag');
+      final program =
+          await ui.FragmentProgram.fromAsset('shaders/watermark.frag');
       if (mounted) {
         setState(() {
           _shaderProgram = program;
@@ -199,7 +206,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
   Future<void> _cleanupTempFiles() async {
     if (_tempFiles.isEmpty) return;
-    
+
     _addLog('Cleaning up ${_tempFiles.length} temporary files...');
     for (final path in _tempFiles) {
       try {
@@ -218,13 +225,13 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     final timestamp = DateTime.now().toString().split('.').first;
     final logEntry = '[$timestamp] $message';
     debugPrint(logEntry);
-    
+
     // Safety check for mounted before setState, but always update the list
     _logs.insert(0, logEntry);
     if (_logs.length > 100) {
       _logs.removeLast();
     }
-    
+
     if (mounted) {
       setState(() {});
     }
@@ -243,6 +250,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       _addLog('Error picking directory: $e');
     }
   }
+
   List<_ProcessedFile> _processedFiles = <_ProcessedFile>[];
   int _previewIndex = 0;
   CancellationToken? _cancellationToken;
@@ -260,7 +268,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           _fontSize = prefs.getDouble('fontSize') ?? 24.0;
           _jpegQuality = prefs.getInt('jpegQuality') ?? 75;
           _targetSize = prefs.getInt('targetSize');
-          if (prefs.containsKey('targetSizeIsNull') && prefs.getBool('targetSizeIsNull') == true) {
+          if (prefs.containsKey('targetSizeIsNull') &&
+              prefs.getBool('targetSizeIsNull') == true) {
             _targetSize = null;
           }
           _includeTimestamp = prefs.getBool('includeTimestamp') ?? true;
@@ -269,13 +278,15 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           _filePrefix = prefs.getString('filePrefix') ?? 'securemark-';
           _antiAiLevel = prefs.getDouble('antiAiLevel') ?? 50.0;
           _useSteganography = prefs.getBool('useSteganography') ?? false;
-          _useRobustSteganography = prefs.getBool('useRobustSteganography') ?? false;
-          _hideFileWithSteganography = prefs.getBool('hideFileWithSteganography') ?? false;
+          _useRobustSteganography =
+              prefs.getBool('useRobustSteganography') ?? false;
+          _hideFileWithSteganography =
+              prefs.getBool('hideFileWithSteganography') ?? false;
           _zipOutputs = prefs.getBool('zipOutputs') ?? false;
           _useRandomColor = prefs.getBool('useRandomColor') ?? true;
           _filePrefix = prefs.getString('filePrefix') ?? 'securemark-';
           _filePrefixController.text = _filePrefix;
-          
+
           final colorValue = prefs.getInt('selectedColor');
           if (colorValue != null) {
             _selectedColor = Color(colorValue);
@@ -283,7 +294,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           final fontFamily = prefs.getString('selectedFont');
           if (fontFamily != null) {
             try {
-              _selectedFont = WatermarkFont.values.firstWhere((f) => f.fontFamily == fontFamily);
+              _selectedFont = WatermarkFont.values
+                  .firstWhere((f) => f.fontFamily == fontFamily);
             } catch (_) {
               // Keep default if not found
             }
@@ -293,7 +305,9 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           _qrVisible = prefs.getBool('qrVisible') ?? false;
           _qrInvisible = prefs.getBool('qrInvisible') ?? false;
           final qrTypeIndex = prefs.getInt('qrType');
-          if (qrTypeIndex != null && qrTypeIndex >= 0 && qrTypeIndex < QrType.values.length) {
+          if (qrTypeIndex != null &&
+              qrTypeIndex >= 0 &&
+              qrTypeIndex < QrType.values.length) {
             _qrType = QrType.values[qrTypeIndex];
           }
           _qrAuthor = prefs.getString('qrAuthor') ?? '';
@@ -303,7 +317,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           _vCardPhone = prefs.getString('vCardPhone') ?? '';
           _vCardEmail = prefs.getString('vCardEmail') ?? '';
           _vCardOrg = prefs.getString('vCardOrg') ?? '';
-          
+
           _qrAuthorController.text = _qrAuthor;
           _qrUrlController.text = _qrUrl;
           _vCardFirstNameController.text = _vCardFirstName;
@@ -315,7 +329,9 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           _qrSize = prefs.getDouble('qrSize') ?? 100.0;
           _qrOpacity = prefs.getDouble('qrOpacity') ?? 0.8;
           final qrPosIndex = prefs.getInt('qrPosition');
-          if (qrPosIndex != null && qrPosIndex >= 0 && qrPosIndex < QrPosition.values.length) {
+          if (qrPosIndex != null &&
+              qrPosIndex >= 0 &&
+              qrPosIndex < QrPosition.values.length) {
             _qrPosition = QrPosition.values[qrPosIndex];
           }
 
@@ -383,7 +399,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   void _setupPlatformCallHandler() {
     _addLog('Setting up platform method call handler...');
     _platform.setMethodCallHandler((call) async {
-      _addLog('Received platform call: ${call.method} with arguments: ${call.arguments}');
+      _addLog(
+          'Received platform call: ${call.method} with arguments: ${call.arguments}');
       if (call.method == 'onSharedFilesReceived') {
         final fileCount = call.arguments;
         _addLog('⭐ Received share notification: $fileCount files available');
@@ -455,9 +472,11 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   }
 
   Future<void> _handleSharedContent() async {
+    final l10n = AppLocalizations.of(context)!;
     _addLog('Checking for shared content...');
     try {
-      final List<dynamic>? sharedFiles = await _platform.invokeMethod('getSharedFiles');
+      final List<dynamic>? sharedFiles =
+          await _platform.invokeMethod('getSharedFiles');
       _addLog('getSharedFiles returned: ${sharedFiles?.length ?? 0} items');
 
       if (sharedFiles != null && sharedFiles.isNotEmpty) {
@@ -480,7 +499,15 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           }
 
           final extension = p.extension(filePath).toLowerCase();
-          final isValid = ['.jpg', '.jpeg', '.png', '.webp', '.pdf', '.heic', '.heif'].contains(extension);
+          final isValid = [
+            '.jpg',
+            '.jpeg',
+            '.png',
+            '.webp',
+            '.pdf',
+            '.heic',
+            '.heif'
+          ].contains(extension);
 
           if (!isValid) {
             _addLog('Unsupported extension: $extension for file $filePath');
@@ -507,7 +534,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('📥 Received ${validFiles.length} file${validFiles.length > 1 ? 's' : ''} from sharing'),
+                content: Text(l10n.receivedFilesFromSharing(validFiles.length)),
                 duration: const Duration(seconds: 3),
                 backgroundColor: Colors.green,
               ),
@@ -517,9 +544,9 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           _addLog('No valid shared files found after filtering');
           if (mounted && sharedFiles.isNotEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('⚠️ Shared files are not in a supported format (JPG, PNG, WebP, PDF, HEIC/HEIF)'),
-                duration: Duration(seconds: 4),
+              SnackBar(
+                content: Text(l10n.unsupportedSharedFormat),
+                duration: const Duration(seconds: 4),
                 backgroundColor: Colors.orange,
               ),
             );
@@ -545,7 +572,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     return _processedFiles[safeIndex];
   }
 
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -561,7 +587,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         centerTitle: false,
         actions: [
           IconButton(
-            icon: Icon(_zipOutputs ? Icons.folder_zip : Icons.folder_zip_outlined),
+            icon: Icon(
+                _zipOutputs ? Icons.folder_zip : Icons.folder_zip_outlined),
             onPressed: () {
               setState(() {
                 _zipOutputs = !_zipOutputs;
@@ -569,7 +596,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
               _savePreference('zipOutputs', _zipOutputs);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(_zipOutputs ? l10n.zipEnabledHint : l10n.zipDisabledHint),
+                  content: Text(
+                      _zipOutputs ? l10n.zipEnabledHint : l10n.zipDisabledHint),
                   duration: const Duration(seconds: 2),
                 ),
               );
@@ -617,7 +645,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       width: 360,
                       child: Column(
                         children: [
-                          Expanded(child: SingleChildScrollView(child: controls)),
+                          Expanded(
+                              child: SingleChildScrollView(child: controls)),
                           const SizedBox(height: 16),
                           _buildAuthorFooter(theme),
                         ],
@@ -632,10 +661,11 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
             // Mobile layout with larger preview area
             final screenHeight = constraints.maxHeight;
-            
+
             // Use more conservative sizing for better compatibility
-            final previewHeight = isMobile 
-                ? (screenHeight * 0.5).clamp(350.0, 500.0) // 50% of screen height, min 350px, max 500px
+            final previewHeight = isMobile
+                ? (screenHeight * 0.5).clamp(
+                    350.0, 500.0) // 50% of screen height, min 350px, max 500px
                 : 420.0; // Default height for web/desktop narrow screens
 
             return SingleChildScrollView(
@@ -656,6 +686,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       ),
     );
   }
+
   Widget _buildControlsPanel(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -687,7 +718,9 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.timer_outlined, size: 14, color: theme.colorScheme.onSecondaryContainer),
+                    Icon(Icons.timer_outlined,
+                        size: 14,
+                        color: theme.colorScheme.onSecondaryContainer),
                     const SizedBox(width: 4),
                     Text(
                       _elapsedTime,
@@ -712,20 +745,23 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           //   ),
           // ],
           // Only show save location info on desktop platforms where Save button is visible
-          if (!kIsWeb && (Platform.isMacOS || Platform.isLinux || Platform.isWindows)) ...[
+          if (!kIsWeb &&
+              (Platform.isMacOS || Platform.isLinux || Platform.isWindows)) ...[
             const SizedBox(height: 4),
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                color:
+                    theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3)),
+                border: Border.all(
+                    color: theme.colorScheme.outline.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
                   Icon(
-                    Icons.folder_outlined, 
-                    size: 16, 
+                    Icons.folder_outlined,
+                    size: 16,
                     color: theme.colorScheme.primary,
                   ),
                   const SizedBox(width: 8),
@@ -800,7 +836,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                     'web/icons/Icon-192.png',
                     width: 48,
                     height: 48,
-                    errorBuilder: (context, error, stackTrace) => const Icon(Icons.security, size: 48),
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.security, size: 48),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -827,22 +864,31 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                   style: theme.textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 16),
-                Text(l10n.authorLabel('Antoine Giniès'), style: theme.textTheme.bodyMedium),
-                if (!kIsWeb && !(Platform.isAndroid || Platform.isIOS)) ...[ // Only show on desktop
+                Text(l10n.authorLabel('Antoine Giniès'),
+                    style: theme.textTheme.bodyMedium),
+                if (!kIsWeb && !(Platform.isAndroid || Platform.isIOS)) ...[
+                  // Only show on desktop
                   const SizedBox(height: 16), // Use this instead of 24
                   ElevatedButton.icon(
-                    onPressed: _isCheckingForUpdates ? null : () => _checkForUpdates(setDialogState),
-                    icon: _isCheckingForUpdates 
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.system_update_alt),
+                    onPressed: _isCheckingForUpdates
+                        ? null
+                        : () => _checkForUpdates(setDialogState),
+                    icon: _isCheckingForUpdates
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.system_update_alt),
                     label: Text(l10n.checkForUpdates),
                   ),
-                  if (_updateMessage != null) ...[ // Display message only if present
+                  if (_updateMessage != null) ...[
+                    // Display message only if present
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                        color: theme.colorScheme.primaryContainer
+                            .withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -858,13 +904,15 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                 ],
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
-                  onPressed: () => launchUrl(Uri.parse('https://github.com/aginies/SecureMark')),
+                  onPressed: () => launchUrl(
+                      Uri.parse('https://github.com/aginies/SecureMark')),
                   icon: const Icon(Icons.code),
                   label: Text(l10n.githubRepository),
                 ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
-                  onPressed: () => launchUrl(Uri.parse('https://github.com/aginies/SecureMark/blob/master/PRIVACY_POLICY.md')),
+                  onPressed: () => launchUrl(Uri.parse(
+                      'https://github.com/aginies/SecureMark/blob/master/PRIVACY_POLICY.md')),
                   icon: const Icon(Icons.privacy_tip_outlined),
                   label: Text(l10n.privacyPolicy),
                 ),
@@ -896,16 +944,18 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
     try {
       final response = await http.get(
-        Uri.parse('https://api.github.com/repos/aginies/SecureMark/releases/latest'),
+        Uri.parse(
+            'https://api.github.com/repos/aginies/SecureMark/releases/latest'),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final latestTag = data['tag_name'] as String; // e.g. "v1.1.3"
-        
+
         // Remove 'v' prefix if present for parsing
-        final latestVersionStr = latestTag.startsWith('v') ? latestTag.substring(1) : latestTag;
-        
+        final latestVersionStr =
+            latestTag.startsWith('v') ? latestTag.substring(1) : latestTag;
+
         final latestVersion = Version.parse(latestVersionStr);
         final currentVersion = Version.parse(_appVersion);
 
@@ -913,14 +963,15 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           setDialogState(() {
             _updateMessage = l10n.updateAvailable(latestTag);
           });
-          
+
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(l10n.updateAvailable(latestTag)),
                 action: SnackBarAction(
                   label: l10n.viewUpdate,
-                  onPressed: () => launchUrl(Uri.parse('https://github.com/aginies/SecureMark/releases/latest')),
+                  onPressed: () => launchUrl(Uri.parse(
+                      'https://github.com/aginies/SecureMark/releases/latest')),
                 ),
               ),
             );
@@ -948,7 +999,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
   void _showFileAnalyzer() {
     final l10n = AppLocalizations.of(context)!;
-    
+
     // Clear extraction password when opening analyzer to ensure manual entry
     setState(() {
       _extractionPassword = '';
@@ -995,7 +1046,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
+                      color: theme.colorScheme.secondaryContainer
+                          .withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: theme.colorScheme.secondary),
                     ),
@@ -1005,8 +1057,13 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(l10n.analysisResult, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            if (_extractedFile == null && _analysisResult != null && !_analysisResult!.contains(l10n.noSignatureFound))
+                            Text(l10n.analysisResult,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
+                            if (_extractedFile == null &&
+                                _analysisResult != null &&
+                                !_analysisResult!
+                                    .contains(l10n.noSignatureFound))
                               IconButton(
                                 icon: const Icon(Icons.copy_rounded, size: 18),
                                 padding: EdgeInsets.zero,
@@ -1016,12 +1073,19 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                                   // Extract the actual signature text from the result message
                                   // The result message is usually l10n.signatureFound(result)
                                   // For simplicity, let's just copy the whole thing or try to find the part after the colon
-                                  final textToCopy = _analysisResult!.contains(': ')
-                                      ? _analysisResult!.split(': ').sublist(1).join(': ')
-                                      : _analysisResult!;
-                                  Clipboard.setData(ClipboardData(text: textToCopy));
+                                  final textToCopy =
+                                      _analysisResult!.contains(': ')
+                                          ? _analysisResult!
+                                              .split(': ')
+                                              .sublist(1)
+                                              .join(': ')
+                                          : _analysisResult!;
+                                  Clipboard.setData(
+                                      ClipboardData(text: textToCopy));
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Signature copied to clipboard'), duration: Duration(seconds: 2)),
+                                    SnackBar(
+                                        content: Text(l10n.signatureCopied),
+                                        duration: const Duration(seconds: 2)),
                                   );
                                 },
                               ),
@@ -1029,22 +1093,27 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         ),
                         const SizedBox(height: 8),
                         Text(_analysisResult!),
-                        if (_extractedFile != null && (!_extractedFile!.isEncrypted || _extractedFile!.fileBytes.isNotEmpty)) ...[
+                        if (_extractedFile != null &&
+                            (!_extractedFile!.isEncrypted ||
+                                _extractedFile!.fileBytes.isNotEmpty)) ...[
                           const SizedBox(height: 16),
                           FilledButton.icon(
                             onPressed: () => _saveExtractedFile(),
                             icon: const Icon(Icons.save_alt),
-                            label: const Text('Save Hidden File'),
+                            label: Text(l10n.saveHiddenFile),
                           ),
                         ],
                       ],
                     ),
                   )
                 else
-                  const Icon(Icons.insert_drive_file_outlined, size: 48, color: Colors.grey),
+                  const Icon(Icons.insert_drive_file_outlined,
+                      size: 48, color: Colors.grey),
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
-                  onPressed: _analyzingFile ? null : () => _pickAndAnalyze(setDialogState),
+                  onPressed: _analyzingFile
+                      ? null
+                      : () => _pickAndAnalyze(setDialogState),
                   icon: const Icon(Icons.file_open),
                   label: Text(l10n.pickAndAnalyze),
                 ),
@@ -1072,7 +1141,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
   Future<void> _pickAndAnalyze(StateSetter setDialogState) async {
     final l10n = AppLocalizations.of(context)!;
-    
+
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: false,
       type: FileType.custom,
@@ -1090,11 +1159,15 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     });
 
     try {
-      final bytes = pickedFile.bytes ?? await File(pickedFile.path!).readAsBytes();
-      final password = _extractionPassword.isNotEmpty ? _extractionPassword : null;
+      final bytes =
+          pickedFile.bytes ?? await File(pickedFile.path!).readAsBytes();
+      final password =
+          _extractionPassword.isNotEmpty ? _extractionPassword : null;
 
       // Check for all types of hidden data in a single pass
-      final analysis = await WatermarkProcessor.analyzeFileAsync(bytes, pickedFile.name, password: password);
+      final analysis = await WatermarkProcessor.analyzeFileAsync(
+          bytes, pickedFile.name,
+          password: password);
 
       // Build combined result
       final results = <String>[];
@@ -1102,10 +1175,12 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       if (analysis.file != null) {
         final fileResult = analysis.file!;
         if (fileResult.isEncrypted && fileResult.fileBytes.isEmpty) {
-          results.add('🔐 Encrypted file detected: ${fileResult.fileName}. Please provide the correct password.');
+          results.add(
+              '🔐 Encrypted file detected: ${fileResult.fileName}. Please provide the correct password.');
         } else {
           _extractedFile = fileResult;
-          results.add('📁 Hidden file detected: ${fileResult.fileName} (${_formatFileSize(fileResult.fileBytes.length)})');
+          results.add(
+              '📁 Hidden file detected: ${fileResult.fileName} (${_formatFileSize(fileResult.fileBytes.length)})');
         }
       }
 
@@ -1116,13 +1191,15 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       if (analysis.signature != null && analysis.signature!.isNotEmpty) {
         final textResult = analysis.signature!;
         if (textResult.contains('[ENCRYPTED]')) {
-          results.add('🔐 Encrypted signature detected. Please provide the correct password.');
+          results.add(
+              '🔐 Encrypted signature detected. Please provide the correct password.');
         } else {
           results.add(l10n.signatureFound(textResult));
         }
       }
 
-      if (analysis.robustSignature != null && analysis.robustSignature!.isNotEmpty) {
+      if (analysis.robustSignature != null &&
+          analysis.robustSignature!.isNotEmpty) {
         results.add(l10n.robustSignatureFound(analysis.robustSignature!));
       }
 
@@ -1151,8 +1228,9 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   }
 
   Future<void> _saveExtractedFile() async {
+    final l10n = AppLocalizations.of(context)!;
     if (_extractedFile == null) return;
-    
+
     // Safety check: don't save if it's encrypted and we don't have the decrypted bytes
     if (_extractedFile!.isEncrypted && _extractedFile!.fileBytes.isEmpty) {
       _addLog('Cannot save: file is encrypted and no password provided');
@@ -1181,7 +1259,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('File saved: ${p.basename(saveLocation.path)}'),
+            content: Text(l10n.fileSaved(p.basename(saveLocation.path))),
             duration: const Duration(seconds: 3),
           ),
         );
@@ -1191,7 +1269,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error saving file: $e'),
+            content: Text(l10n.errorSavingFile(e.toString())),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -1265,7 +1343,6 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                     },
                   ),
                   const SizedBox(height: 8),
-
                   CheckboxListTile(
                     title: Text(l10n.hideFileWithSteganographyTitle),
                     subtitle: Text(l10n.hideFileWithSteganographySubtitle),
@@ -1275,7 +1352,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       final enabled = value ?? false;
                       setDialogState(() {
                         _hideFileWithSteganography = enabled;
-                        if (!enabled) { // Clear hidden file if checkbox is unchecked
+                        if (!enabled) {
+                          // Clear hidden file if checkbox is unchecked
                           _hiddenFileBytes = null;
                           _hiddenFileName = null;
                           _savePreference('hiddenFileBytes', null);
@@ -1284,7 +1362,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       });
                       setState(() {
                         _hideFileWithSteganography = enabled;
-                        if (!enabled) { // Clear hidden file if checkbox is unchecked
+                        if (!enabled) {
+                          // Clear hidden file if checkbox is unchecked
                           _hiddenFileBytes = null;
                           _hiddenFileName = null;
                         }
@@ -1297,7 +1376,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.errorContainer.withValues(alpha: 0.3),
+                        color: theme.colorScheme.errorContainer
+                            .withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: theme.colorScheme.error.withValues(alpha: 0.5),
@@ -1333,7 +1413,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                           withData: true, // Crucial for mobile cloud providers
                         );
 
-                        if (result != null && result.files.single.bytes != null) {
+                        if (result != null &&
+                            result.files.single.bytes != null) {
                           final platformFile = result.files.single;
                           final fileBytes = platformFile.bytes!;
                           setDialogState(() {
@@ -1344,11 +1425,14 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                             _hiddenFileBytes = fileBytes;
                             _hiddenFileName = platformFile.name;
                           });
-                          _savePreference('hiddenFileBytes', base64Encode(fileBytes));
+                          _savePreference(
+                              'hiddenFileBytes', base64Encode(fileBytes));
                           _savePreference('hiddenFileName', platformFile.name);
-                        } else if (result != null && result.files.single.path != null) {
+                        } else if (result != null &&
+                            result.files.single.path != null) {
                           final platformFile = result.files.single;
-                          final fileBytes = await File(platformFile.path!).readAsBytes();
+                          final fileBytes =
+                              await File(platformFile.path!).readAsBytes();
                           setDialogState(() {
                             _hiddenFileBytes = fileBytes;
                             _hiddenFileName = platformFile.name;
@@ -1357,7 +1441,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                             _hiddenFileBytes = fileBytes;
                             _hiddenFileName = platformFile.name;
                           });
-                          _savePreference('hiddenFileBytes', base64Encode(fileBytes));
+                          _savePreference(
+                              'hiddenFileBytes', base64Encode(fileBytes));
                           _savePreference('hiddenFileName', platformFile.name);
                         }
                       },
@@ -1368,7 +1453,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                             : l10n.selectFileToHide,
                       ),
                     ),
-                    if (_hiddenFileBytes != null && _hiddenFileBytes!.isNotEmpty) ...[
+                    if (_hiddenFileBytes != null &&
+                        _hiddenFileBytes!.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       TextField(
                         controller: _hidingPasswordController,
@@ -1385,7 +1471,9 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         },
                       ),
                       const SizedBox(height: 8),
-                      Text(l10n.steganographyPasswordNote, style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
+                      Text(l10n.steganographyPasswordNote,
+                          style: theme.textTheme.bodySmall
+                              ?.copyWith(fontStyle: FontStyle.italic)),
                     ],
                   ],
                 ],
@@ -1440,8 +1528,9 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Note: To hide the QR code invisibly (LSB), use the Steganography menu.',
-                      style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
+                      l10n.qrInvisibleNote,
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(fontStyle: FontStyle.italic),
                     ),
 
                     const SizedBox(height: 16),
@@ -1450,7 +1539,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                     Text(l10n.qrContentType, style: theme.textTheme.titleSmall),
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
                         border: Border.all(color: theme.dividerColor),
                         borderRadius: BorderRadius.circular(8),
@@ -1467,9 +1557,14 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                             }
                           },
                           items: [
-                            DropdownMenuItem(value: QrType.metadata, child: Text(l10n.qrTypeMetadata)),
-                            DropdownMenuItem(value: QrType.url, child: Text(l10n.qrTypeUrl)),
-                            DropdownMenuItem(value: QrType.vcard, child: Text(l10n.qrTypeVCard)),
+                            DropdownMenuItem(
+                                value: QrType.metadata,
+                                child: Text(l10n.qrTypeMetadata)),
+                            DropdownMenuItem(
+                                value: QrType.url, child: Text(l10n.qrTypeUrl)),
+                            DropdownMenuItem(
+                                value: QrType.vcard,
+                                child: Text(l10n.qrTypeVCard)),
                           ],
                         ),
                       ),
@@ -1510,8 +1605,10 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                           labelText: l10n.qrUrlLabel,
                           hintText: l10n.qrUrlHint,
                           border: const OutlineInputBorder(),
-                          errorText: _qrUrl.isNotEmpty && (Uri.tryParse(_qrUrl)?.hasScheme != true) 
-                              ? l10n.invalidUrlError : null,
+                          errorText: _qrUrl.isNotEmpty &&
+                                  (Uri.tryParse(_qrUrl)?.hasScheme != true)
+                              ? l10n.invalidUrlError
+                              : null,
                         ),
                         keyboardType: TextInputType.url,
                         onChanged: (value) {
@@ -1597,13 +1694,15 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       const SizedBox(height: 16),
                       const Divider(),
                       const SizedBox(height: 8),
-                      Text(l10n.qrVisibleOptions, style: theme.textTheme.titleSmall),
+                      Text(l10n.qrVisibleOptions,
+                          style: theme.textTheme.titleSmall),
 
                       // Position selector
                       const SizedBox(height: 8),
                       Text(l10n.qrPositionLabel),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
                           border: Border.all(color: theme.dividerColor),
                           borderRadius: BorderRadius.circular(8),
@@ -1620,11 +1719,21 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                               }
                             },
                             items: [
-                              DropdownMenuItem(value: QrPosition.topLeft, child: Text(l10n.qrPosTopLeft)),
-                              DropdownMenuItem(value: QrPosition.topRight, child: Text(l10n.qrPosTopRight)),
-                              DropdownMenuItem(value: QrPosition.bottomLeft, child: Text(l10n.qrPosBottomLeft)),
-                              DropdownMenuItem(value: QrPosition.bottomRight, child: Text(l10n.qrPosBottomRight)),
-                              DropdownMenuItem(value: QrPosition.center, child: Text(l10n.qrPosCenter)),
+                              DropdownMenuItem(
+                                  value: QrPosition.topLeft,
+                                  child: Text(l10n.qrPosTopLeft)),
+                              DropdownMenuItem(
+                                  value: QrPosition.topRight,
+                                  child: Text(l10n.qrPosTopRight)),
+                              DropdownMenuItem(
+                                  value: QrPosition.bottomLeft,
+                                  child: Text(l10n.qrPosBottomLeft)),
+                              DropdownMenuItem(
+                                  value: QrPosition.bottomRight,
+                                  child: Text(l10n.qrPosBottomRight)),
+                              DropdownMenuItem(
+                                  value: QrPosition.center,
+                                  child: Text(l10n.qrPosCenter)),
                             ],
                           ),
                         ),
@@ -1632,7 +1741,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
                       // Size slider
                       const SizedBox(height: 16),
-                      Text(l10n.qrSizeValue(_qrSize.round()), style: theme.textTheme.titleSmall),
+                      Text(l10n.qrSizeValue(_qrSize.round()),
+                          style: theme.textTheme.titleSmall),
                       Slider(
                         value: _qrSize,
                         min: 50,
@@ -1646,7 +1756,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       ),
 
                       // Opacity slider
-                      Text(l10n.qrOpacityValue((_qrOpacity * 100).round()), style: theme.textTheme.titleSmall),
+                      Text(l10n.qrOpacityValue((_qrOpacity * 100).round()),
+                          style: theme.textTheme.titleSmall),
                       Slider(
                         value: _qrOpacity,
                         min: 0.1,
@@ -1712,7 +1823,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       controller: _filePrefixController,
                     ),
                     const SizedBox(height: 16),
-                    Text(l10n.fontSizeValue(_fontSize.round()), style: theme.textTheme.titleSmall),
+                    Text(l10n.fontSizeValue(_fontSize.round()),
+                        style: theme.textTheme.titleSmall),
                     Slider(
                       value: _fontSize,
                       min: 8,
@@ -1732,7 +1844,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                     Text(l10n.fontStyleLabel),
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
                         border: Border.all(color: theme.dividerColor),
                         borderRadius: BorderRadius.circular(8),
@@ -1746,7 +1859,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                               setState(() {
                                 _selectedFont = newFont;
                               });
-                              _savePreference('selectedFont', newFont.fontFamily);
+                              _savePreference(
+                                  'selectedFont', newFont.fontFamily);
                             }
                           },
                           items: _buildFontDropdownItems(),
@@ -1756,10 +1870,12 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                     const SizedBox(height: 8),
                     Text(
                       _getFontSourceDescription(context),
-                      style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(fontStyle: FontStyle.italic),
                     ),
                     const SizedBox(height: 16),
-                    Text(l10n.jpegQualityValue(_jpegQuality), style: theme.textTheme.titleSmall),
+                    Text(l10n.jpegQualityValue(_jpegQuality),
+                        style: theme.textTheme.titleSmall),
                     Slider(
                       value: _jpegQuality.toDouble(),
                       min: 10,
@@ -1820,7 +1936,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       },
                     ),
                     const SizedBox(height: 16),
-                    Text('Anti-AI Protection: ${_antiAiLevel.round()}%', style: theme.textTheme.titleSmall),
+                    Text(l10n.antiAiProtectionValue(_antiAiLevel.round()),
+                        style: theme.textTheme.titleSmall),
                     Slider(
                       value: _antiAiLevel,
                       min: 0,
@@ -1838,12 +1955,13 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      l10n.imageResizingLabel('').replaceAll(': ', ''), 
+                      l10n.imageResizingLabel('').replaceAll(': ', ''),
                       style: theme.textTheme.titleSmall,
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
                         border: Border.all(color: theme.dividerColor),
                         borderRadius: BorderRadius.circular(8),
@@ -1853,12 +1971,18 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                           value: _targetSize,
                           isExpanded: true,
                           items: [
-                            DropdownMenuItem<int?>(value: null, child: Text(l10n.resizeNone)),
-                            DropdownMenuItem<int?>(value: 2048, child: Text(l10n.pixelUnit(2048))),
-                            DropdownMenuItem<int?>(value: 1600, child: Text(l10n.pixelUnit(1600))),
-                            DropdownMenuItem<int?>(value: 1280, child: Text(l10n.pixelUnit(1280))),
-                            DropdownMenuItem<int?>(value: 1024, child: Text(l10n.pixelUnit(1024))),
-                            DropdownMenuItem<int?>(value: 800, child: Text(l10n.pixelUnit(800))),
+                            DropdownMenuItem<int?>(
+                                value: null, child: Text(l10n.resizeNone)),
+                            DropdownMenuItem<int?>(
+                                value: 2048, child: Text(l10n.pixelUnit(2048))),
+                            DropdownMenuItem<int?>(
+                                value: 1600, child: Text(l10n.pixelUnit(1600))),
+                            DropdownMenuItem<int?>(
+                                value: 1280, child: Text(l10n.pixelUnit(1280))),
+                            DropdownMenuItem<int?>(
+                                value: 1024, child: Text(l10n.pixelUnit(1024))),
+                            DropdownMenuItem<int?>(
+                                value: 800, child: Text(l10n.pixelUnit(800))),
                           ],
                           onChanged: (value) {
                             setDialogState(() {
@@ -1872,12 +1996,16 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         ),
                       ),
                     ),
-                    if (!kIsWeb && (Platform.isLinux || Platform.isMacOS || Platform.isWindows)) ...[
+                    if (!kIsWeb &&
+                        (Platform.isLinux ||
+                            Platform.isMacOS ||
+                            Platform.isWindows)) ...[
                       const SizedBox(height: 24),
                       const Divider(),
                       const SizedBox(height: 16),
                       Text(
-                        l10n.outputDirectoryLabel(_outputDirectory ?? l10n.resizeNone),
+                        l10n.outputDirectoryLabel(
+                            _outputDirectory ?? l10n.resizeNone),
                         style: theme.textTheme.titleSmall,
                       ),
                       const SizedBox(height: 8),
@@ -1898,7 +2026,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                       onPressed: () async {
                         final prefs = await SharedPreferences.getInstance();
                         await prefs.clear();
-                        
+
                         setDialogState(() {
                           _fontSize = 24.0;
                           _jpegQuality = 75;
@@ -1912,7 +2040,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                           _selectedColor = Colors.deepPurple;
                           _selectedFont = WatermarkFont.arial;
                         });
-                        
+
                         setState(() {
                           _fontSize = 24.0;
                           _jpegQuality = 75;
@@ -1989,7 +2117,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         itemBuilder: (context, index) {
                           final fileName = p.basename(_selectedPaths[index]);
                           return ListTile(
-                            leading: Icon(Icons.insert_drive_file_outlined, color: theme.colorScheme.primary),
+                            leading: Icon(Icons.insert_drive_file_outlined,
+                                color: theme.colorScheme.primary),
                             title: Text(fileName),
                             dense: true,
                           );
@@ -2012,7 +2141,9 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                           painter: WatermarkShaderPainter(
                             shader: _shaderProgram!.fragmentShader(),
                             image: _rawImage!,
-                            color: _useRandomColor ? Colors.deepPurple : _selectedColor,
+                            color: _useRandomColor
+                                ? Colors.deepPurple
+                                : _selectedColor,
                             transparency: _transparency,
                           ),
                         ),
@@ -2063,7 +2194,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         _transformationController.value = Matrix4.identity();
                       },
                       itemBuilder: (context, index) {
-                        final previewBytes = _processedFiles[index].result.previewBytes;
+                        final previewBytes =
+                            _processedFiles[index].result.previewBytes;
                         if (previewBytes == null) {
                           return Center(
                             child: Text(
@@ -2077,38 +2209,47 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                           children: [
                             GestureDetector(
                               onDoubleTap: () {
-                                final currentScale = _transformationController.value.getMaxScaleOnAxis();
+                                final currentScale = _transformationController
+                                    .value
+                                    .getMaxScaleOnAxis();
                                 // Smart zoom: cycle through 1.0 -> 2.0 -> 3.0 -> 1.0
-                                final targetScale = currentScale <= 1.0 
-                                    ? 2.0 
-                                    : currentScale <= 2.0 
-                                        ? 3.0 
+                                final targetScale = currentScale <= 1.0
+                                    ? 2.0
+                                    : currentScale <= 2.0
+                                        ? 3.0
                                         : 1.0;
-                                
-                                if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+
+                                if (!kIsWeb &&
+                                    (Platform.isAndroid || Platform.isIOS)) {
                                   HapticFeedback.lightImpact();
                                 }
-                                
-                                _transformationController.value = Matrix4.diagonal3Values(targetScale, targetScale, 1.0);
+
+                                _transformationController.value =
+                                    Matrix4.diagonal3Values(
+                                        targetScale, targetScale, 1.0);
                               },
                               child: InteractiveViewer(
-                                transformationController: _transformationController,
+                                transformationController:
+                                    _transformationController,
                                 minScale: 0.5,
                                 maxScale: 4.0,
                                 panEnabled: true,
                                 scaleEnabled: true,
                                 child: Center(
                                   child: Image.memory(
-                                    _showOriginalPreview 
-                                      ? _processedFiles[index].result.originalBytes! // Display original
-                                      : previewBytes, // Display processed
+                                    _showOriginalPreview
+                                        ? _processedFiles[index]
+                                            .result
+                                            .originalBytes! // Display original
+                                        : previewBytes, // Display processed
                                     fit: BoxFit.contain,
                                   ),
                                 ),
                               ),
                             ),
                             // A/B button
-                            if (_processedFiles[index].result.originalBytes != null)
+                            if (_processedFiles[index].result.originalBytes !=
+                                null)
                               Positioned(
                                 bottom: 8,
                                 left: 8,
@@ -2116,29 +2257,38 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                                   heroTag: "ab_toggle_$index",
                                   onPressed: () {
                                     setState(() {
-                                      _showOriginalPreview = !_showOriginalPreview;
+                                      _showOriginalPreview =
+                                          !_showOriginalPreview;
                                     });
                                   },
-                                  backgroundColor: theme.colorScheme.surface.withValues(alpha: 0.9),
+                                  backgroundColor: theme.colorScheme.surface
+                                      .withValues(alpha: 0.9),
                                   child: Icon(
-                                    _showOriginalPreview ? Icons.flip_to_front : Icons.flip_to_back,
+                                    _showOriginalPreview
+                                        ? Icons.flip_to_front
+                                        : Icons.flip_to_back,
                                     size: 20,
                                   ),
                                 ),
                               ),
                             // Steganography verification badge
-                            if (_processedFiles[index].result.steganographyVerified || _processedFiles[index].result.robustVerified)
+                            if (_processedFiles[index]
+                                    .result
+                                    .steganographyVerified ||
+                                _processedFiles[index].result.robustVerified)
                               Positioned(
                                 top: 12,
                                 right: 12,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 6),
                                   decoration: BoxDecoration(
                                     color: Colors.green.withValues(alpha: 0.85),
                                     borderRadius: BorderRadius.circular(20),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.2),
+                                        color:
+                                            Colors.black.withValues(alpha: 0.2),
                                         blurRadius: 4,
                                         offset: const Offset(0, 2),
                                       ),
@@ -2147,7 +2297,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                                   child: const Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.verified_user_outlined, color: Colors.white, size: 14),
+                                      Icon(Icons.verified_user_outlined,
+                                          color: Colors.white, size: 14),
                                       SizedBox(width: 6),
                                       Text(
                                         'Verified',
@@ -2162,15 +2313,22 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                                 ),
                               ),
                             // Navigation arrows for Desktop
-                            if (!kIsWeb && (Platform.isLinux || Platform.isWindows || Platform.isMacOS) && _processedFiles.length > 1) ...[
+                            if (!kIsWeb &&
+                                (Platform.isLinux ||
+                                    Platform.isWindows ||
+                                    Platform.isMacOS) &&
+                                _processedFiles.length > 1) ...[
                               Positioned(
                                 left: 8,
                                 top: 0,
                                 bottom: 0,
                                 child: Center(
                                   child: IconButton.filledTonal(
-                                    onPressed: _previewIndex > 0 
-                                        ? () => _previewController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut)
+                                    onPressed: _previewIndex > 0
+                                        ? () => _previewController.previousPage(
+                                            duration: const Duration(
+                                                milliseconds: 300),
+                                            curve: Curves.easeInOut)
                                         : null,
                                     icon: const Icon(Icons.chevron_left),
                                   ),
@@ -2182,8 +2340,12 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                                 bottom: 0,
                                 child: Center(
                                   child: IconButton.filledTonal(
-                                    onPressed: _previewIndex < _processedFiles.length - 1
-                                        ? () => _previewController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut)
+                                    onPressed: _previewIndex <
+                                            _processedFiles.length - 1
+                                        ? () => _previewController.nextPage(
+                                            duration: const Duration(
+                                                milliseconds: 300),
+                                            curve: Curves.easeInOut)
                                         : null,
                                     icon: const Icon(Icons.chevron_right),
                                   ),
@@ -2195,21 +2357,29 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                               valueListenable: _transformationController,
                               builder: (context, matrix, child) {
                                 final scale = matrix.getMaxScaleOnAxis();
-                                if (scale <= 1.0) return const SizedBox.shrink();
-                                
+                                if (scale <= 1.0) {
+                                  return const SizedBox.shrink();
+                                }
+
                                 return Positioned(
                                   bottom: 8,
                                   right: 8,
                                   child: FloatingActionButton.small(
-                                    heroTag: "zoom_reset_$index", // Unique hero tag for PageView
+                                    heroTag:
+                                        "zoom_reset_$index", // Unique hero tag for PageView
                                     onPressed: () {
-                                      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+                                      if (!kIsWeb &&
+                                          (Platform.isAndroid ||
+                                              Platform.isIOS)) {
                                         HapticFeedback.lightImpact();
                                       }
-                                      _transformationController.value = Matrix4.identity();
+                                      _transformationController.value =
+                                          Matrix4.identity();
                                     },
-                                    backgroundColor: theme.colorScheme.surface.withValues(alpha: 0.9),
-                                    child: const Icon(Icons.zoom_out_map, size: 20),
+                                    backgroundColor: theme.colorScheme.surface
+                                        .withValues(alpha: 0.9),
+                                    child: const Icon(Icons.zoom_out_map,
+                                        size: 20),
                                   ),
                                 );
                               },
@@ -2273,10 +2443,12 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         onPressed: _processing ? null : _pickFile,
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 24),
-          backgroundColor: isDragging ? theme.colorScheme.primary.withValues(alpha: 0.8) : null,
+          backgroundColor: isDragging
+              ? theme.colorScheme.primary.withValues(alpha: 0.8)
+              : null,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: isDragging 
+            side: isDragging
                 ? BorderSide(color: theme.colorScheme.onPrimary, width: 2)
                 : BorderSide.none,
           ),
@@ -2285,7 +2457,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              isDragging ? Icons.file_upload : Icons.file_upload_outlined, 
+              isDragging ? Icons.file_upload : Icons.file_upload_outlined,
               size: 32,
             ),
             const SizedBox(height: 8),
@@ -2329,7 +2501,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
               const SizedBox(height: 12),
               Text(
                 selectedCount == 1
-                    ? l10n.selectedFile(File(_selectedPaths.first).uri.pathSegments.last)
+                    ? l10n.selectedFile(
+                        File(_selectedPaths.first).uri.pathSegments.last)
                     : l10n.selectedFiles(selectedCount),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium,
@@ -2353,19 +2526,24 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           runSpacing: 12,
           children: [
             FilledButton.icon(
-              onPressed: _processing || _selectedPaths.isEmpty ? null : _applyWatermark,
+              onPressed: _processing || _selectedPaths.isEmpty
+                  ? null
+                  : _applyWatermark,
               icon: const Icon(Icons.auto_fix_high),
               label: Text(l10n.applyWatermark),
               style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               ),
             ),
-            if (_useSteganography && !_steganographyVerificationFailed) // Show "Verified" icon when steganography is enabled
+            if (_useSteganography &&
+                !_steganographyVerificationFailed) // Show "Verified" icon when steganography is enabled
               Tooltip(
                 message: l10n.steganographyEnabledHint,
                 child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 4.0),
-                  child: Icon(Icons.verified_user_outlined, color: Colors.green),
+                  child:
+                      Icon(Icons.verified_user_outlined, color: Colors.green),
                 ),
               ),
             if (_steganographyVerificationFailed) // Show warning icon when verification failed
@@ -2387,19 +2565,24 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
             // Hide Save button on mobile platforms (iOS/Android)
             if (!isMobile)
               FilledButton.icon(
-                onPressed: _processing || _processedFiles.isEmpty ? null : _saveCurrent,
+                onPressed: _processing || _processedFiles.isEmpty
+                    ? null
+                    : _saveCurrent,
                 icon: const Icon(Icons.save_alt),
                 label: Text(l10n.saveAll),
                 style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                 ),
               ),
             FilledButton.icon(
-              onPressed: _processing || _processedFiles.isEmpty ? null : _shareCurrent,
+              onPressed:
+                  _processing || _processedFiles.isEmpty ? null : _shareCurrent,
               icon: const Icon(Icons.share_outlined),
               label: Text(l10n.shareAll),
               style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               ),
             ),
             OutlinedButton.icon(
@@ -2407,7 +2590,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
               icon: const Icon(Icons.refresh),
               label: Text(l10n.reset),
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               ),
             ),
           ],
@@ -2461,8 +2645,10 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
               children: [
                 SegmentedButton<bool>(
                   segments: [
-                    ButtonSegment<bool>(value: true, label: Text(l10n.randomColor)),
-                    ButtonSegment<bool>(value: false, label: Text(l10n.selectedColor)),
+                    ButtonSegment<bool>(
+                        value: true, label: Text(l10n.randomColor)),
+                    ButtonSegment<bool>(
+                        value: false, label: Text(l10n.selectedColor)),
                   ],
                   selected: <bool>{_useRandomColor},
                   onSelectionChanged: _processing
@@ -2477,11 +2663,10 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                     spacing: 10,
                     runSpacing: 10,
                     children: palette.map((color) {
-                      final isSelected = color.toARGB32() == _selectedColor.toARGB32();
+                      final isSelected =
+                          color.toARGB32() == _selectedColor.toARGB32();
                       return InkWell(
-                        onTap: _processing
-                            ? null
-                            : () => _selectColor(color),
+                        onTap: _processing ? null : () => _selectColor(color),
                         borderRadius: BorderRadius.circular(999),
                         child: Container(
                           width: 36,
@@ -2490,7 +2675,9 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                             color: color,
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: isSelected ? Colors.black : Colors.grey.shade400,
+                              color: isSelected
+                                  ? Colors.black
+                                  : Colors.grey.shade400,
                               width: isSelected ? 3 : 1,
                             ),
                           ),
@@ -2591,7 +2778,15 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       final result = await FilePicker.platform.pickFiles(
         allowMultiple: true,
         type: FileType.custom,
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'heic', 'heif'],
+        allowedExtensions: [
+          'jpg',
+          'jpeg',
+          'png',
+          'webp',
+          'pdf',
+          'heic',
+          'heif'
+        ],
         withData: false, // We usually want paths for main files
         lockParentWindow: true,
       );
@@ -2602,12 +2797,12 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       }
 
       _addLog('Picked ${result.files.length} files via picker.');
-      
+
       final validPaths = result.files
           .where((f) => f.path != null)
           .map((f) => f.path!)
           .toList();
-          
+
       if (validPaths.isNotEmpty) {
         _selectPaths(validPaths);
       } else {
@@ -2652,7 +2847,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
   Future<void> _processPaths(List<String> paths) async {
     if (_processing || paths.isEmpty) return;
-    
+
     _addLog('Processing ${paths.length} paths');
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
@@ -2690,13 +2885,16 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
             _progressListener = () {
               if (context.mounted) setDialogState(() {});
             };
-            
-            final message = _progressMessage.isEmpty 
-                ? (_statusMessage.isEmpty ? l10n.processingFile : _statusMessage)
+
+            final message = _progressMessage.isEmpty
+                ? (_statusMessage.isEmpty
+                    ? l10n.processingFile
+                    : _statusMessage)
                 : _progressMessage;
 
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -2710,17 +2908,20 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                         child: CircularProgressIndicator(
                           strokeWidth: 6,
                           value: _progress > 0 ? _progress : null,
-                          backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                          backgroundColor:
+                              theme.colorScheme.surfaceContainerHighest,
                         ),
                       ),
                       Text(
                         _elapsedTime,
-                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                        style: theme.textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
                   const SizedBox(height: 24),
-                  Text(l10n.applyingWatermark, style: theme.textTheme.titleMedium),
+                  Text(l10n.applyingWatermark,
+                      style: theme.textTheme.titleMedium),
                   const SizedBox(height: 8),
                   Text(
                     message,
@@ -2731,13 +2932,15 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                     const SizedBox(height: 12),
                     LinearProgressIndicator(
                       value: _progress,
-                      backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                      backgroundColor:
+                          theme.colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       '${(_progress * 100).round()}${Localizations.localeOf(context).languageCode == 'fr' ? ' %' : '%'}',
-                      style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                   ],
                   const SizedBox(height: 24),
@@ -2766,9 +2969,10 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         if (!mounted) break;
 
         _addLog('Starting file $i: $fileName');
-        
+
         setState(() {
-          _statusMessage = l10n.processingNamedFile(i + 1, paths.length, fileName);
+          _statusMessage =
+              l10n.processingNamedFile(i + 1, paths.length, fileName);
         });
         _progressListener?.call();
 
@@ -2794,7 +2998,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         }
 
         // Apply steganography if either signature or file hiding is enabled
-        final bool shouldApplyStegano = _useSteganography || (_hideFileWithSteganography && _hiddenFileBytes != null);
+        final bool shouldApplyStegano = _useSteganography ||
+            (_hideFileWithSteganography && _hiddenFileBytes != null);
 
         try {
           final result = await WatermarkProcessor.processFile(
@@ -2817,7 +3022,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
             useRobustSteganography: _useRobustSteganography,
             steganographyPassword: _hidingPassword,
             hiddenFileName: _hideFileWithSteganography ? _hiddenFileName : null,
-            hiddenFileBytes: _hideFileWithSteganography ? _hiddenFileBytes : null,
+            hiddenFileBytes:
+                _hideFileWithSteganography ? _hiddenFileBytes : null,
             qrConfig: qrConfig,
             onProgress: (progress, message) {
               if (mounted) {
@@ -2837,10 +3043,12 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         } catch (e) {
           _addLog('Failed to process $fileName: $e');
           failedFiles.add(path);
-          
+
           if (mounted) {
             setState(() {
-              _statusMessage = e is WatermarkError ? e.userMessage : l10n.errorPrefix(e.toString());
+              _statusMessage = e is WatermarkError
+                  ? e.userMessage
+                  : l10n.errorPrefix(e.toString());
             });
             _progressListener?.call();
           }
@@ -2865,10 +3073,17 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           });
         } else {
           // Log steganography verification results
-          final verifiedCount = processedFiles.where((f) => f.result.steganographyVerified || f.result.robustVerified).length;
-          final steganographyFailed = (_useSteganography || _useRobustSteganography) && processedFiles.isNotEmpty && verifiedCount == 0;
+          final verifiedCount = processedFiles
+              .where((f) =>
+                  f.result.steganographyVerified || f.result.robustVerified)
+              .length;
+          final steganographyFailed =
+              (_useSteganography || _useRobustSteganography) &&
+                  processedFiles.isNotEmpty &&
+                  verifiedCount == 0;
 
-          if ((_useSteganography || _useRobustSteganography) && verifiedCount > 0) {
+          if ((_useSteganography || _useRobustSteganography) &&
+              verifiedCount > 0) {
             _addLog('Steganography verified for $verifiedCount file(s)');
           } else if (_useSteganography || _useRobustSteganography) {
             _addLog('Steganography verification failed for all files');
@@ -2878,9 +3093,11 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
               ? l10n.processingFailed
               : failedFiles.isEmpty
                   ? '' // No message if files are processed and no failures
-                  : l10n.processingStatusMultiple(processedFiles.length, failedFiles.length);
+                  : l10n.processingStatusMultiple(
+                      processedFiles.length, failedFiles.length);
 
-          if ((_useSteganography || _useRobustSteganography) && verifiedCount > 0) {
+          if ((_useSteganography || _useRobustSteganography) &&
+              verifiedCount > 0) {
             successMessage += ' (Steganography Verified ✓)';
           }
 
@@ -2949,7 +3166,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     _cancellationToken?.cancel();
     _stopStopwatch();
     _textController.clear();
-    
+
     // Clear all preferences
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -2979,7 +3196,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       _statusMessage = '';
       _cancellationToken = null;
       _rawImage = null;
-      
+
       // Reset expert settings
       _fontSize = 24.0;
       _jpegQuality = 75;
@@ -3042,7 +3259,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       for (final file in _processedFiles) {
         try {
           String outputPath = file.result.outputPath;
-          
+
           // If a custom output directory is selected (Desktop only), use it
           if (_outputDirectory != null) {
             final fileName = p.basename(file.result.outputPath);
@@ -3051,11 +3268,11 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
           final outputFile = File(outputPath);
           final directory = outputFile.parent;
-          
+
           if (!await directory.exists()) {
             await directory.create(recursive: true);
           }
-          
+
           await outputFile.writeAsBytes(file.result.outputBytes);
           savedFiles.add(outputPath);
         } catch (e) {
@@ -3078,7 +3295,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       } else if (savedFiles.isEmpty) {
         statusMessage = l10n.saveFailedGeneral;
       } else {
-        statusMessage = l10n.saveStatusMultiple(savedFiles.length, failedFiles.length);
+        statusMessage =
+            l10n.saveStatusMultiple(savedFiles.length, failedFiles.length);
       }
 
       setState(() {
@@ -3091,7 +3309,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       }
     } catch (e) {
       if (!mounted) return;
-      
+
       setState(() {
         _statusMessage = l10n.errorSavingFiles(e.toString());
       });
@@ -3102,16 +3320,17 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   String _getSaveLocationInfo() {
     final l10n = AppLocalizations.of(context)!;
     if (_processedFiles.isEmpty) return '';
-    
+
     final firstFile = _processedFiles.first;
     final directory = _outputDirectory ?? p.dirname(firstFile.sourcePath);
-    final displayDir = _outputDirectory != null ? _outputDirectory! : p.basename(directory);
-    
+    final displayDir =
+        _outputDirectory != null ? _outputDirectory! : p.basename(directory);
+
     // For long paths, show a shortened version
-    final displayPath = displayDir.length > 40 
-        ? '...${displayDir.substring(displayDir.length - 37)}' 
+    final displayPath = displayDir.length > 40
+        ? '...${displayDir.substring(displayDir.length - 37)}'
         : displayDir;
-    
+
     if (_processedFiles.length == 1) {
       final fileName = p.basenameWithoutExtension(firstFile.result.outputPath);
       return l10n.willSaveAsIn(fileName, displayPath);
@@ -3131,7 +3350,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   }
 
   /// Show detailed save results dialog
-  void _showSaveResultDialog(List<String> savedFiles, List<String> failedFiles) {
+  void _showSaveResultDialog(
+      List<String> savedFiles, List<String> failedFiles) {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
@@ -3146,24 +3366,24 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
                 Text('✅ ${l10n.successfullySavedCount(savedFiles.length)}'),
                 const SizedBox(height: 8),
                 ...savedFiles.map((path) => Padding(
-                  padding: const EdgeInsets.only(left: 16, bottom: 4),
-                  child: Text(
-                    _getDisplayPath(path),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                )),
+                      padding: const EdgeInsets.only(left: 16, bottom: 4),
+                      child: Text(
+                        _getDisplayPath(path),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    )),
               ],
               if (failedFiles.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text('❌ ${l10n.failedSavedCount(failedFiles.length)}'),
                 const SizedBox(height: 8),
                 ...failedFiles.map((path) => Padding(
-                  padding: const EdgeInsets.only(left: 16, bottom: 4),
-                  child: Text(
-                    p.basename(path),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                )),
+                      padding: const EdgeInsets.only(left: 16, bottom: 4),
+                      child: Text(
+                        p.basename(path),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    )),
               ],
             ],
           ),
@@ -3181,7 +3401,8 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
   Future<void> _shareCurrent() async {
     final l10n = AppLocalizations.of(context)!;
     final box = context.findRenderObject() as RenderBox?;
-    final sharePositionOrigin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+    final sharePositionOrigin =
+        box != null ? box.localToGlobal(Offset.zero) & box.size : null;
 
     if (_processedFiles.isEmpty) {
       return;
@@ -3220,7 +3441,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
           final fileName = p.basename(file.result.outputPath);
           outputPath = p.join(_outputDirectory!, fileName);
         }
-        
+
         final directory = p.dirname(outputPath);
         if (!await Directory(directory).exists()) {
           await Directory(directory).create(recursive: true);
@@ -3281,7 +3502,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
 
   List<DropdownMenuItem<WatermarkFont>> _buildFontDropdownItems() {
     final items = <DropdownMenuItem<WatermarkFont>>[];
-    
+
     // Add system/bitmap fonts
     final bitmapFonts = FontManager.bitmapFonts;
     if (bitmapFonts.isNotEmpty) {
@@ -3295,7 +3516,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         ));
       }
     }
-    
+
     // Add asset fonts if any exist
     final assetFonts = FontManager.assetFonts;
     if (assetFonts.isNotEmpty) {
@@ -3310,7 +3531,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         ));
       }
     }
-    
+
     // Add Google fonts
     final googleFonts = FontManager.googleFonts;
     if (googleFonts.isNotEmpty) {
@@ -3324,7 +3545,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         ));
       }
     }
-    
+
     return items;
   }
 

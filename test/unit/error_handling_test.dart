@@ -21,25 +21,29 @@ void main() {
       const types = WatermarkErrorType.values;
       for (final type in types) {
         final error = WatermarkError(type: type, message: 'test');
-        expect(error.userMessage, isNotEmpty, reason: 'Type $type should have a user message');
+        expect(error.userMessage, isNotEmpty,
+            reason: 'Type $type should have a user message');
       }
     });
 
     test('Specific user message content checks', () {
       expect(
-        const WatermarkError(type: WatermarkErrorType.unsupportedFileType, message: '').userMessage,
-        contains('JPG, PNG, or PDF')
-      );
-      
-      expect(
-        const WatermarkError(type: WatermarkErrorType.fileTooLarge, message: '').userMessage,
-        contains('File is too large')
-      );
+          const WatermarkError(
+                  type: WatermarkErrorType.unsupportedFileType, message: '')
+              .userMessage,
+          contains('JPG, PNG, or PDF'));
 
       expect(
-        const WatermarkError(type: WatermarkErrorType.operationCancelled, message: '').userMessage,
-        contains('cancelled')
-      );
+          const WatermarkError(
+                  type: WatermarkErrorType.fileTooLarge, message: '')
+              .userMessage,
+          contains('File is too large'));
+
+      expect(
+          const WatermarkError(
+                  type: WatermarkErrorType.operationCancelled, message: '')
+              .userMessage,
+          contains('cancelled'));
     });
   });
 }

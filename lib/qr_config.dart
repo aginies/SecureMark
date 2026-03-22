@@ -3,8 +3,8 @@ import 'dart:convert';
 /// Type of content to encode in the QR code
 enum QrType {
   metadata, // Original JSON format with author, URL, and timestamp
-  url,      // Direct website redirect URL
-  vcard,    // vCard contact information sharing
+  url, // Direct website redirect URL
+  vcard, // vCard contact information sharing
 }
 
 /// Configuration for QR code watermarking
@@ -60,13 +60,14 @@ class QrWatermarkConfig {
     switch (type) {
       case QrType.url:
         return url ?? '';
-      
+
       case QrType.vcard:
         final buffer = StringBuffer();
         buffer.writeln('BEGIN:VCARD');
         buffer.writeln('VERSION:3.0');
         buffer.writeln('N:${vCardLastName ?? ''};${vCardFirstName ?? ''};;;');
-        buffer.writeln('FN:${vCardFirstName ?? ''} ${vCardLastName ?? ''}'.trim());
+        buffer.writeln(
+            'FN:${vCardFirstName ?? ''} ${vCardLastName ?? ''}'.trim());
         if (vCardOrg != null && vCardOrg!.isNotEmpty) {
           buffer.writeln('ORG:$vCardOrg');
         }

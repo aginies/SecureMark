@@ -13,7 +13,8 @@ void main() {
     });
 
     test('Verify all font identifiers are unique', () {
-      final identifiers = WatermarkFont.values.map((f) => f.getFontIdentifier()).toSet();
+      final identifiers =
+          WatermarkFont.values.map((f) => f.getFontIdentifier()).toSet();
       expect(identifiers.length, WatermarkFont.values.length);
     });
 
@@ -25,8 +26,9 @@ void main() {
         final style = font.getTextStyle(fontSize: 20);
         expect(style, isA<TextStyle>());
         expect(style.fontSize, 20);
-        
-        if (font.source == FontSource.bitmap || font.source == FontSource.asset) {
+
+        if (font.source == FontSource.bitmap ||
+            font.source == FontSource.asset) {
           expect(style.fontFamily, isNotNull);
         }
       }
@@ -35,14 +37,14 @@ void main() {
     test('getBitmapFont size selection logic', () {
       const arial = WatermarkFont.arial;
       expect(arial.isBitmap, isTrue);
-      
+
       // Small
       expect(arial.getBitmapFont(10), isNotNull);
       // Medium
       expect(arial.getBitmapFont(24), isNotNull);
       // Large
       expect(arial.getBitmapFont(48), isNotNull);
-      
+
       // Non-bitmap fonts should return null
       expect(WatermarkFont.roboto.getBitmapFont(24), isNull);
     });
