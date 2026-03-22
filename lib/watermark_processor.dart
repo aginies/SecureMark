@@ -120,6 +120,18 @@ class ExtractedFileResult {
   final bool isEncrypted;
 }
 
+class AnalysisResult {
+  const AnalysisResult({
+    this.signature,
+    this.file,
+    this.qrData,
+  });
+
+  final String? signature;
+  final ExtractedFileResult? file;
+  final String? qrData;
+}
+
 /// Progress callback for reporting processing progress
 typedef ProgressCallback = void Function(double progress, String message);
 
@@ -637,28 +649,15 @@ class WatermarkProcessor {
       if (useSteganography || hiddenFileName != null || (qrConfig?.invisibleQr == true)) {
         onProgress?.call(0.95, 'Verifying steganography...');
 
-        // Verify based on what type of LSB data was embedded
+        // Use the new combined analyzer for verification
+        final analysis = analyzeImage(outputBytes, password: steganographyPassword);
+        
         if (hiddenFileName != null) {
-          // Verify hidden file
-          final extractedFile = await extractFileAsync(outputBytes);
-          verified = extractedFile != null && extractedFile.fileName == hiddenFileName;
-          if (!verified) {
-            debugPrint('Hidden file verification failed for $outputPath');
-          }
+          verified = analysis.file != null && analysis.file!.fileName == hiddenFileName;
         } else if (qrConfig?.invisibleQr == true) {
-          // Verify invisible QR code
-          final extractedQr = await extractQrCodeLSBAsync(outputBytes);
-          verified = extractedQr != null && extractedQr.isNotEmpty;
-          if (!verified) {
-            debugPrint('Invisible QR verification failed for $outputPath');
-          }
+          verified = analysis.qrData != null && analysis.qrData!.isNotEmpty;
         } else {
-          // Verify text steganography
-          final extractedText = await extractLSBAsync(outputBytes);
-          verified = extractedText == watermarkText;
-          if (!verified) {
-            debugPrint('Steganography verification failed for $outputPath: expected "$watermarkText", got "$extractedText"');
-          }
+          verified = analysis.signature == watermarkText;
         }
 
         if (verified) {
@@ -1282,50 +1281,69 @@ class WatermarkProcessor {
     return image;
   }
 
-  /// Static helper to run extraction in a background isolate safely
-  static Future<String?> extractLSBAsync(Uint8List bytes, {String? password}) async {
-    return await Isolate.run(() => extractLSB(bytes, password: password));
+  /// Combined extraction result
+  static Future<AnalysisResult> analyzeImageAsync(Uint8List bytes, {String? password}) async {
+    return await Isolate.run(() => analyzeImage(bytes, password: password));
   }
 
-  /// Extracts a hidden message from an image using LSB steganography
-  static String? extractLSB(Uint8List imageBytes, {String? password}) {
+  static AnalysisResult analyzeImage(Uint8List imageBytes, {String? password}) {
     try {
       final image = img.decodeImage(imageBytes);
-      if (image == null) return null;
+      if (image == null) return const AnalysisResult();
 
       final int width = image.width;
       final int height = image.height;
       final int totalPixels = width * height;
 
-      // We need at least SM (16 bits) + Length (32 bits) = 48 bits to start
-      if (totalPixels < 48) return null;
+      if (totalPixels < 64) return const AnalysisResult();
 
-      final List<int> bytes = <int>[];
+      // 1. Peek at magic header (16 bits)
+      final List<int> headerBytes = <int>[];
       var currentByte = 0;
-
-      // 1. Extract magic header first (16 bits)
       for (var i = 0; i < 16; i++) {
         final pixel = image.getPixel(i % width, i ~/ width);
         final bit = pixel.b.toInt() & 1;
         currentByte = (currentByte << 1) | bit;
         if ((i + 1) % 8 == 0) {
-          bytes.add(currentByte);
+          headerBytes.add(currentByte);
           currentByte = 0;
         }
       }
 
-      final String magic = utf8.decode(bytes, allowMalformed: true);
-      if (magic == 'SF' || magic == 'SE') return null; // File detected, let extractFile handle it
-      
-      final bool isEncrypted = magic == 'SX';
-      if (magic != 'SM' && magic != 'SX') return null;
+      if (headerBytes[0] != 83) return const AnalysisResult(); // Must start with 'S' (0x53)
 
-      // 2. Extract the rest of the header (Length: 32 bits)
-      const int headerBits = 48;
-      for (var i = 16; i < headerBits; i++) {
+      final type = headerBytes[1];
+      
+      // Handle based on type
+      if (type == 77 || type == 88) { // 'M' or 'X' (Text Signature)
+        final text = _extractTextFromImage(image, type == 88, password);
+        return AnalysisResult(signature: text);
+      } else if (type == 70 || type == 69) { // 'F' or 'E' (Hidden File)
+        final file = _extractFileFromImage(image, type == 69, password);
+        return AnalysisResult(file: file);
+      } else if (type == 81) { // 'Q' (QR Code)
+        final qr = _extractQrFromImage(image);
+        return AnalysisResult(qrData: qr);
+      }
+
+      return const AnalysisResult();
+    } catch (e) {
+      debugPrint('Analysis error: $e');
+      return const AnalysisResult();
+    }
+  }
+
+  static String? _extractTextFromImage(img.Image image, bool isEncrypted, String? password) {
+    try {
+      final int width = image.width;
+      final int totalPixels = width * image.height;
+      final List<int> bytes = <int>[];
+      var currentByte = 0;
+
+      // Extract length (already have 2 bytes of magic, need 4 more for length)
+      for (var i = 16; i < 48; i++) {
         final pixel = image.getPixel(i % width, i ~/ width);
         final bit = pixel.b.toInt() & 1;
-
         currentByte = (currentByte << 1) | bit;
         if ((i + 1) % 8 == 0) {
           bytes.add(currentByte);
@@ -1334,59 +1352,45 @@ class WatermarkProcessor {
       }
 
       // Parse length
-      final int payloadLength = (bytes[2] << 24) | (bytes[3] << 16) | (bytes[4] << 8) | bytes[5];
-      // Safety limit: 1MB message max
+      final int payloadLength = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
       if (payloadLength <= 0 || payloadLength > 1024 * 1024) return null;
 
-      // 2. Extract payload and CRC
-      final int payloadBytesNeeded = payloadLength + 2; // message + CRC16
+      // Extract payload + CRC
+      final int payloadBytesNeeded = payloadLength + 2;
       final int payloadBitsNeeded = payloadBytesNeeded * 8;
-      final int remainingPixels = totalPixels - headerBits;
-
+      final int remainingPixels = totalPixels - 48;
       if (payloadBitsNeeded > remainingPixels) return null;
 
       final int stride = (remainingPixels ~/ payloadBitsNeeded).clamp(1, 1000);
       currentByte = 0;
+      bytes.clear();
 
       for (var i = 0; i < payloadBitsNeeded; i++) {
-        final pixelIdx = headerBits + (i * stride);
-        if (pixelIdx >= totalPixels) break;
-
+        final pixelIdx = 48 + (i * stride);
         final pixel = image.getPixel(pixelIdx % width, pixelIdx ~/ width);
-        final bit = pixel.b.toInt() & 1;
-
-        currentByte = (currentByte << 1) | bit;
+        currentByte = (currentByte << 1) | (pixel.b.toInt() & 1);
         if ((i + 1) % 8 == 0) {
           bytes.add(currentByte);
           currentByte = 0;
         }
       }
 
-      if (bytes.length < 6 + payloadBytesNeeded) return null;
+      Uint8List payloadBytes = Uint8List.fromList(bytes.sublist(0, payloadLength));
+      final extractedCrc = (bytes[payloadLength] << 8) | bytes[payloadLength + 1];
 
-      Uint8List payloadBytes = Uint8List.fromList(bytes.sublist(6, 6 + payloadLength));
-      final extractedCrc = (bytes[6 + payloadLength] << 8) | bytes[6 + payloadLength + 1];
-
-      // Decrypt if necessary
       if (isEncrypted) {
-        if (password == null || password.isEmpty) {
-          return '[ENCRYPTED] (Password required)';
-        }
-        final decrypted = _decryptBytes(payloadBytes, password);
-        if (decrypted == null) {
-          return '[ENCRYPTED] (Wrong password)';
-        }
+        if (password == null || password.isEmpty) return '[ENCRYPTED] (Password required)';
+        final decrypted = _decryptBytes(Uint8List.fromList(bytes.sublist(0, payloadLength)), password);
+        if (decrypted == null) return '[ENCRYPTED] (Wrong password)';
         payloadBytes = decrypted;
       }
 
-      // Verify CRC (now on decrypted bytes if it was encrypted)
       if (_crc16(payloadBytes) != extractedCrc) {
         return isEncrypted ? '[ENCRYPTED] (Wrong password)' : null;
       }
 
       return utf8.decode(payloadBytes, allowMalformed: true);
-    } catch (e) {
-      debugPrint('LSB extraction error: $e');
+    } catch (_) {
       return null;
     }
   }
@@ -1454,7 +1458,7 @@ class WatermarkProcessor {
       // Safety limit: 50MB max
       if (fileSize <= 0 || fileSize > 50 * 1024 * 1024) return null;
 
-      // 2. Extract filename + file data + CRC
+      // 3. Extract filename + file data + CRC
       final int totalDataBytes = filenameLength + fileSize + 2; // filename + file + CRC16
       final int dataBitsNeeded = totalDataBytes * 8;
       final int remainingPixels = totalPixels - initialHeaderBits;
@@ -1486,6 +1490,16 @@ class WatermarkProcessor {
       final extractedCrc = (bytes[8 + filenameLength + fileSize] << 8) |
                           bytes[8 + filenameLength + fileSize + 1];
 
+      // Verify CRC (of original bytes)
+      if (_crc16(fileBytes) != extractedCrc) {
+        if (isEncrypted) {
+          // If CRC fails for encrypted file, it might be wrong password
+          // but we haven't decrypted yet. Let's proceed to decryption.
+        } else {
+          return null; // For plain files, CRC failure means corruption
+        }
+      }
+
       // Decrypt if necessary
       if (isEncrypted) {
         if (password == null || password.isEmpty) {
@@ -1506,30 +1520,86 @@ class WatermarkProcessor {
           );
         }
         fileBytes = decrypted;
-      }
-
-      // Verify CRC (of decrypted/plain bytes)
-      if (_crc16(fileBytes) != extractedCrc) {
-        if (isEncrypted) {
-          // If CRC fails after decryption attempt, it's likely a wrong password
+        
+        // RE-VERIFY CRC after decryption
+        if (_crc16(fileBytes) != extractedCrc) {
+          // Still doesn't match? Wrong password or corrupted
           return ExtractedFileResult(
             fileName: utf8.decode(filenameBytes, allowMalformed: true),
             fileBytes: Uint8List(0),
             isEncrypted: true,
           );
         }
-        return null; // For plain files, CRC failure means corruption
       }
 
-      final filename = utf8.decode(filenameBytes, allowMalformed: true);
+      final filename = utf8.decode(bytes.sublist(0, filenameLength), allowMalformed: true);
+      Uint8List fileBytes = Uint8List.fromList(bytes.sublist(filenameLength, filenameLength + fileSize));
+      final extractedCrc = (bytes[filenameLength + fileSize] << 8) | bytes[filenameLength + fileSize + 1];
 
-      return ExtractedFileResult(
-        fileName: filename,
-        fileBytes: fileBytes,
-        isEncrypted: isEncrypted,
-      );
-    } catch (e) {
-      debugPrint('LSB file extraction error: $e');
+      if (isEncrypted) {
+        if (password == null || password.isEmpty) return ExtractedFileResult(fileName: filename, fileBytes: Uint8List(0), isEncrypted: true);
+        final decrypted = _decryptBytes(fileBytes, password);
+        if (decrypted == null) return ExtractedFileResult(fileName: filename, fileBytes: Uint8List(0), isEncrypted: true);
+        fileBytes = decrypted;
+      }
+
+      // Verify CRC (of decrypted/plain bytes)
+      if (_crc16(fileBytes) != extractedCrc) {
+        return isEncrypted ? ExtractedFileResult(fileName: filename, fileBytes: Uint8List(0), isEncrypted: true) : null;
+      }
+
+      return ExtractedFileResult(fileName: filename, fileBytes: fileBytes, isEncrypted: isEncrypted);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static String? _extractQrFromImage(img.Image image) {
+    try {
+      final int width = image.width;
+      final int totalPixels = width * image.height;
+      final List<int> bytes = <int>[];
+      var currentByte = 0;
+
+      // Extract length (already have 2 bytes, need 4 more)
+      for (var i = 16; i < 48; i++) {
+        final pixel = image.getPixel(i % width, i ~/ width);
+        final bit = pixel.b.toInt() & 1;
+        currentByte = (currentByte << 1) | bit;
+        if ((i + 1) % 8 == 0) {
+          bytes.add(currentByte);
+          currentByte = 0;
+        }
+      }
+
+      final int qrLength = (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+      if (qrLength <= 0 || qrLength > 10240) return null;
+
+      final int dataBytesNeeded = qrLength + 2;
+      final int dataBitsNeeded = dataBytesNeeded * 8;
+      final remainingPixels = totalPixels - 48;
+      if (dataBitsNeeded > remainingPixels) return null;
+
+      final int stride = (remainingPixels ~/ dataBitsNeeded).clamp(1, 1000);
+      currentByte = 0;
+      bytes.clear();
+
+      for (var i = 0; i < dataBitsNeeded; i++) {
+        final pixelIdx = 48 + (i * stride);
+        final pixel = image.getPixel(pixelIdx % width, pixelIdx ~/ width);
+        currentByte = (currentByte << 1) | (pixel.b.toInt() & 1);
+        if ((i + 1) % 8 == 0) {
+          bytes.add(currentByte);
+          currentByte = 0;
+        }
+      }
+
+      final qrBytes = bytes.sublist(0, qrLength);
+      final extractedCrc = (bytes[qrLength] << 8) | bytes[qrLength + 1];
+      if (_crc16(qrBytes) != extractedCrc) return null;
+
+      return utf8.decode(qrBytes, allowMalformed: true);
+    } catch (_) {
       return null;
     }
   }
@@ -1552,17 +1622,12 @@ class WatermarkProcessor {
 
   /// Encrypts bytes using AES-256 with a password
   static Uint8List _encryptBytes(Uint8List data, String password) {
-    // Deriving a 32-byte key from the password using SHA-256
     final keyBytes = sha256.convert(utf8.encode(password)).bytes;
     final key = enc.Key(Uint8List.fromList(keyBytes));
-    
-    // Using a random IV
     final iv = enc.IV.fromSecureRandom(16);
     final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
-    
     final encrypted = encrypter.encryptBytes(data, iv: iv);
     
-    // Result is IV (16 bytes) + Encrypted Data
     final result = BytesBuilder();
     result.add(iv.bytes);
     result.add(encrypted.bytes);
@@ -1573,18 +1638,14 @@ class WatermarkProcessor {
   static Uint8List? _decryptBytes(Uint8List encryptedData, String password) {
     try {
       if (encryptedData.length < 16) return null;
-      
       final iv = enc.IV(encryptedData.sublist(0, 16));
       final data = encryptedData.sublist(16);
-      
       final keyBytes = sha256.convert(utf8.encode(password)).bytes;
       final key = enc.Key(Uint8List.fromList(keyBytes));
-      
       final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
       final decrypted = encrypter.decryptBytes(enc.Encrypted(data), iv: iv);
       return Uint8List.fromList(decrypted);
     } catch (e) {
-      debugPrint('Decryption error: $e');
       return null;
     }
   }
@@ -1742,84 +1803,6 @@ class WatermarkProcessor {
     } catch (e) {
       debugPrint('QR LSB embedding error: $e');
       return image;
-    }
-  }
-
-  /// Extracts QR code data from LSB steganography
-  static Future<String?> extractQrCodeLSBAsync(Uint8List imageBytes) async {
-    return await Isolate.run(() => extractQrCodeLSB(imageBytes));
-  }
-
-  static String? extractQrCodeLSB(Uint8List imageBytes) {
-    try {
-      final image = img.decodeImage(imageBytes);
-      if (image == null) return null;
-
-      final totalPixels = image.width * image.height;
-      if (totalPixels < 48) return null;
-
-      // Extract header (48 bits = 6 bytes: 'SQ' + length)
-      final bytes = <int>[];
-      var currentByte = 0;
-
-      for (var i = 0; i < 48; i++) {
-        final pixel = image.getPixel(i % image.width, i ~/ image.width);
-        final bit = pixel.b.toInt() & 1;
-
-        currentByte = (currentByte << 1) | bit;
-        if ((i + 1) % 8 == 0) {
-          bytes.add(currentByte);
-          currentByte = 0;
-        }
-      }
-
-      // Check magic header
-      if (utf8.decode(bytes.sublist(0, 2), allowMalformed: true) != 'SQ') {
-        return null;
-      }
-
-      // Parse QR data length
-      final qrLength = (bytes[2] << 24) | (bytes[3] << 16) | (bytes[4] << 8) | bytes[5];
-      if (qrLength <= 0 || qrLength > 10240) return null; // Max 10KB QR data
-
-      // Extract QR data + CRC
-      final dataBytesNeeded = qrLength + 2; // QR data + CRC16
-      final dataBitsNeeded = dataBytesNeeded * 8;
-      final remainingPixels = totalPixels - 48;
-
-      if (dataBitsNeeded > remainingPixels) return null;
-
-      final stride = (remainingPixels ~/ dataBitsNeeded).clamp(1, 1000);
-      currentByte = 0;
-
-      for (var i = 0; i < dataBitsNeeded; i++) {
-        final pixelIdx = 48 + (i * stride);
-        if (pixelIdx >= totalPixels) break;
-
-        final pixel = image.getPixel(pixelIdx % image.width, pixelIdx ~/ image.width);
-        final bit = pixel.b.toInt() & 1;
-
-        currentByte = (currentByte << 1) | bit;
-        if ((i + 1) % 8 == 0) {
-          bytes.add(currentByte);
-          currentByte = 0;
-        }
-      }
-
-      if (bytes.length < 6 + dataBytesNeeded) return null;
-
-      final qrBytes = bytes.sublist(6, 6 + qrLength);
-      final extractedCrc = (bytes[6 + qrLength] << 8) | bytes[6 + qrLength + 1];
-
-      // Verify CRC
-      if (_crc16(qrBytes) != extractedCrc) {
-        return null;
-      }
-
-      return utf8.decode(qrBytes, allowMalformed: true);
-    } catch (e) {
-      debugPrint('QR LSB extraction error: $e');
-      return null;
     }
   }
 
@@ -2506,28 +2489,15 @@ class WatermarkProcessor {
       if ((useSteganography || hiddenFileName != null || (qrConfig?.invisibleQr == true)) && preview != null) {
         onProgress?.call(0.95, 'Verifying steganography...');
 
-        // Verify based on what type of LSB data was embedded
+        // Use the new combined analyzer for verification
+        final analysis = analyzeImage(preview, password: steganographyPassword);
+
         if (hiddenFileName != null) {
-          // Verify hidden file
-          final extractedFile = await extractFileAsync(preview);
-          verified = extractedFile != null && extractedFile.fileName == hiddenFileName;
-          if (!verified) {
-            debugPrint('Hidden file verification failed for PDF preview');
-          }
+          verified = analysis.file != null && analysis.file!.fileName == hiddenFileName;
         } else if (qrConfig?.invisibleQr == true) {
-          // Verify invisible QR code
-          final extractedQr = await extractQrCodeLSBAsync(preview);
-          verified = extractedQr != null && extractedQr.isNotEmpty;
-          if (!verified) {
-            debugPrint('Invisible QR verification failed for PDF preview');
-          }
+          verified = analysis.qrData != null && analysis.qrData!.isNotEmpty;
         } else {
-          // Verify text steganography
-          final extractedText = await extractLSBAsync(preview);
-          verified = extractedText == watermarkText;
-          if (!verified) {
-            debugPrint('Steganography verification failed for PDF preview');
-          }
+          verified = analysis.signature == watermarkText;
         }
 
         if (verified) {
@@ -2583,5 +2553,5 @@ class WatermarkProcessor {
     }
     return '$trimmed $date $time';
   }
-  }
+}
 

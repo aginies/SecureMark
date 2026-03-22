@@ -942,6 +942,7 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: false,
       type: FileType.image,
+      withData: true, // Crucial for cloud providers
     );
 
     if (result == null || result.files.isEmpty) return;
@@ -957,15 +958,14 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
       final bytes = pickedFile.bytes ?? await File(pickedFile.path!).readAsBytes();
       final password = _extractionPassword.isNotEmpty ? _extractionPassword : null;
 
-      // Check for all types of hidden data
-      final fileResult = await WatermarkProcessor.extractFileAsync(bytes, password: password);
-      final qrResult = await WatermarkProcessor.extractQrCodeLSBAsync(bytes);
-      final textResult = await WatermarkProcessor.extractLSBAsync(bytes, password: password);
+      // Check for all types of hidden data in a single pass
+      final analysis = await WatermarkProcessor.analyzeImageAsync(bytes, password: password);
 
       // Build combined result
       final results = <String>[];
 
-      if (fileResult != null) {
+      if (analysis.file != null) {
+        final fileResult = analysis.file!;
         if (fileResult.isEncrypted && fileResult.fileBytes.isEmpty) {
           results.add('🔐 Encrypted file detected: ${fileResult.fileName}. Please provide the correct password.');
         } else {
@@ -974,11 +974,12 @@ class _WatermarkPageState extends State<WatermarkPage> with WidgetsBindingObserv
         }
       }
 
-      if (qrResult != null && qrResult.isNotEmpty) {
-        results.add(l10n.qrDataExtracted(qrResult));
+      if (analysis.qrData != null && analysis.qrData!.isNotEmpty) {
+        results.add(l10n.qrDataExtracted(analysis.qrData!));
       }
 
-      if (textResult != null && textResult.isNotEmpty) {
+      if (analysis.signature != null && analysis.signature!.isNotEmpty) {
+        final textResult = analysis.signature!;
         if (textResult.contains('[ENCRYPTED]')) {
           results.add('🔐 Encrypted signature detected. Please provide the correct password.');
         } else {
