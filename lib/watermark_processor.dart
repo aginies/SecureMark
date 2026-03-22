@@ -1300,6 +1300,9 @@ class WatermarkProcessor {
       // We need at least SM (16 bits) + Length (32 bits) = 48 bits to start
       if (totalPixels < 48) return null;
 
+      final List<int> bytes = <int>[];
+      var currentByte = 0;
+
       // 1. Extract magic header first (16 bits)
       for (var i = 0; i < 16; i++) {
         final pixel = image.getPixel(i % width, i ~/ width);
