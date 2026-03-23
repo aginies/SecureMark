@@ -3450,11 +3450,14 @@ class _WatermarkPageState extends State<WatermarkPage>
             cancellationToken: _cancellationToken,
           );
 
-          _addLog('Successfully processed $fileName');
+          _addLog(
+              'Successfully processed $fileName (${i + 1}/${paths.length})');
           processedFiles.add(_ProcessedFile(sourcePath: path, result: result));
+          _addLog('Total files processed so far: ${processedFiles.length}');
         } catch (e) {
-          _addLog('Failed to process $fileName: $e');
+          _addLog('Failed to process $fileName (${i + 1}/${paths.length}): $e');
           failedFiles.add(path);
+          _addLog('Total files failed so far: ${failedFiles.length}');
 
           if (mounted) {
             setState(() {
@@ -3466,6 +3469,10 @@ class _WatermarkPageState extends State<WatermarkPage>
           }
         }
       }
+
+      // Log final processing summary
+      _addLog(
+          'Processing loop complete: ${processedFiles.length} succeeded, ${failedFiles.length} failed out of ${paths.length} total');
     } finally {
       _stopStopwatch();
       // Close dialog when done or cancelled

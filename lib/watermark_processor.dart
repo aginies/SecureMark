@@ -899,6 +899,7 @@ class WatermarkProcessor {
             antiAiLevel: antiAiLevel,
             watermarkType: watermarkType,
             watermarkImageBytes: watermarkImageBytes,
+            qrConfig: qrConfig,
           ),
         );
       } catch (e, stackTrace) {
@@ -981,6 +982,7 @@ class WatermarkProcessor {
     double antiAiLevel = 0.0,
     WatermarkType watermarkType = WatermarkType.text,
     Uint8List? watermarkImageBytes,
+    QrWatermarkConfig? qrConfig,
   }) {
     sync.PdfDocument document;
     try {
@@ -1079,6 +1081,35 @@ class WatermarkProcessor {
 
           graphics.restore();
         }
+      }
+
+      // Add QR code if configured
+      if (qrConfig != null && qrConfig.visibleQr) {
+        final qrSize = qrConfig.size;
+        final qrData = _buildQrMetadata(qrConfig);
+
+        // Generate QR code image
+        final qrImage =
+            _generateQrCodeImage(data: qrData, size: qrSize.round());
+        final qrPngBytes = Uint8List.fromList(img.encodePng(qrImage));
+        final qrBitmap = sync.PdfBitmap(qrPngBytes);
+
+        // Calculate QR position on page
+        final (qrX, qrY) = _calculateQrPosition(
+          imageWidth: pageSize.width.toInt(),
+          imageHeight: pageSize.height.toInt(),
+          qrSize: qrSize.round(),
+          position: qrConfig.position,
+        );
+
+        // Draw QR code with opacity
+        graphics.save();
+        graphics.setTransparency(qrConfig.opacity);
+        graphics.drawImage(
+          qrBitmap,
+          ui.Rect.fromLTWH(qrX.toDouble(), qrY.toDouble(), qrSize, qrSize),
+        );
+        graphics.restore();
       }
     }
 
