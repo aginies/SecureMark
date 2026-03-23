@@ -702,7 +702,9 @@ class WatermarkProcessor {
       if (useRobustSteganography) operations.add('robust watermark');
       if (hiddenFileName != null) operations.add('hidden file');
 
-      final operationText = operations.isEmpty ? 'Processing' : 'Applying ${operations.join(", ")}';
+      final operationText = operations.isEmpty
+          ? 'Processing'
+          : 'Applying ${operations.join(", ")}';
       onProgress?.call(0.15, '$operationText...');
 
       final outputBytes = await Isolate.run(
