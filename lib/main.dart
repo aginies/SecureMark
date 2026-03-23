@@ -3042,7 +3042,7 @@ class _WatermarkPageState extends State<WatermarkPage>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${(_progress * 100).round()}${Localizations.localeOf(context).languageCode == 'fr' ? ' %' : '%'}',
+                      '${(_progress * 100).round()}${['fr', 'de'].contains(Localizations.localeOf(context).languageCode) ? ' %' : '%'}',
                       style: theme.textTheme.bodySmall
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),
