@@ -196,6 +196,83 @@ class WatermarkProcessor {
   /// Maximum cache size to prevent memory issues
   static const int _maxCacheSize = 10;
 
+  /// Check if a file is supported based on extension or magic bytes
+  static Future<bool> isSupportedFile(File file) async {
+    final extension = p.extension(file.path).toLowerCase();
+    const supportedExtensions = {
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.webp',
+      '.pdf',
+      '.heic',
+      '.heif'
+    };
+
+    if (supportedExtensions.contains(extension)) {
+      return true;
+    }
+
+    // If extension is not recognized, check magic bytes
+    try {
+      if (!await file.exists()) return false;
+      final raf = await file.open(mode: FileMode.read);
+      final header = await raf.read(12);
+      await raf.close();
+
+      if (header.length < 4) return false;
+
+      // JPEG: FF D8 FF
+      if (header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF) {
+        return true;
+      }
+
+      // PNG: 89 50 4E 47
+      if (header[0] == 0x89 &&
+          header[1] == 0x50 &&
+          header[2] == 0x4E &&
+          header[3] == 0x47) {
+        return true;
+      }
+
+      // PDF: %PDF-
+      if (header[0] == 0x25 &&
+          header[1] == 0x50 &&
+          header[2] == 0x44 &&
+          header[3] == 0x46) {
+        return true;
+      }
+
+      // WebP: RIFF .... WEBP
+      if (header.length >= 12 &&
+          header[0] == 0x52 &&
+          header[1] == 0x49 &&
+          header[2] == 0x46 &&
+          header[3] == 0x46 &&
+          header[8] == 0x57 &&
+          header[9] == 0x45 &&
+          header[10] == 0x42 &&
+          header[11] == 0x50) {
+        return true;
+      }
+
+      // HEIC: .... ftypheic or ftypmif1
+      if (header.length >= 12) {
+        final ftyp = String.fromCharCodes(header.sublist(4, 8));
+        if (ftyp == 'ftyp') {
+          final brand = String.fromCharCodes(header.sublist(8, 12));
+          if (['heic', 'heix', 'hevc', 'mif1', 'msf1'].contains(brand)) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   /// Process a file with comprehensive error handling and validation
   static Future<ProcessResult> processFile({
     required File file,
@@ -275,7 +352,8 @@ class WatermarkProcessor {
     try {
       onProgress?.call(0.1, 'Processing file...');
 
-      final extension = p.extension(file.path).toLowerCase();
+      final detectedType = await detectFileType(file);
+      final extension = detectedType.isEmpty ? p.extension(file.path).toLowerCase() : detectedType;
       final resolvedText = _resolvedWatermarkText(watermarkText);
 
       ProcessResult result;
@@ -391,23 +469,14 @@ class WatermarkProcessor {
         );
       }
 
-      // Check file extension
-      final extension = p.extension(file.path).toLowerCase();
-      const supportedExtensions = {
-        '.jpg',
-        '.jpeg',
-        '.png',
-        '.webp',
-        '.pdf',
-        '.heic',
-        '.heif'
-      };
-      if (!supportedExtensions.contains(extension)) {
+      // Check if file is supported
+      if (!await isSupportedFile(file)) {
+        final extension = p.extension(file.path).toLowerCase();
         return _ValidationResult(
           isValid: false,
           error: WatermarkError(
             type: WatermarkErrorType.unsupportedFileType,
-            message: 'Unsupported file extension: $extension',
+            message: 'Unsupported file format or extension: $extension',
             filePath: file.path,
           ),
         );
@@ -450,6 +519,62 @@ class WatermarkProcessor {
         ),
       );
     }
+  }
+
+  /// Detect file type based on extension or magic bytes
+  static Future<String> detectFileType(File file) async {
+    final extension = p.extension(file.path).toLowerCase();
+    if (['.pdf'].contains(extension)) return '.pdf';
+    if (['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif'].contains(extension)) {
+      return extension;
+    }
+
+    // Fallback to magic bytes
+    try {
+      final raf = await file.open(mode: FileMode.read);
+      final header = await raf.read(12);
+      await raf.close();
+
+      if (header.length >= 4) {
+        if (header[0] == 0x25 &&
+            header[1] == 0x50 &&
+            header[2] == 0x44 &&
+            header[3] == 0x46) {
+          return '.pdf';
+        }
+        if (header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF) {
+          return '.jpg';
+        }
+        if (header[0] == 0x89 &&
+            header[1] == 0x50 &&
+            header[2] == 0x4E &&
+            header[3] == 0x47) {
+          return '.png';
+        }
+      }
+      if (header.length >= 12 &&
+          header[0] == 0x52 &&
+          header[1] == 0x49 &&
+          header[2] == 0x46 &&
+          header[3] == 0x46 &&
+          header[8] == 0x57 &&
+          header[9] == 0x45 &&
+          header[10] == 0x42 &&
+          header[11] == 0x50) {
+        return '.webp';
+      }
+      if (header.length >= 12) {
+        final ftyp = String.fromCharCodes(header.sublist(4, 8));
+        if (ftyp == 'ftyp') {
+          final brand = String.fromCharCodes(header.sublist(8, 12));
+          if (['heic', 'heix', 'hevc', 'mif1', 'msf1'].contains(brand)) {
+            return '.heic';
+          }
+        }
+      }
+    } catch (_) {}
+
+    return extension;
   }
 
   /// Generate cache key for result caching
