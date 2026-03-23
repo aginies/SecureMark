@@ -143,7 +143,7 @@ class _WatermarkPageState extends State<WatermarkPage>
   double _logoSize = 100;
   WatermarkFont _selectedFont = FontManager.getDefaultFont();
   int _jpegQuality = 75;
-  int? _targetSize;
+  int? _targetSize = 1280;
   bool _includeTimestamp = true;
   bool _preserveMetadata = false;
   bool _rasterizePdf = false;
@@ -272,10 +272,12 @@ class _WatermarkPageState extends State<WatermarkPage>
           _density = prefs.getDouble('density') ?? 35.0;
           _fontSize = prefs.getDouble('fontSize') ?? 24.0;
           _jpegQuality = prefs.getInt('jpegQuality') ?? 75;
-          _targetSize = prefs.getInt('targetSize');
+          // Default to 1280 if not set, unless explicitly set to null
           if (prefs.containsKey('targetSizeIsNull') &&
               prefs.getBool('targetSizeIsNull') == true) {
             _targetSize = null;
+          } else {
+            _targetSize = prefs.getInt('targetSize') ?? 1280;
           }
           _includeTimestamp = prefs.getBool('includeTimestamp') ?? true;
           _preserveMetadata = prefs.getBool('preserveMetadata') ?? false;
@@ -365,6 +367,10 @@ class _WatermarkPageState extends State<WatermarkPage>
         await prefs.setDouble(key, value);
       } else if (value is int) {
         await prefs.setInt(key, value);
+        // Clear the null flag if we're setting a value for targetSize
+        if (key == 'targetSize') {
+          await prefs.remove('targetSizeIsNull');
+        }
       } else if (value is bool) {
         await prefs.setBool(key, value);
       } else if (value is String) {
@@ -2108,7 +2114,7 @@ class _WatermarkPageState extends State<WatermarkPage>
                         setDialogState(() {
                           _fontSize = 24.0;
                           _jpegQuality = 75;
-                          _targetSize = null;
+                          _targetSize = 1280;
                           _includeTimestamp = true;
                           _preserveMetadata = false;
                           _rasterizePdf = false;
@@ -2122,7 +2128,7 @@ class _WatermarkPageState extends State<WatermarkPage>
                         setState(() {
                           _fontSize = 24.0;
                           _jpegQuality = 75;
-                          _targetSize = null;
+                          _targetSize = 1280;
                           _includeTimestamp = true;
                           _preserveMetadata = false;
                           _rasterizePdf = false;
@@ -3608,7 +3614,7 @@ class _WatermarkPageState extends State<WatermarkPage>
       _fontSize = 24.0;
       _logoSize = 100.0;
       _jpegQuality = 75;
-      _targetSize = null;
+      _targetSize = 1280;
       _includeTimestamp = true;
       _preserveMetadata = false;
       _rasterizePdf = false;

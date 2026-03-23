@@ -350,12 +350,14 @@ class WatermarkProcessor {
     }
 
     try {
-      onProgress?.call(0.1, 'Processing file...');
+      onProgress?.call(0.05, 'Detecting file type...');
 
       final detectedType = await detectFileType(file);
       final extension = detectedType.isEmpty
           ? p.extension(file.path).toLowerCase()
           : detectedType;
+
+      onProgress?.call(0.1, 'Starting processing...');
       final resolvedText = _resolvedWatermarkText(watermarkText);
 
       ProcessResult result;
@@ -659,7 +661,7 @@ class WatermarkProcessor {
     CancellationToken? cancellationToken,
   }) async {
     try {
-      onProgress?.call(0.2, 'Reading image file...');
+      onProgress?.call(0.05, 'Reading image file...');
 
       if (cancellationToken?.isCancelled == true) {
         throw const WatermarkError(
@@ -674,7 +676,7 @@ class WatermarkProcessor {
       // Pre-render TTF stamps if using non-bitmap fonts
       Map<String, Uint8List>? preRenderedStamps;
       if (watermarkType == WatermarkType.text && !font.isBitmap) {
-        onProgress?.call(0.3, 'Rendering font...');
+        onProgress?.call(0.10, 'Rendering font...');
         final stampKey = '${font.fontFamily}-${fontSize.round()}';
         try {
           final stampBytes = await _renderTextWithFlutterCanvas(
@@ -691,7 +693,17 @@ class WatermarkProcessor {
         }
       }
 
-      onProgress?.call(0.4, 'Processing image...');
+      // Determine the message based on what operations will be performed
+      final operations = <String>[];
+      if (transparency < 100) operations.add('watermarks');
+      if (antiAiLevel > 0) operations.add('Anti-AI protection');
+      if (qrConfig?.visibleQr == true) operations.add('QR code');
+      if (useSteganography) operations.add('invisible signatures');
+      if (useRobustSteganography) operations.add('robust watermark');
+      if (hiddenFileName != null) operations.add('hidden file');
+
+      final operationText = operations.isEmpty ? 'Processing' : 'Applying ${operations.join(", ")}';
+      onProgress?.call(0.15, '$operationText...');
 
       final outputBytes = await Isolate.run(
         () => _renderWatermarkedImageBytesWithValidation(
@@ -718,8 +730,12 @@ class WatermarkProcessor {
           hiddenFileBytes: hiddenFileBytes,
           qrConfig: qrConfig,
           preRenderedStamps: preRenderedStamps,
+          // Don't pass onProgress to isolate - callbacks can't cross isolate boundaries
+          onProgress: null,
         ),
       );
+
+      onProgress?.call(0.80, 'Processing complete');
 
       if (cancellationToken?.isCancelled == true) {
         throw const WatermarkError(
@@ -728,7 +744,7 @@ class WatermarkProcessor {
         );
       }
 
-      onProgress?.call(0.9, 'Finalizing image...');
+      onProgress?.call(0.85, 'Finalizing image...');
 
       // For HEIC/HEIF or other formats, we might want to default to .jpg for the output
       // since our encoder handles them as such or as PNG.
@@ -746,7 +762,7 @@ class WatermarkProcessor {
       if (useSteganography ||
           useRobustSteganography ||
           hiddenFileName != null) {
-        onProgress?.call(0.95, 'Verifying steganography...');
+        onProgress?.call(0.90, 'Verifying steganography...');
 
         // Use the new combined analyzer for verification
         final analysis =
@@ -769,9 +785,9 @@ class WatermarkProcessor {
         }
 
         if (verified || robustVerified) {
-          onProgress?.call(0.98, 'Steganography verified');
+          onProgress?.call(0.95, 'Steganography verified');
         } else {
-          onProgress?.call(0.98, 'Steganography verification failed');
+          onProgress?.call(0.95, 'Steganography verification failed');
         }
       }
 
@@ -1140,8 +1156,10 @@ class WatermarkProcessor {
     Uint8List? hiddenFileBytes,
     QrWatermarkConfig? qrConfig,
     Map<String, Uint8List>? preRenderedStamps,
+    ProgressCallback? onProgress,
   }) {
     try {
+      onProgress?.call(0.0, 'Decoding image...');
       final decoded = img.decodeImage(inputBytes);
       if (decoded == null) {
         throw WatermarkError(
@@ -1151,6 +1169,7 @@ class WatermarkProcessor {
         );
       }
 
+      onProgress?.call(0.05, 'Resizing image...');
       final resized = _resizeToTarget(decoded, targetSize);
       var outputImage = img.Image.from(resized);
 
@@ -1163,6 +1182,7 @@ class WatermarkProcessor {
           'SecureMark (https://github.com/aginies/SecureMark)';
       outputImage.textData!['Software'] = 'SecureMark';
 
+      onProgress?.call(0.10, 'Applying watermark...');
       _applyWatermarkField(
         outputImage,
         watermarkText,
@@ -1177,14 +1197,20 @@ class WatermarkProcessor {
         qrConfig: qrConfig,
         watermarkType: watermarkType,
         watermarkImageBytes: watermarkImageBytes,
+        onProgress: (progress, message) {
+          // Map internal progress (0.0-1.0) to watermark range (0.10-0.80)
+          onProgress?.call(0.10 + (progress * 0.70), message);
+        },
       );
 
       if (useRobustSteganography) {
+        onProgress?.call(0.80, 'Embedding robust watermark (DCT)...');
         outputImage = _embedRobustSignature(outputImage, watermarkText);
       }
 
       if (useSteganography) {
         if (hiddenFileName != null && hiddenFileBytes != null) {
+          onProgress?.call(0.85, 'Hiding file in image (steganography)...');
           outputImage = _embedFileIntoImage(
             outputImage,
             hiddenFileName,
@@ -1195,6 +1221,7 @@ class WatermarkProcessor {
           );
         }
         // Always embed watermark text as LSB if steganography is enabled (Blue channel)
+        onProgress?.call(0.88, 'Embedding invisible signature (LSB)...');
         outputImage = _embedLSB(
           outputImage,
           watermarkText,
@@ -1203,6 +1230,7 @@ class WatermarkProcessor {
         );
       }
 
+      onProgress?.call(0.90, 'Encoding image...');
       final forcePng = useSteganography || useRobustSteganography;
 
       return _encodeImageInOriginalFormat(
@@ -1779,7 +1807,8 @@ class WatermarkProcessor {
       {double antiAiLevel = 0.0,
       QrWatermarkConfig? qrConfig,
       WatermarkType watermarkType = WatermarkType.text,
-      Uint8List? watermarkImageBytes}) {
+      Uint8List? watermarkImageBytes,
+      ProgressCallback? onProgress}) {
     if (transparency < 100) {
       if (watermarkType == WatermarkType.text) {
         final placements = _buildPlacements(
@@ -1791,8 +1820,13 @@ class WatermarkProcessor {
             useRandomColor: useRandomColor,
             selectedColorValue: selectedColorValue,
             fontSize: fontSize.round(),
-            font: font);
+            font: font,
+            onProgress: onProgress,
+            progressStart: 0.0,
+            progressEnd: 0.85);
         final stampCache = <String, img.Image>{};
+        var stampIndex = 0;
+        final totalStamps = placements.length;
         for (final placement in placements) {
           final jitterX =
               ((antiAiLevel / 100.0) * 10 * (_random.nextDouble() - 0.5))
@@ -1821,6 +1855,23 @@ class WatermarkProcessor {
               dstX: placement.x + jitterX,
               dstY: placement.y + jitterY,
               blend: img.BlendMode.alpha);
+
+          // Report progress every 5 stamps to avoid excessive callbacks
+          stampIndex++;
+          if (stampIndex % 5 == 0 && onProgress != null) {
+            final progress = 0.85 + (stampIndex / totalStamps) * 0.13;
+            final message = antiAiLevel > 0
+                ? 'Applying watermarks with Anti-AI protection... ($stampIndex/$totalStamps)'
+                : 'Applying watermarks... ($stampIndex/$totalStamps)';
+            onProgress(progress, message);
+          }
+        }
+        // Report completion of watermark application
+        if (onProgress != null && totalStamps > 0) {
+          final message = antiAiLevel > 0
+              ? 'Watermarks applied with Anti-AI protection'
+              : 'Watermarks applied';
+          onProgress(0.98, message);
         }
       } else if (watermarkType == WatermarkType.image &&
           watermarkImageBytes != null) {
@@ -1851,8 +1902,13 @@ class WatermarkProcessor {
               useRandomColor: false,
               selectedColorValue: 0,
               fontSize: fontSize.round(),
-              font: font);
+              font: font,
+              onProgress: onProgress,
+              progressStart: 0.0,
+              progressEnd: 0.85);
 
+          var logoIndex = 0;
+          final totalLogos = placements.length;
           for (final placement in placements) {
             final jitterX =
                 ((antiAiLevel / 100.0) * 10 * (_random.nextDouble() - 0.5))
@@ -1866,11 +1922,29 @@ class WatermarkProcessor {
                 dstX: placement.x + jitterX,
                 dstY: placement.y + jitterY,
                 blend: img.BlendMode.alpha);
+
+            // Report progress every 5 logos to avoid excessive callbacks
+            logoIndex++;
+            if (logoIndex % 5 == 0 && onProgress != null) {
+              final progress = 0.85 + (logoIndex / totalLogos) * 0.13;
+              final message = antiAiLevel > 0
+                  ? 'Applying logos with Anti-AI protection... ($logoIndex/$totalLogos)'
+                  : 'Applying logo watermarks... ($logoIndex/$totalLogos)';
+              onProgress(progress, message);
+            }
+          }
+          // Report completion of logo application
+          if (onProgress != null && totalLogos > 0) {
+            final message = antiAiLevel > 0
+                ? 'Logos applied with Anti-AI protection'
+                : 'Logo watermarks applied';
+            onProgress(0.98, message);
           }
         }
       }
     }
     if (qrConfig != null && qrConfig.visibleQr) {
+      onProgress?.call(0.98, 'Generating QR code...');
       final qrSize = qrConfig.size.round();
       final qrImage =
           _generateQrCodeImage(data: _buildQrMetadata(qrConfig), size: qrSize);
@@ -1886,8 +1960,10 @@ class WatermarkProcessor {
           y >= 0 &&
           x + qrSize <= image.width &&
           y + qrSize <= image.height) {
+        onProgress?.call(0.99, 'Embedding QR code...');
         img.compositeImage(image, qrImage,
             dstX: x, dstY: y, blend: img.BlendMode.alpha);
+        onProgress?.call(1.0, 'QR code embedded');
       }
     }
   }
@@ -1901,7 +1977,10 @@ class WatermarkProcessor {
       required bool useRandomColor,
       required int selectedColorValue,
       required int fontSize,
-      required WatermarkFont font}) {
+      required WatermarkFont font,
+      ProgressCallback? onProgress,
+      double progressStart = 0.0,
+      double progressEnd = 1.0}) {
     final targetCount = _watermarkCount(width, height, density);
     final colorPool = _buildColorPool(useRandomColor, selectedColorValue,
         _alphaFromTransparency(transparency));
@@ -1914,6 +1993,12 @@ class WatermarkProcessor {
         List.generate(rows * columns, (i) => Point(i % columns, i ~/ columns))
           ..shuffle(_random);
     final placements = <_Placement>[];
+
+    // Allocate 80% of progress range to cell iteration, 20% to extra attempts
+    final cellProgressRange = (progressEnd - progressStart) * 0.8;
+    final extraProgressRange = (progressEnd - progressStart) * 0.2;
+
+    var cellIndex = 0;
     for (final cell in cells) {
       if (placements.length >= targetCount) break;
       final p = _tryPlacementInCell(
@@ -1928,8 +2013,19 @@ class WatermarkProcessor {
           fontSize: fontSize,
           font: font);
       if (p != null) placements.add(p);
+
+      // Report progress every 10 cells to avoid excessive callbacks
+      cellIndex++;
+      if (cellIndex % 10 == 0 && onProgress != null) {
+        final progress =
+            progressStart + (cellIndex / cells.length) * cellProgressRange;
+        onProgress(progress,
+            'Calculating placements... (${placements.length}/$targetCount)');
+      }
     }
+
     var extra = targetCount * 4;
+    final totalExtra = extra;
     while (placements.length < targetCount && extra-- > 0) {
       final p = _tryPlacementAnywhere(
           width: width,
@@ -1939,6 +2035,16 @@ class WatermarkProcessor {
           fontSize: fontSize,
           font: font);
       if (p != null) placements.add(p);
+
+      // Report progress every 20 extra attempts
+      if ((totalExtra - extra) % 20 == 0 && onProgress != null) {
+        final extraProgress = (totalExtra - extra) / totalExtra;
+        final progress = progressStart +
+            cellProgressRange +
+            (extraProgress * extraProgressRange);
+        onProgress(progress,
+            'Optimizing placements... (${placements.length}/$targetCount)');
+      }
     }
     return placements;
   }
@@ -2160,12 +2266,22 @@ class WatermarkProcessor {
               color: const ui.Color.fromARGB(255, 255, 255, 255));
           stamps = {'${font.fontFamily}-${fontSize.round()}': bytes};
         }
+        // Calculate progress range for this page within overall PDF processing
+        final pageProgressStart = 0.3 + (processed / (pageCount + 1)) * 0.6;
+        final pageProgressEnd = 0.3 + ((processed + 1) / (pageCount + 1)) * 0.6;
+        final pageProgressRange = pageProgressEnd - pageProgressStart;
+
         _applyWatermarkField(watermarked, watermarkText, transparency, density,
             useRandomColor, selectedColorValue, fontSize, font, stamps,
             antiAiLevel: antiAiLevel,
             qrConfig: qrConfig,
             watermarkType: watermarkType,
-            watermarkImageBytes: watermarkImageBytes);
+            watermarkImageBytes: watermarkImageBytes,
+            onProgress: (progress, message) {
+          // Map watermark progress (0.0-1.0) to this page's range
+          onProgress?.call(pageProgressStart + (progress * pageProgressRange),
+              'Page ${processed + 1}: $message');
+        });
         if (useRobustSteganography) {
           watermarked = _embedRobustSignature(watermarked, watermarkText);
         }
@@ -2189,8 +2305,6 @@ class WatermarkProcessor {
                 child:
                     pw.Image(pw.MemoryImage(encoded), fit: pw.BoxFit.fill))));
         processed++;
-        onProgress?.call(
-            0.3 + (processed / (pageCount + 1)) * 0.6, 'Page $processed...');
       }
       if (!hasPages) {
         throw WatermarkError(
