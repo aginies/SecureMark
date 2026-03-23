@@ -157,10 +157,12 @@ class _ValidationResult {
   const _ValidationResult({
     required this.isValid,
     this.error,
+    this.pageCount = 0,
   });
 
   final bool isValid;
   final WatermarkError? error;
+  final int pageCount;
 }
 
 class _Placement {
@@ -390,7 +392,10 @@ class WatermarkProcessor {
           hiddenFileName: hiddenFileName,
           hiddenFileBytes: hiddenFileBytes,
           qrConfig: qrConfig,
-          onProgress: onProgress,
+          onProgress: (progress, message) {
+            // Map 0.0-1.0 from _processPdf to 0.1-0.9
+            onProgress?.call(0.1 + (progress * 0.8), message);
+          },
           cancellationToken: cancellationToken,
         );
       } else if (extension == '.jpg' ||
@@ -420,7 +425,10 @@ class WatermarkProcessor {
           hiddenFileName: hiddenFileName,
           hiddenFileBytes: hiddenFileBytes,
           qrConfig: qrConfig,
-          onProgress: onProgress,
+          onProgress: (progress, message) {
+            // Map 0.0-1.0 from _processImage to 0.1-0.9
+            onProgress?.call(0.1 + (progress * 0.8), message);
+          },
           cancellationToken: cancellationToken,
         );
       } else {
@@ -516,7 +524,20 @@ class WatermarkProcessor {
         );
       }
 
-      return const _ValidationResult(isValid: true);
+      int pageCount = 0;
+      final detectedType = await detectFileType(file);
+      if (detectedType == '.pdf') {
+        try {
+          final pdfBytes = await file.readAsBytes();
+          final document = sync.PdfDocument(inputBytes: pdfBytes);
+          pageCount = document.pages.count;
+          document.dispose();
+        } catch (_) {
+          // Ignore errors here, they will be caught during actual processing
+        }
+      }
+
+      return _ValidationResult(isValid: true, pageCount: pageCount);
     } catch (e) {
       return _ValidationResult(
         isValid: false,
@@ -666,9 +687,7 @@ class WatermarkProcessor {
     CancellationToken? cancellationToken,
   }) async {
     try {
-      debugPrint(
-          '_processImage: useSteganography=$useSteganography, hiddenFileName=$hiddenFileName, hiddenFileBytes=${hiddenFileBytes?.length ?? 0}');
-      onProgress?.call(0.05, 'Reading image file...');
+      onProgress?.call(0.0, 'Reading image file...');
 
       if (cancellationToken?.isCancelled == true) {
         throw const WatermarkError(
@@ -683,7 +702,7 @@ class WatermarkProcessor {
       // Pre-render TTF stamps if using non-bitmap fonts
       Map<String, Uint8List>? preRenderedStamps;
       if (watermarkType == WatermarkType.text && !font.isBitmap) {
-        onProgress?.call(0.10, 'Rendering font...');
+        onProgress?.call(0.1, 'Rendering font...');
         final stampKey = '${font.fontFamily}-${fontSize.round()}';
         try {
           final stampBytes = await _renderTextWithFlutterCanvas(
@@ -696,7 +715,6 @@ class WatermarkProcessor {
           preRenderedStamps = {stampKey: stampBytes};
         } catch (e) {
           debugPrint('TTF pre-rendering failed, will use bitmap fallback: $e');
-          // Continue without pre-rendered stamps, will use bitmap fallback
         }
       }
 
@@ -712,7 +730,7 @@ class WatermarkProcessor {
       final operationText = operations.isEmpty
           ? 'Processing'
           : 'Applying ${operations.join(", ")}';
-      onProgress?.call(0.15, '$operationText...');
+      onProgress?.call(0.2, '$operationText...');
 
       final outputBytes = await Isolate.run(
         () => _renderWatermarkedImageBytesWithValidation(
@@ -739,12 +757,9 @@ class WatermarkProcessor {
           hiddenFileBytes: hiddenFileBytes,
           qrConfig: qrConfig,
           preRenderedStamps: preRenderedStamps,
-          // Don't pass onProgress to isolate - callbacks can't cross isolate boundaries
           onProgress: null,
         ),
       );
-
-      onProgress?.call(0.80, 'Processing complete');
 
       if (cancellationToken?.isCancelled == true) {
         throw const WatermarkError(
@@ -771,35 +786,23 @@ class WatermarkProcessor {
       if (useSteganography ||
           useRobustSteganography ||
           hiddenFileName != null) {
-        onProgress?.call(0.90, 'Verifying steganography...');
+        onProgress?.call(0.9, 'Verifying steganography...');
 
         // Use the new combined analyzer for verification
         final analysis =
             analyzeImage(outputBytes, password: steganographyPassword);
 
-        debugPrint(
-            'Verification - Expected: hiddenFileName=$hiddenFileName, watermarkText="$watermarkText"');
-        debugPrint(
-            'Verification - Found: file=${analysis.file?.fileName}, signature="${analysis.signature}"');
-
         if (useSteganography || hiddenFileName != null) {
           bool allVerified = true;
           if (hiddenFileName != null) {
-            final fileMatch = analysis.file != null &&
-                analysis.file!.fileName == hiddenFileName;
-            debugPrint(
-                'File verification: $fileMatch (expected: $hiddenFileName, got: ${analysis.file?.fileName})');
-            allVerified &= fileMatch;
+            allVerified &= (analysis.file != null &&
+                analysis.file!.fileName == hiddenFileName);
           }
           if (useSteganography) {
-            final sigMatch =
-                analysis.signature?.startsWith(watermarkText) ?? false;
-            debugPrint(
-                'Signature verification: $sigMatch (expected prefix: "$watermarkText", got: "${analysis.signature}")');
-            allVerified &= sigMatch;
+            allVerified &=
+                (analysis.signature?.startsWith(watermarkText) ?? false);
           }
           verified = allVerified;
-          debugPrint('Overall verification: $verified');
         }
 
         if (useRobustSteganography) {
@@ -813,6 +816,8 @@ class WatermarkProcessor {
           onProgress?.call(0.95, 'Steganography verification failed');
         }
       }
+
+      onProgress?.call(1.0, 'Processing complete');
 
       return ProcessResult(
         outputPath: outputPath,
@@ -921,6 +926,9 @@ class WatermarkProcessor {
             watermarkType: watermarkType,
             watermarkImageBytes: watermarkImageBytes,
             qrConfig: qrConfig,
+            useSteganography: useSteganography,
+            useRobustSteganography: useRobustSteganography,
+            steganographyPassword: steganographyPassword,
           ),
         );
       } catch (e, stackTrace) {
@@ -1004,6 +1012,9 @@ class WatermarkProcessor {
     WatermarkType watermarkType = WatermarkType.text,
     Uint8List? watermarkImageBytes,
     QrWatermarkConfig? qrConfig,
+    bool useSteganography = false,
+    bool useRobustSteganography = false,
+    String? steganographyPassword,
   }) {
     sync.PdfDocument document;
     try {
@@ -2431,13 +2442,15 @@ class WatermarkProcessor {
                 analysis.file!.fileName == hiddenFileName);
           }
           if (useSteganography) {
-            allVerified &= (analysis.signature == watermarkText);
+            allVerified &=
+                (analysis.signature?.startsWith(watermarkText) ?? false);
           }
           verified = allVerified;
         }
 
         if (useRobustSteganography) {
-          robustVerified = analysis.robustSignature == watermarkText;
+          robustVerified =
+              analysis.robustSignature?.startsWith(watermarkText) ?? false;
         }
       }
       return ProcessResult(
