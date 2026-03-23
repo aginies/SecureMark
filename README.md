@@ -95,7 +95,7 @@ The project is designed for high-security document distribution: choose files, a
 
 ## Advanced Security & Steganography
 
-SecureMark implements three independent invisible protection layers, each using different image channels to avoid interference:
+SecureMark implements three independent invisible protection layers.
 
 ![Steganography Protection](images/with_steganography.jpg)
 
@@ -113,16 +113,11 @@ SecureMark implements three independent invisible protection layers, each using 
 
 ### Unified File Analyzer
 
-The File Analyzer scans all three channels simultaneously:
-1. Checks each RGB channel for magic headers (`SM`, `SX`, `SF`, `SE`)
-2. Extracts DCT-based robust signature from luminance channel (`SR`)
-3. Returns combined results: text signature, embedded file, and robust signature
-4. Automatic password-based decryption attempts for encrypted content
-5. File extraction with original filename preservation
+The File Analyzer scans to find Steganography.
 
 ## QR Code Integration
 
-SecureMark can embed QR codes as visible or invisible watermarks with three content types:
+SecureMark can embed QR codes watermarks with three content types:
 
 ### QR Code Types
 
