@@ -7,14 +7,19 @@ import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import java.io.File
-import java.io.FileOutputStream
-import java.io.InputStream
+import androidx.core.view.WindowCompat // Import for WindowCompat
+import android.os.Bundle // Import for Bundle
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "secure_mark/sharing"
     private var sharedFiles: List<String> = listOf()
     private var methodChannel: MethodChannel? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        // Enable edge-to-edge display
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        super.onCreate(savedInstanceState)
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
