@@ -603,7 +603,7 @@ class AppLocalizationsFr extends AppLocalizations {
       'Veuillez entrer une URL valide (ex: https://exemple.fr)';
 
   @override
-  String get noQrFound => '❌ No QR code detected';
+  String get noQrFound => '❌ Aucun code QR détecté';
 
   @override
   String get abToggleTooltipOriginal => 'Afficher l\'original';

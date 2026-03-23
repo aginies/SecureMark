@@ -9,6 +9,9 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import androidx.core.view.WindowCompat // Import for WindowCompat
 import android.os.Bundle // Import for Bundle
+import java.io.File // Added import
+import java.io.FileOutputStream // Added import
+import java.io.InputStream // Added import
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "secure_mark/sharing"

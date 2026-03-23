@@ -392,6 +392,7 @@
   "vCardEmail": "Adresse email",
   "vCardOrg": "Organisation",
   "invalidUrlError": "Veuillez entrer une URL valide (ex: https://exemple.fr)",
+  "noQrFound": "❌ Aucun code QR détecté",
   "abToggleTooltipOriginal": "Afficher l'original",
   "abToggleTooltipProcessed": "Afficher le traité",
   "processingCancelled": "Traitement annulé",
