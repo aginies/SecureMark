@@ -64,6 +64,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pickFiles => 'Images or PDF';
 
   @override
+  String get takePhoto => 'Take Photo';
+
+  @override
+  String get takePhotoSubtitle => 'Camera direct use';
+
+  @override
   String selectedFile(String name) {
     return 'Selected file: $name';
   }

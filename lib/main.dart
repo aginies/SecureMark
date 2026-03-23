@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
@@ -2517,8 +2518,83 @@ class _WatermarkPageState extends State<WatermarkPage>
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final selectedCount = _selectedPaths.length;
+    final isMobile = !kIsWeb && (Platform.isIOS || Platform.isAndroid);
 
     Widget buildButton(bool isDragging) {
+      if (isMobile) {
+        return Row(
+          children: [
+            Expanded(
+              child: FilledButton(
+                onPressed: _processing ? null : _pickFile,
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  backgroundColor: isDragging
+                      ? theme.colorScheme.primary.withValues(alpha: 0.8)
+                      : null,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: isDragging
+                        ? BorderSide(
+                            color: theme.colorScheme.onPrimary, width: 2)
+                        : BorderSide.none,
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      isDragging
+                          ? Icons.file_upload
+                          : Icons.file_upload_outlined,
+                      size: 32,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.pickFiles,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.onPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                onPressed: _processing ? null : _takePhoto,
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  backgroundColor: theme.colorScheme.secondary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.camera_alt_outlined,
+                      size: 32,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.takePhoto,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: theme.colorScheme.onSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      }
+
       return FilledButton(
         onPressed: _processing ? null : _pickFile,
         style: FilledButton.styleFrom(
@@ -2649,7 +2725,8 @@ class _WatermarkPageState extends State<WatermarkPage>
                         message: l10n.steganographyVerificationFailed,
                         child: const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 2.0),
-                          child: Icon(Icons.warning_outlined, color: Colors.red),
+                          child:
+                              Icon(Icons.warning_outlined, color: Colors.red),
                         ),
                       ),
                     if (_qrVisible)
@@ -2874,6 +2951,34 @@ class _WatermarkPageState extends State<WatermarkPage>
     );
   }
 
+  Future<void> _takePhoto() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? photo = await picker.pickImage(
+        source: ImageSource.camera,
+        requestFullMetadata: true,
+      );
+
+      if (photo == null) {
+        _addLog('Camera capture cancelled.');
+        return;
+      }
+
+      _addLog('Captured photo from camera: ${photo.path}');
+      _selectPaths([photo.path]);
+    } catch (e) {
+      _addLog('Error capturing photo: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _pickFile() async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -3042,7 +3147,10 @@ class _WatermarkPageState extends State<WatermarkPage>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${(_progress * 100).round()}${['fr', 'de'].contains(Localizations.localeOf(context).languageCode) ? ' %' : '%'}',
+                      '${(_progress * 100).round()}${[
+                        'fr',
+                        'de'
+                      ].contains(Localizations.localeOf(context).languageCode) ? ' %' : '%'}',
                       style: theme.textTheme.bodySmall
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),

@@ -11,7 +11,7 @@
       }
     }
   },
-  "clickApplyToPreview": "Klicken Sie auf "SecureMark anwenden", um Vorschauen zu generieren",
+  "clickApplyToPreview": "Klicken Sie auf \"SecureMark anwenden\", um Vorschauen zu generieren",
   "previewUnavailable": "Vorschau nicht verfügbar",
   "swipeHint": "Nach links für nächste, nach rechts für vorherige wischen ({current}/{total})",
   "@swipeHint": {
@@ -33,6 +33,8 @@
   "processingFlattening": "PDF wird gerastert (flattening)...",
   "authorFooter": "Autor: Antoine Giniès",
   "pickFiles": "Bilder oder PDF",
+  "takePhoto": "Foto aufnehmen",
+  "takePhotoSubtitle": "Direkte Verwendung",
   "selectedFile": "Ausgewählte Datei: {name}",
   "@selectedFile": {
     "placeholders": {
@@ -237,7 +239,7 @@
   "fileAnalyzerTitle": "Datei-Analysator (LSB)",
   "fileAnalyzerDescription": "Wählen Sie eine Datei aus, um nach versteckten SecureMark-Signaturen zu suchen.",
   "pickAndAnalyze": "Auswählen und analysieren",
-  "signatureFound": "✅ Signatur gefunden: "{message}"",
+  "signatureFound": "✅ Signatur gefunden: \"{message}\"",
   "@signatureFound": {
     "placeholders": {
       "message": {
@@ -245,7 +247,7 @@
       }
     }
   },
-  "robustSignatureFound": "💪 Robuste Signatur gefunden: "{message}"",
+  "robustSignatureFound": "💪 Robuste Signatur gefunden: \"{message}\"",
   "@robustSignatureFound": {
     "placeholders": {
       "message": {

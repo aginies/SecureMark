@@ -53,6 +53,10 @@
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+	<key>NSCameraUsageDescription</key>
+	<string>SecureMark needs access to the camera to take photos and apply watermarks directly.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>SecureMark needs access to your photo library to select images for watermarking.</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

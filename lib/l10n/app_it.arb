@@ -11,7 +11,7 @@
       }
     }
   },
-  "clickApplyToPreview": "Clicca su "Applica SecureMark" per generare le anteprime",
+  "clickApplyToPreview": "Clicca su \"Applica SecureMark\" per generare le anteprime",
   "previewUnavailable": "Anteprima non disponibile",
   "swipeHint": "Scorri a sinistra per il successivo, a destra per il precedente ({current}/{total})",
   "@swipeHint": {
@@ -33,6 +33,8 @@
   "processingFlattening": "Rasterizzazione PDF (appiattimento)...",
   "authorFooter": "Autore: Antoine Giniès",
   "pickFiles": "Immagini o PDF",
+  "takePhoto": "Scatta Foto",
+  "takePhotoSubtitle": "Uso diretto",
   "selectedFile": "File selezionato: {name}",
   "@selectedFile": {
     "placeholders": {
@@ -237,7 +239,7 @@
   "fileAnalyzerTitle": "Analizzatore file (LSB)",
   "fileAnalyzerDescription": "Seleziona un file per cercare firme SecureMark nascoste.",
   "pickAndAnalyze": "Scegli e analizza",
-  "signatureFound": "✅ Firma trovata: "{message}"",
+  "signatureFound": "✅ Firma trovata: \"{message}\"",
   "@signatureFound": {
     "placeholders": {
       "message": {
@@ -245,7 +247,7 @@
       }
     }
   },
-  "robustSignatureFound": "💪 Firma robusta trovata: "{message}"",
+  "robustSignatureFound": "💪 Firma robusta trovata: \"{message}\"",
   "@robustSignatureFound": {
     "placeholders": {
       "message": {

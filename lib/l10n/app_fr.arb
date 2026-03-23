@@ -33,6 +33,8 @@
   "processingFlattening": "Rasterisation du PDF (aplatissement)...",
   "authorFooter": "Auteur : Antoine Giniès",
   "pickFiles": "Images ou PDF",
+  "takePhoto": "Prendre une Photo",
+  "takePhotoSubtitle": "Utilisation directe",
   "selectedFile": "Fichier sélectionné : {name}",
   "@selectedFile": {
     "placeholders": {
