@@ -55,6 +55,17 @@
   "saveAll": "Tout enregistrer",
   "shareAll": "Tout partager",
   "reset": "Réinitialiser",
+  "watermarkTypeText": "Texte",
+  "watermarkTypeImage": "Image/Logo",
+  "selectWatermarkImage": "Choisir un Logo",
+  "selectedWatermarkImage": "Logo : {name}",
+  "@selectedWatermarkImage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "watermarkTextLabel": "Texte à tamponner (+Date-Heure)",
   "watermarkTextHint": "Saisissez le texte à tamponner",
   "randomColor": "Couleur aléatoire",
@@ -140,6 +151,14 @@
   "expertOptions": "Options d'expert",
   "fontSizeValue": "Taille de police : {value}px",
   "@fontSizeValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "logoSizeLabel": "Taille du Logo : {value}px",
+  "@logoSizeLabel": {
     "placeholders": {
       "value": {
         "type": "int"
@@ -239,6 +258,9 @@
   "fileAnalyzerTitle": "Analyseur de fichiers (LSB)",
   "fileAnalyzerDescription": "Sélectionnez un fichier pour rechercher des signatures SecureMark cachées.",
   "pickAndAnalyze": "Choisir et analyser",
+  "encryptedFileDetected": "🔐 Fichier chiffré détecté : {name}. Veuillez fournir le mot de passe correct.",
+  "hiddenFileDetected": "📁 Fichier caché détecté : {name} ({size})",
+  "encryptedSignatureDetected": "🔐 Signature chiffrée détectée. Veuillez fournir le mot de passe correct.",
   "signatureFound": "✅ Signature trouvée : \"{message}\"",
   "@signatureFound": {
     "placeholders": {

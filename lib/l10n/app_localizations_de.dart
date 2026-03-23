@@ -92,6 +92,20 @@ class AppLocalizationsDe extends AppLocalizations {
   String get reset => 'Zurücksetzen';
 
   @override
+  String get watermarkTypeText => 'Text';
+
+  @override
+  String get watermarkTypeImage => 'Bild/Logo';
+
+  @override
+  String get selectWatermarkImage => 'Logo auswählen';
+
+  @override
+  String selectedWatermarkImage(String name) {
+    return 'Logo: $name';
+  }
+
+  @override
   String get watermarkTextLabel => 'Text zum Stempeln (+Datum-Uhrzeit)';
 
   @override
@@ -194,6 +208,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String fontSizeValue(int value) {
     return 'Schriftgröße: ${value}px';
+  }
+
+  @override
+  String logoSizeLabel(int value) {
+    return 'Logo-Größe: ${value}px';
   }
 
   @override

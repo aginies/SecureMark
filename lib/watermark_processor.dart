@@ -215,6 +215,8 @@ class WatermarkProcessor {
     double antiAiLevel = 0.0,
     bool useSteganography = false,
     bool useRobustSteganography = false,
+    WatermarkType watermarkType = WatermarkType.text,
+    Uint8List? watermarkImageBytes,
     String? steganographyPassword,
     String? hiddenFileName,
     Uint8List? hiddenFileBytes,
@@ -257,6 +259,8 @@ class WatermarkProcessor {
       antiAiLevel,
       useSteganography,
       useRobustSteganography,
+      watermarkType,
+      watermarkImageBytes,
       steganographyPassword,
       hiddenFileName,
       hiddenFileBytes,
@@ -293,6 +297,8 @@ class WatermarkProcessor {
           antiAiLevel: antiAiLevel,
           useSteganography: useSteganography,
           useRobustSteganography: useRobustSteganography,
+          watermarkType: watermarkType,
+          watermarkImageBytes: watermarkImageBytes,
           steganographyPassword: steganographyPassword,
           hiddenFileName: hiddenFileName,
           hiddenFileBytes: hiddenFileBytes,
@@ -321,6 +327,8 @@ class WatermarkProcessor {
           antiAiLevel: antiAiLevel,
           useSteganography: useSteganography,
           useRobustSteganography: useRobustSteganography,
+          watermarkType: watermarkType,
+          watermarkImageBytes: watermarkImageBytes,
           steganographyPassword: steganographyPassword,
           hiddenFileName: hiddenFileName,
           hiddenFileBytes: hiddenFileBytes,
@@ -463,6 +471,8 @@ class WatermarkProcessor {
     double antiAiLevel,
     bool useSteganography,
     bool useRobustSteganography,
+    WatermarkType watermarkType,
+    Uint8List? watermarkImageBytes,
     String? steganographyPassword,
     String? hiddenFileName,
     Uint8List? hiddenFileBytes,
@@ -470,10 +480,13 @@ class WatermarkProcessor {
   ) {
     final hiddenFileHash =
         hiddenFileBytes != null ? hiddenFileBytes.length.toString() : 'none';
+    final watermarkImageHash = watermarkImageBytes != null
+        ? watermarkImageBytes.length.toString()
+        : 'none';
     final qrHash = qrConfig != null
         ? '${qrConfig.visibleQr}-${qrConfig.author}-${qrConfig.url}-${qrConfig.position}-${qrConfig.size}'
         : 'none';
-    return '$filePath-$transparency-$density-$watermarkText-$useRandomColor-$selectedColorValue-$fontSize-${font.fontFamily}-$jpegQuality-$targetSize-$includeTimestamp-$preserveMetadata-$rasterizePdf-$filePrefix-$antiAiLevel-$useSteganography-$useRobustSteganography-$steganographyPassword-$hiddenFileName-$hiddenFileHash-$qrHash';
+    return '$filePath-$transparency-$density-$watermarkText-$useRandomColor-$selectedColorValue-$fontSize-${font.fontFamily}-$jpegQuality-$targetSize-$includeTimestamp-$preserveMetadata-$rasterizePdf-$filePrefix-$antiAiLevel-$useSteganography-$useRobustSteganography-$watermarkType-$watermarkImageHash-$steganographyPassword-$hiddenFileName-$hiddenFileHash-$qrHash';
   }
 
   /// Add result to cache with size management
@@ -508,6 +521,8 @@ class WatermarkProcessor {
     double antiAiLevel = 0.0,
     bool useSteganography = false,
     bool useRobustSteganography = false,
+    WatermarkType watermarkType = WatermarkType.text,
+    Uint8List? watermarkImageBytes,
     String? steganographyPassword,
     String? hiddenFileName,
     Uint8List? hiddenFileBytes,
@@ -530,7 +545,7 @@ class WatermarkProcessor {
 
       // Pre-render TTF stamps if using non-bitmap fonts
       Map<String, Uint8List>? preRenderedStamps;
-      if (!font.isBitmap) {
+      if (watermarkType == WatermarkType.text && !font.isBitmap) {
         onProgress?.call(0.3, 'Rendering font...');
         final stampKey = '${font.fontFamily}-${fontSize.round()}';
         try {
@@ -568,6 +583,8 @@ class WatermarkProcessor {
           antiAiLevel: antiAiLevel,
           useSteganography: useSteganography,
           useRobustSteganography: useRobustSteganography,
+          watermarkType: watermarkType,
+          watermarkImageBytes: watermarkImageBytes,
           steganographyPassword: steganographyPassword,
           hiddenFileName: hiddenFileName,
           hiddenFileBytes: hiddenFileBytes,
@@ -668,6 +685,8 @@ class WatermarkProcessor {
     double antiAiLevel = 0.0,
     bool useSteganography = false,
     bool useRobustSteganography = false,
+    WatermarkType watermarkType = WatermarkType.text,
+    Uint8List? watermarkImageBytes,
     String? steganographyPassword,
     String? hiddenFileName,
     Uint8List? hiddenFileBytes,
@@ -696,6 +715,8 @@ class WatermarkProcessor {
           antiAiLevel: antiAiLevel,
           useSteganography: useSteganography,
           useRobustSteganography: useRobustSteganography,
+          watermarkType: watermarkType,
+          watermarkImageBytes: watermarkImageBytes,
           steganographyPassword: steganographyPassword,
           hiddenFileName: hiddenFileName,
           hiddenFileBytes: hiddenFileBytes,
@@ -730,6 +751,8 @@ class WatermarkProcessor {
             fontSize: fontSize,
             preserveMetadata: preserveMetadata,
             antiAiLevel: antiAiLevel,
+            watermarkType: watermarkType,
+            watermarkImageBytes: watermarkImageBytes,
           ),
         );
       } catch (e, stackTrace) {
@@ -754,6 +777,8 @@ class WatermarkProcessor {
           antiAiLevel: antiAiLevel,
           useSteganography: useSteganography,
           useRobustSteganography: useRobustSteganography,
+          watermarkType: watermarkType,
+          watermarkImageBytes: watermarkImageBytes,
           steganographyPassword: steganographyPassword,
           hiddenFileName: hiddenFileName,
           hiddenFileBytes: hiddenFileBytes,
@@ -808,6 +833,8 @@ class WatermarkProcessor {
     required double fontSize,
     bool preserveMetadata = false,
     double antiAiLevel = 0.0,
+    WatermarkType watermarkType = WatermarkType.text,
+    Uint8List? watermarkImageBytes,
   }) {
     sync.PdfDocument document;
     try {
@@ -836,9 +863,14 @@ class WatermarkProcessor {
     }
 
     final pageCount = document.pages.count;
-    final alpha = (100 - transparency).clamp(10, 90) / 100;
+    final alpha = (100 - transparency) / 100.0;
     final pdfFont =
         sync.PdfStandardFont(sync.PdfFontFamily.helvetica, fontSize);
+
+    sync.PdfBitmap? logoBitmap;
+    if (watermarkType == WatermarkType.image && watermarkImageBytes != null) {
+      logoBitmap = sync.PdfBitmap(watermarkImageBytes);
+    }
 
     for (var i = 0; i < pageCount; i++) {
       final page = document.pages[i];
@@ -870,8 +902,6 @@ class WatermarkProcessor {
           final jitterY = (antiAiLevel / 100.0) *
               (cellHeight * 0.2) *
               (_random.nextDouble() - 0.5);
-          final jitterAngle =
-              (antiAiLevel / 100.0) * 15.0 * (_random.nextDouble() - 0.5);
 
           final x = (col * cellWidth) +
               (_random.nextDouble() * (cellWidth * 0.3)) +
@@ -879,12 +909,28 @@ class WatermarkProcessor {
           final y = (row * cellHeight) +
               (_random.nextDouble() * (cellHeight * 0.3)) +
               jitterY;
-          final angle = _randomAngle() + jitterAngle;
 
+          graphics.save();
           graphics.translateTransform(x, y);
-          graphics.rotateTransform(angle);
-          graphics.setTransparency(alpha);
-          graphics.drawString(watermarkText, pdfFont, brush: brush);
+
+          if (watermarkType == WatermarkType.text) {
+            final jitterAngle =
+                (antiAiLevel / 100.0) * 15.0 * (_random.nextDouble() - 0.5);
+            final angle = _randomAngle() + jitterAngle;
+            graphics.rotateTransform(angle);
+            graphics.setTransparency(alpha);
+            graphics.drawString(watermarkText, pdfFont, brush: brush);
+          } else if (logoBitmap != null) {
+            // Logos are no longer rotated per user request
+            graphics.setTransparency(alpha);
+            final aspectRatio = logoBitmap.width / logoBitmap.height;
+            final logoWidth = fontSize * aspectRatio;
+            graphics.drawImage(
+              logoBitmap,
+              ui.Rect.fromLTWH(0, 0, logoWidth, fontSize),
+            );
+          }
+
           graphics.restore();
         }
       }
@@ -959,6 +1005,8 @@ class WatermarkProcessor {
     double antiAiLevel = 0.0,
     bool useSteganography = false,
     bool useRobustSteganography = false,
+    WatermarkType watermarkType = WatermarkType.text,
+    Uint8List? watermarkImageBytes,
     String? steganographyPassword,
     String? hiddenFileName,
     Uint8List? hiddenFileBytes,
@@ -999,6 +1047,8 @@ class WatermarkProcessor {
         preRenderedStamps,
         antiAiLevel: antiAiLevel,
         qrConfig: qrConfig,
+        watermarkType: watermarkType,
+        watermarkImageBytes: watermarkImageBytes,
       );
 
       if (useRobustSteganography) {
@@ -1599,43 +1649,97 @@ class WatermarkProcessor {
       WatermarkFont font,
       Map<String, Uint8List>? preRenderedStamps,
       {double antiAiLevel = 0.0,
-      QrWatermarkConfig? qrConfig}) {
+      QrWatermarkConfig? qrConfig,
+      WatermarkType watermarkType = WatermarkType.text,
+      Uint8List? watermarkImageBytes}) {
     if (transparency < 100) {
-      final placements = _buildPlacements(
-          width: image.width,
-          height: image.height,
-          watermarkText: watermarkText,
-          transparency: transparency,
-          density: density,
-          useRandomColor: useRandomColor,
-          selectedColorValue: selectedColorValue,
-          fontSize: fontSize.round(),
-          font: font);
-      final stampCache = <String, img.Image>{};
-      for (final placement in placements) {
-        final jitterX =
-            ((antiAiLevel / 100.0) * 10 * (_random.nextDouble() - 0.5)).round();
-        final jitterY =
-            ((antiAiLevel / 100.0) * 10 * (_random.nextDouble() - 0.5)).round();
-        var stamp = stampCache.putIfAbsent(
-            '${placement.angle.round()}-${placement.colorKey}',
-            () => _buildWatermarkStamp(
-                watermarkText, placement, preRenderedStamps));
-        if (antiAiLevel > 0) {
-          stamp = stamp.clone();
-          for (final pixel in stamp) {
-            if (pixel.a > 0) {
-              pixel.a = (pixel.a +
-                      (antiAiLevel / 100.0) * 40 * (_random.nextDouble() - 0.5))
-                  .clamp(0, 255)
-                  .toInt();
+      if (watermarkType == WatermarkType.text) {
+        final placements = _buildPlacements(
+            width: image.width,
+            height: image.height,
+            watermarkText: watermarkText,
+            transparency: transparency,
+            density: density,
+            useRandomColor: useRandomColor,
+            selectedColorValue: selectedColorValue,
+            fontSize: fontSize.round(),
+            font: font);
+        final stampCache = <String, img.Image>{};
+        for (final placement in placements) {
+          final jitterX =
+              ((antiAiLevel / 100.0) * 10 * (_random.nextDouble() - 0.5))
+                  .round();
+          final jitterY =
+              ((antiAiLevel / 100.0) * 10 * (_random.nextDouble() - 0.5))
+                  .round();
+          var stamp = stampCache.putIfAbsent(
+              '${placement.angle.round()}-${placement.colorKey}',
+              () => _buildWatermarkStamp(
+                  watermarkText, placement, preRenderedStamps));
+          if (antiAiLevel > 0) {
+            stamp = stamp.clone();
+            for (final pixel in stamp) {
+              if (pixel.a > 0) {
+                pixel.a = (pixel.a +
+                        (antiAiLevel / 100.0) *
+                            40 *
+                            (_random.nextDouble() - 0.5))
+                    .clamp(0, 255)
+                    .toInt();
+              }
             }
           }
+          img.compositeImage(image, stamp,
+              dstX: placement.x + jitterX,
+              dstY: placement.y + jitterY,
+              blend: img.BlendMode.alpha);
         }
-        img.compositeImage(image, stamp,
-            dstX: placement.x + jitterX,
-            dstY: placement.y + jitterY,
-            blend: img.BlendMode.alpha);
+      } else if (watermarkType == WatermarkType.image &&
+          watermarkImageBytes != null) {
+        final logo = img.decodeImage(watermarkImageBytes);
+        if (logo != null) {
+          // Calculate scale based on fontSize (treating fontSize as target height)
+          final resizedLogo = img.copyResize(logo, height: fontSize.round());
+
+          // Ensure logo has an alpha channel (important for JPEGs)
+          final scaledLogo = resizedLogo.numChannels == 4
+              ? resizedLogo
+              : resizedLogo.convert(numChannels: 4);
+
+          // Apply transparency to the logo
+          final alpha = _alphaFromTransparency(transparency);
+          final alphaFactor = alpha / 255.0;
+          for (final pixel in scaledLogo) {
+            // Apply transparency while preserving original logo alpha channel
+            pixel.a = (pixel.a * alphaFactor).round();
+          }
+
+          final placements = _buildPlacements(
+              width: image.width,
+              height: image.height,
+              watermarkText: 'logo', // placeholder for count calculation
+              transparency: transparency,
+              density: density,
+              useRandomColor: false,
+              selectedColorValue: 0,
+              fontSize: fontSize.round(),
+              font: font);
+
+          for (final placement in placements) {
+            final jitterX =
+                ((antiAiLevel / 100.0) * 10 * (_random.nextDouble() - 0.5))
+                    .round();
+            final jitterY =
+                ((antiAiLevel / 100.0) * 10 * (_random.nextDouble() - 0.5))
+                    .round();
+
+            // Logos are no longer rotated per user request
+            img.compositeImage(image, scaledLogo,
+                dstX: placement.x + jitterX,
+                dstY: placement.y + jitterY,
+                blend: img.BlendMode.alpha);
+          }
+        }
       }
     }
     if (qrConfig != null && qrConfig.visibleQr) {
@@ -1891,6 +1995,8 @@ class WatermarkProcessor {
     double antiAiLevel = 0.0,
     bool useSteganography = false,
     bool useRobustSteganography = false,
+    WatermarkType watermarkType = WatermarkType.text,
+    Uint8List? watermarkImageBytes,
     String? steganographyPassword,
     String? hiddenFileName,
     Uint8List? hiddenFileBytes,
@@ -1918,7 +2024,7 @@ class WatermarkProcessor {
         final decoded = img.decodeImage(png);
         var watermarked = img.Image.from(decoded!);
         Map<String, Uint8List>? stamps;
-        if (!font.isBitmap) {
+        if (watermarkType == WatermarkType.text && !font.isBitmap) {
           final bytes = await _renderTextWithFlutterCanvas(
               text: watermarkText,
               font: font,
@@ -1928,7 +2034,10 @@ class WatermarkProcessor {
         }
         _applyWatermarkField(watermarked, watermarkText, transparency, density,
             useRandomColor, selectedColorValue, fontSize, font, stamps,
-            antiAiLevel: antiAiLevel, qrConfig: qrConfig);
+            antiAiLevel: antiAiLevel,
+            qrConfig: qrConfig,
+            watermarkType: watermarkType,
+            watermarkImageBytes: watermarkImageBytes);
         if (useRobustSteganography) {
           watermarked = _embedRobustSignature(watermarked, watermarkText);
         }

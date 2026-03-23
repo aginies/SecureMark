@@ -55,6 +55,17 @@
   "saveAll": "Salva tutto",
   "shareAll": "Condividi tutto",
   "reset": "Reset",
+  "watermarkTypeText": "Testo",
+  "watermarkTypeImage": "Immagine/Logo",
+  "selectWatermarkImage": "Seleziona Logo",
+  "selectedWatermarkImage": "Logo: {name}",
+  "@selectedWatermarkImage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "watermarkTextLabel": "Testo da timbrare (+Data-ora)",
   "watermarkTextHint": "Inserisci il testo da timbrare",
   "randomColor": "Colore casuale",
@@ -140,6 +151,14 @@
   "expertOptions": "Opzioni esperte",
   "fontSizeValue": "Dimensione carattere: {value}px",
   "@fontSizeValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "logoSizeLabel": "Dimensione Logo: {value}px",
+  "@logoSizeLabel": {
     "placeholders": {
       "value": {
         "type": "int"
@@ -239,6 +258,9 @@
   "fileAnalyzerTitle": "Analizzatore file (LSB)",
   "fileAnalyzerDescription": "Seleziona un file per cercare firme SecureMark nascoste.",
   "pickAndAnalyze": "Scegli e analizza",
+  "encryptedFileDetected": "🔐 Rilevato file crittografato: {name}. Inserisci la password corretta.",
+  "hiddenFileDetected": "📁 Rilevato file nascosto: {name} ({size})",
+  "encryptedSignatureDetected": "🔐 Rilevata firma crittografata. Inserisci la password corretta.",
   "signatureFound": "✅ Firma trovata: \"{message}\"",
   "@signatureFound": {
     "placeholders": {

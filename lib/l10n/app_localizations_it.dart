@@ -92,6 +92,20 @@ class AppLocalizationsIt extends AppLocalizations {
   String get reset => 'Reset';
 
   @override
+  String get watermarkTypeText => 'Testo';
+
+  @override
+  String get watermarkTypeImage => 'Immagine/Logo';
+
+  @override
+  String get selectWatermarkImage => 'Seleziona Logo';
+
+  @override
+  String selectedWatermarkImage(String name) {
+    return 'Logo: $name';
+  }
+
+  @override
   String get watermarkTextLabel => 'Testo da timbrare (+Data-ora)';
 
   @override
@@ -193,6 +207,11 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String fontSizeValue(int value) {
     return 'Dimensione carattere: ${value}px';
+  }
+
+  @override
+  String logoSizeLabel(int value) {
+    return 'Dimensione Logo: ${value}px';
   }
 
   @override

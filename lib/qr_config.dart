@@ -1,5 +1,11 @@
 import 'dart:convert';
 
+/// Type of watermark to apply
+enum WatermarkType {
+  text,
+  image,
+}
+
 /// Type of content to encode in the QR code
 enum QrType {
   metadata, // Original JSON format with author, URL, and timestamp

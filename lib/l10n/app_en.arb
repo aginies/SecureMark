@@ -55,6 +55,17 @@
   "saveAll": "Save All",
   "shareAll": "Share All",
   "reset": "Reset",
+  "watermarkTypeText": "Text",
+  "watermarkTypeImage": "Image/Logo",
+  "selectWatermarkImage": "Select Logo Image",
+  "selectedWatermarkImage": "Logo: {name}",
+  "@selectedWatermarkImage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "watermarkTextLabel": "Text to Stamp (+Date-time)",
   "watermarkTextHint": "Enter the text to stamp",
   "randomColor": "Random color",
@@ -140,6 +151,14 @@
   "expertOptions": "Expert Options",
   "fontSizeValue": "Font Size: {value}px",
   "@fontSizeValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "logoSizeLabel": "Logo Size: {value}px",
+  "@logoSizeLabel": {
     "placeholders": {
       "value": {
         "type": "int"
@@ -239,6 +258,9 @@
   "fileAnalyzerTitle": "File Analyzer (LSB)",
   "fileAnalyzerDescription": "Select a file to check for hidden SecureMark signatures.",
   "pickAndAnalyze": "Pick and Analyze",
+  "encryptedFileDetected": "🔐 Encrypted file detected: {name}. Please provide the correct password.",
+  "hiddenFileDetected": "📁 Hidden file detected: {name} ({size})",
+  "encryptedSignatureDetected": "🔐 Encrypted signature detected. Please provide the correct password.",
   "signatureFound": "✅ Signature found: \"{message}\"",
   "@signatureFound": {
     "placeholders": {

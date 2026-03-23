@@ -140,6 +140,7 @@ class _WatermarkPageState extends State<WatermarkPage>
   double _transparency = 75;
   double _density = 35;
   double _fontSize = 24;
+  double _logoSize = 100;
   WatermarkFont _selectedFont = FontManager.getDefaultFont();
   int _jpegQuality = 75;
   int? _targetSize;
@@ -154,6 +155,7 @@ class _WatermarkPageState extends State<WatermarkPage>
   bool _useRandomColor = true;
   Color _selectedColor = Colors.red;
   bool _dragging = false;
+  bool _logoDragging = false;
   bool _processing = false;
   double _progress = 0.0;
   String _statusMessage = '';
@@ -175,6 +177,9 @@ class _WatermarkPageState extends State<WatermarkPage>
   String _hidingPassword = '';
   String _extractionPassword = '';
   bool _zipOutputs = false;
+  WatermarkType _watermarkType = WatermarkType.text;
+  Uint8List? _watermarkImageBytes;
+  String? _watermarkImageName;
 
   // QR Code Configuration
   bool _qrVisible = false;
@@ -1269,20 +1274,18 @@ class _WatermarkPageState extends State<WatermarkPage>
       if (analysis.file != null) {
         final fileResult = analysis.file!;
         if (fileResult.isEncrypted && fileResult.fileBytes.isEmpty) {
-          results.add(
-              '🔐 Encrypted file detected: ${fileResult.fileName}. Please provide the correct password.');
+          results.add(l10n.encryptedFileDetected(fileResult.fileName));
         } else {
           _extractedFile = fileResult;
-          results.add(
-              '📁 Hidden file detected: ${fileResult.fileName} (${_formatFileSize(fileResult.fileBytes.length)})');
+          results.add(l10n.hiddenFileDetected(
+              fileResult.fileName, _formatFileSize(fileResult.fileBytes.length)));
         }
       }
 
       if (analysis.signature != null && analysis.signature!.isNotEmpty) {
         final textResult = analysis.signature!;
         if (textResult.contains('[ENCRYPTED]')) {
-          results.add(
-              '🔐 Encrypted signature detected. Please provide the correct password.');
+          results.add(l10n.encryptedSignatureDetected);
         } else {
           results.add(l10n.signatureFound(textResult));
         }
@@ -2784,14 +2787,80 @@ class _WatermarkPageState extends State<WatermarkPage>
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: TextField(
-          controller: _textController,
-          enabled: !_processing,
-          decoration: InputDecoration(
-            labelText: l10n.watermarkTextLabel,
-            hintText: l10n.watermarkTextHint,
-            border: const OutlineInputBorder(),
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SegmentedButton<WatermarkType>(
+              segments: [
+                ButtonSegment<WatermarkType>(
+                  value: WatermarkType.text,
+                  label: Text(l10n.watermarkTypeText),
+                  icon: const Icon(Icons.text_fields),
+                ),
+                ButtonSegment<WatermarkType>(
+                  value: WatermarkType.image,
+                  label: Text(l10n.watermarkTypeImage),
+                  icon: const Icon(Icons.image_outlined),
+                ),
+              ],
+              selected: {_watermarkType},
+              onSelectionChanged: _processing
+                  ? null
+                  : (newSelection) {
+                      setState(() {
+                        _watermarkType = newSelection.first;
+                      });
+                    },
+            ),
+            const SizedBox(height: 16),
+            if (_watermarkType == WatermarkType.text)
+              TextField(
+                controller: _textController,
+                enabled: !_processing,
+                decoration: InputDecoration(
+                  labelText: l10n.watermarkTextLabel,
+                  hintText: l10n.watermarkTextHint,
+                  border: const OutlineInputBorder(),
+                ),
+              )
+            else if (_supportsDesktopDrop)
+              DropTarget(
+                onDragEntered: (_) => setState(() => _logoDragging = true),
+                onDragExited: (_) => setState(() => _logoDragging = false),
+                onDragDone: (detail) async {
+                  setState(() => _logoDragging = false);
+                  if (detail.files.isNotEmpty) {
+                    _loadLogoFromPath(detail.files.first.path);
+                  }
+                },
+                child: _buildLogoButton(l10n, _logoDragging),
+              )
+            else
+              _buildLogoButton(l10n, false),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoButton(AppLocalizations l10n, bool isDragging) {
+    final theme = Theme.of(context);
+    return ElevatedButton.icon(
+      onPressed: _processing ? null : _selectWatermarkImage,
+      icon: const Icon(Icons.add_photo_alternate_outlined),
+      label: Text(
+        _watermarkImageName != null
+            ? l10n.selectedWatermarkImage(_watermarkImageName!)
+            : l10n.selectWatermarkImage,
+      ),
+      style: ElevatedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        backgroundColor: isDragging ? theme.colorScheme.primaryContainer : null,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: isDragging
+              ? BorderSide(color: theme.colorScheme.primary, width: 2)
+              : BorderSide.none,
         ),
       ),
     );
@@ -2799,6 +2868,7 @@ class _WatermarkPageState extends State<WatermarkPage>
 
   Widget _buildColorCard() {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     const palette = <Color>[
       Colors.red,
       Colors.blue,
@@ -2818,54 +2888,82 @@ class _WatermarkPageState extends State<WatermarkPage>
         child: LayoutBuilder(
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= 640;
-            final selectionControls = Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SegmentedButton<bool>(
-                  segments: [
-                    ButtonSegment<bool>(
-                        value: true, label: Text(l10n.randomColor)),
-                    ButtonSegment<bool>(
-                        value: false, label: Text(l10n.selectedColor)),
-                  ],
-                  selected: <bool>{_useRandomColor},
-                  onSelectionChanged: _processing
-                      ? null
-                      : (selection) {
-                          _updateColorMode(selection.first);
-                        },
-                ),
-                if (!_useRandomColor) ...[
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: palette.map((color) {
-                      final isSelected =
-                          color.toARGB32() == _selectedColor.toARGB32();
-                      return InkWell(
-                        onTap: _processing ? null : () => _selectColor(color),
-                        borderRadius: BorderRadius.circular(999),
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected
-                                  ? Colors.black
-                                  : Colors.grey.shade400,
-                              width: isSelected ? 3 : 1,
+
+            Widget selectionControls;
+            if (_watermarkType == WatermarkType.text) {
+              selectionControls = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SegmentedButton<bool>(
+                    segments: [
+                      ButtonSegment<bool>(
+                          value: true, label: Text(l10n.randomColor)),
+                      ButtonSegment<bool>(
+                          value: false, label: Text(l10n.selectedColor)),
+                    ],
+                    selected: <bool>{_useRandomColor},
+                    onSelectionChanged: _processing
+                        ? null
+                        : (selection) {
+                            _updateColorMode(selection.first);
+                          },
+                  ),
+                  if (!_useRandomColor) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: palette.map((color) {
+                        final isSelected =
+                            color.toARGB32() == _selectedColor.toARGB32();
+                        return InkWell(
+                          onTap: _processing ? null : () => _selectColor(color),
+                          borderRadius: BorderRadius.circular(999),
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected
+                                    ? Colors.black
+                                    : Colors.grey.shade400,
+                                width: isSelected ? 3 : 1,
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ],
+              );
+            } else {
+              // Logo size slider
+              selectionControls = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.logoSizeLabel(_logoSize.round()),
+                      style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 8),
+                  Slider(
+                    value: _logoSize,
+                    min: 30,
+                    max: 100,
+                    divisions: 70, // 1px steps
+                    label: '${_logoSize.round()}px',
+                    onChanged: _processing
+                        ? null
+                        : (value) {
+                            setState(() {
+                              _logoSize = value;
+                            });
+                          },
                   ),
                 ],
-              ],
-            );
+              );
+            }
 
             final sliders = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2935,9 +3033,9 @@ class _WatermarkPageState extends State<WatermarkPage>
         Text(l10n.densityValue(_density.round())),
         Slider(
           value: _density,
-          min: 20,
-          max: 100,
-          divisions: 16,
+          min: 10,
+          max: 90,
+          divisions: 16, // (90-10)/5 = 16 intervals of 5%
           onChanged: _processing
               ? null
               : (value) {
@@ -3220,7 +3318,8 @@ class _WatermarkPageState extends State<WatermarkPage>
             watermarkText: _textController.text,
             useRandomColor: _useRandomColor,
             selectedColorValue: _selectedColor.toARGB32(),
-            fontSize: _fontSize,
+            fontSize:
+                _watermarkType == WatermarkType.text ? _fontSize : _logoSize,
             font: _selectedFont,
             jpegQuality: _jpegQuality,
             targetSize: _targetSize,
@@ -3231,6 +3330,8 @@ class _WatermarkPageState extends State<WatermarkPage>
             antiAiLevel: _antiAiLevel,
             useSteganography: shouldApplyStegano,
             useRobustSteganography: _useRobustSteganography,
+            watermarkType: _watermarkType,
+            watermarkImageBytes: _watermarkImageBytes,
             steganographyPassword: _hidingPassword,
             hiddenFileName: _hideFileWithSteganography ? _hiddenFileName : null,
             hiddenFileBytes:
@@ -3395,6 +3496,7 @@ class _WatermarkPageState extends State<WatermarkPage>
     }
     setState(() {
       _dragging = false;
+      _logoDragging = false;
       _processing = false;
       _progress = 0.0;
       _progressMessage = '';
@@ -3410,6 +3512,7 @@ class _WatermarkPageState extends State<WatermarkPage>
 
       // Reset expert settings
       _fontSize = 24.0;
+      _logoSize = 100.0;
       _jpegQuality = 75;
       _targetSize = null;
       _includeTimestamp = true;
@@ -3427,7 +3530,45 @@ class _WatermarkPageState extends State<WatermarkPage>
       _selectedColor = Colors.deepPurple;
       _selectedFont = WatermarkFont.arial;
       _steganographyVerificationFailed = false;
+      _watermarkType = WatermarkType.text;
+      _watermarkImageBytes = null;
+      _watermarkImageName = null;
     });
+  }
+
+  Future<void> _selectWatermarkImage() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+        withData: true,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        setState(() {
+          _watermarkImageBytes = file.bytes;
+          _watermarkImageName = file.name;
+        });
+        _addLog('Watermark image selected: ${file.name}');
+      }
+    } catch (e) {
+      _addLog('Error picking watermark image: $e');
+    }
+  }
+
+  Future<void> _loadLogoFromPath(String path) async {
+    try {
+      final file = File(path);
+      final bytes = await file.readAsBytes();
+      setState(() {
+        _watermarkImageBytes = bytes;
+        _watermarkImageName = p.basename(path);
+      });
+      _addLog('Watermark image loaded from drop: ${p.basename(path)}');
+    } catch (e) {
+      _addLog('Error loading dropped logo: $e');
+    }
   }
 
   Future<void> _applyWatermark() async {

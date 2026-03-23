@@ -246,6 +246,30 @@ abstract class AppLocalizations {
   /// **'Reset'**
   String get reset;
 
+  /// No description provided for @watermarkTypeText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get watermarkTypeText;
+
+  /// No description provided for @watermarkTypeImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Image/Logo'**
+  String get watermarkTypeImage;
+
+  /// No description provided for @selectWatermarkImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Logo Image'**
+  String get selectWatermarkImage;
+
+  /// No description provided for @selectedWatermarkImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Logo: {name}'**
+  String selectedWatermarkImage(String name);
+
   /// No description provided for @watermarkTextLabel.
   ///
   /// In en, this message translates to:
@@ -377,6 +401,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Font Size: {value}px'**
   String fontSizeValue(int value);
+
+  /// No description provided for @logoSizeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Logo Size: {value}px'**
+  String logoSizeLabel(int value);
 
   /// No description provided for @jpegQualityValue.
   ///

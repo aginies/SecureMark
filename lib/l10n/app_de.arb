@@ -55,6 +55,17 @@
   "saveAll": "Alle speichern",
   "shareAll": "Alle teilen",
   "reset": "Zurücksetzen",
+  "watermarkTypeText": "Text",
+  "watermarkTypeImage": "Bild/Logo",
+  "selectWatermarkImage": "Logo auswählen",
+  "selectedWatermarkImage": "Logo: {name}",
+  "@selectedWatermarkImage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "watermarkTextLabel": "Text zum Stempeln (+Datum-Uhrzeit)",
   "watermarkTextHint": "Geben Sie den Text zum Stempeln ein",
   "randomColor": "Zufällige Farbe",
@@ -140,6 +151,14 @@
   "expertOptions": "Experten-Optionen",
   "fontSizeValue": "Schriftgröße: {value}px",
   "@fontSizeValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "logoSizeLabel": "Logo-Größe: {value}px",
+  "@logoSizeLabel": {
     "placeholders": {
       "value": {
         "type": "int"
@@ -239,6 +258,9 @@
   "fileAnalyzerTitle": "Datei-Analysator (LSB)",
   "fileAnalyzerDescription": "Wählen Sie eine Datei aus, um nach versteckten SecureMark-Signaturen zu suchen.",
   "pickAndAnalyze": "Auswählen und analysieren",
+  "encryptedFileDetected": "🔐 Verschlüsselte Datei erkannt: {name}. Bitte geben Sie das korrekte Passwort ein.",
+  "hiddenFileDetected": "📁 Versteckte Datei erkannt: {name} ({size})",
+  "encryptedSignatureDetected": "🔐 Verschlüsselte Signatur erkannt. Bitte geben Sie das korrekte Passwort ein.",
   "signatureFound": "✅ Signatur gefunden: \"{message}\"",
   "@signatureFound": {
     "placeholders": {
