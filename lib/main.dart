@@ -3299,6 +3299,9 @@ class _WatermarkPageState extends State<WatermarkPage>
                     : _statusMessage)
                 : _progressMessage;
 
+            // Show error state when processing is complete and there were failures
+            final hasError = !_processing && failedFiles.isNotEmpty;
+
             return AlertDialog(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20)),
@@ -3306,28 +3309,35 @@ class _WatermarkPageState extends State<WatermarkPage>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const SizedBox(height: 16),
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      SizedBox(
-                        width: 80,
-                        height: 80,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 6,
-                          value: _progress > 0 ? _progress : null,
-                          backgroundColor:
-                              theme.colorScheme.surfaceContainerHighest,
+                  if (hasError)
+                    Icon(
+                      Icons.error_outline,
+                      size: 80,
+                      color: theme.colorScheme.error,
+                    )
+                  else
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 80,
+                          height: 80,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 6,
+                            value: _progress > 0 ? _progress : null,
+                            backgroundColor:
+                                theme.colorScheme.surfaceContainerHighest,
+                          ),
                         ),
-                      ),
-                      Text(
-                        _elapsedTime,
-                        style: theme.textTheme.titleSmall
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
+                        Text(
+                          _elapsedTime,
+                          style: theme.textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
                   const SizedBox(height: 24),
-                  Text(l10n.applyingWatermark,
+                  Text(hasError ? l10n.processingFailed : l10n.applyingWatermark,
                       style: theme.textTheme.titleMedium),
                   const SizedBox(height: 8),
                   Text(
@@ -3335,7 +3345,7 @@ class _WatermarkPageState extends State<WatermarkPage>
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium,
                   ),
-                  if (_progress > 0) ...[
+                  if (_progress > 0 && !hasError) ...[
                     const SizedBox(height: 12),
                     LinearProgressIndicator(
                       value: _progress,
@@ -3355,8 +3365,13 @@ class _WatermarkPageState extends State<WatermarkPage>
                   ],
                   const SizedBox(height: 24),
                   TextButton(
-                    onPressed: _cancelProcessing,
-                    child: Text(l10n.cancel),
+                    onPressed: hasError
+                        ? () {
+                            _progressListener = null;
+                            Navigator.of(context, rootNavigator: true).pop();
+                          }
+                        : _cancelProcessing,
+                    child: Text(hasError ? l10n.close : l10n.cancel),
                   ),
                 ],
               ),
@@ -3463,17 +3478,9 @@ class _WatermarkPageState extends State<WatermarkPage>
           _addLog('Total files failed so far: ${failedFiles.length}');
 
           if (mounted) {
-            setState(() {
-              _statusMessage = e is WatermarkError
-                  ? e.userMessage
-                  : l10n.errorPrefix(e.toString());
-            });
-            _progressListener?.call();
-
-            // Show dialog for file too large error with detailed information
-            if (e is WatermarkError &&
-                e.message.contains('too large to hide')) {
-              // Parse error message: File "name" (size KB) is too large to hide in this image (dimensions). Maximum capacity: max KB
+            // Format error message for steganography capacity errors
+            String errorMessage;
+            if (e is WatermarkError && e.message.contains('too large to hide')) {
               final match = RegExp(
                       r'File "([^"]+)" \(([0-9.]+) KB\) is too large to hide in this image \(([^)]+)\)\. Maximum capacity: ([0-9.]+) KB')
                   .firstMatch(e.message);
@@ -3482,27 +3489,25 @@ class _WatermarkPageState extends State<WatermarkPage>
                 final fileSize = match.group(2) ?? '';
                 final imageDimensions = match.group(3) ?? '';
                 final maxCapacity = match.group(4) ?? '';
-
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text(l10n.fileTooLargeTitle),
-                    content: Text(l10n.fileTooLargeMessage(
-                      extractedFileName,
-                      fileSize,
-                      imageDimensions,
-                      maxCapacity,
-                    )),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: Text(l10n.close),
-                      ),
-                    ],
-                  ),
+                errorMessage = l10n.fileTooLargeMessage(
+                  extractedFileName,
+                  fileSize,
+                  imageDimensions,
+                  maxCapacity,
                 );
+              } else {
+                errorMessage = e.userMessage;
               }
+            } else {
+              errorMessage = e is WatermarkError
+                  ? e.userMessage
+                  : l10n.errorPrefix(e.toString());
             }
+
+            setState(() {
+              _statusMessage = errorMessage;
+            });
+            _progressListener?.call();
           }
         }
       }
@@ -3512,12 +3517,14 @@ class _WatermarkPageState extends State<WatermarkPage>
           'Processing loop complete: ${processedFiles.length} succeeded, ${failedFiles.length} failed out of ${paths.length} total');
     } finally {
       _stopStopwatch();
-      // Close dialog when done or cancelled
-      if (mounted && dialogOpened) {
+      // Close dialog when done or cancelled (but NOT on error - user must click Close)
+      // Keep dialog open if there's at least one error
+      final hasError = failedFiles.isNotEmpty;
+      if (mounted && dialogOpened && !hasError) {
         // Use the root navigator to be sure we're popping the dialog
         Navigator.of(context, rootNavigator: true).pop();
+        _progressListener = null;
       }
-      _progressListener = null;
 
       if (mounted) {
         if (_cancellationToken?.isCancelled == true) {
@@ -3545,6 +3552,7 @@ class _WatermarkPageState extends State<WatermarkPage>
             _addLog('Steganography verification failed for all files');
           }
 
+          // Only update status message if there's no detailed error already set
           var successMessage = processedFiles.isEmpty
               ? l10n.processingFailed
               : failedFiles.isEmpty
@@ -3560,7 +3568,10 @@ class _WatermarkPageState extends State<WatermarkPage>
           setState(() {
             _processedFiles = processedFiles;
             _previewIndex = 0;
-            _statusMessage = successMessage;
+            // Preserve detailed error message if it exists, otherwise use generic success message
+            if (_statusMessage.isEmpty || !_statusMessage.contains('\n')) {
+              _statusMessage = successMessage;
+            }
             _processing = false;
             _progress = 1.0;
             _steganographyVerificationFailed = steganographyFailed;

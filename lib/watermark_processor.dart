@@ -67,6 +67,11 @@ class WatermarkError implements Exception {
 
   /// Get user-friendly error message
   String get userMessage {
+    // Check for specific steganography capacity error
+    if (message.contains('too large to hide')) {
+      return message;
+    }
+
     switch (type) {
       case WatermarkErrorType.unsupportedFileType:
         return 'This file type is not supported. Please use JPG, PNG, or PDF files.';
