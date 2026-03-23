@@ -1,0 +1,474 @@
+{
+  "@@locale": "de",
+  "appTitle": "SecureMark",
+  "emptyPreviewHint": "Geben Sie den Wasserzeichen-Text ein und wählen Sie eine oder mehrere Bild- oder PDF-Dateien aus",
+  "selectedPreviewHint": "Dateien ausgewählt. Klicken Sie auf SecureMark anwenden, um Vorschauen zu generieren",
+  "selectedFilesLabel": "Ausgewählte Dateien ({count})",
+  "@selectedFilesLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clickApplyToPreview": "Klicken Sie auf "SecureMark anwenden", um Vorschauen zu generieren",
+  "previewUnavailable": "Vorschau nicht verfügbar",
+  "swipeHint": "Nach links für nächste, nach rechts für vorherige wischen ({current}/{total})",
+  "@swipeHint": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "processingFile": "Datei wird verarbeitet...",
+  "applyingWatermark": "Wasserzeichen wird angewendet...",
+  "processingValidating": "Datei wird validiert...",
+  "processingProcessing": "Datei wird verarbeitet...",
+  "processingCached": "Aus dem Cache abgerufen",
+  "processingComplete": "Verarbeitung abgeschlossen",
+  "processingFlattening": "PDF wird gerastert (flattening)...",
+  "authorFooter": "Autor: Antoine Giniès",
+  "pickFiles": "Bilder oder PDF",
+  "selectedFile": "Ausgewählte Datei: {name}",
+  "@selectedFile": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "selectedFiles": "Ausgewählte Dateien: {count}",
+  "@selectedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "applyWatermark": "SecureMark anwenden",
+  "saveAll": "Alle speichern",
+  "shareAll": "Alle teilen",
+  "reset": "Zurücksetzen",
+  "watermarkTextLabel": "Text zum Stempeln (+Datum-Uhrzeit)",
+  "watermarkTextHint": "Geben Sie den Text zum Stempeln ein",
+  "randomColor": "Zufällige Farbe",
+  "selectedColor": "Ausgewählte Farbe",
+  "transparencyValue": "Wasserzeichen-Transparenz: {value}%",
+  "@transparencyValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "densityValue": "Dichte: {value}%",
+  "@densityValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "droppedPathUnavailable": "Die Pfade der abgelegten Dateien sind nicht verfügbar.",
+  "desktopDropArea": "Dateien hier ablegen",
+  "pickerLabel": "Bilder und PDFs",
+  "processingCount": "Verarbeite 1/{count} Dateien...",
+  "@processingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "processingNamedFile": "Verarbeite {current}/{total}: {name}",
+  "@processingNamedFile": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "processingFailed": "Nicht unterstützte Datei oder Verarbeitung fehlgeschlagen.",
+  "errorPrefix": "Fehler: {error}",
+  "@errorPrefix": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "savedFiles": "{count, plural, one {1 Datei gespeichert} other {{count} Dateien gespeichert}}.",
+  "@savedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareSubject": "Wasserzeichen-Dateien",
+  "shareText": "Geteilt von SecureMark",
+  "sharedFiles": "{count, plural, one {1 Datei geteilt} other {{count} Dateien geteilt}}.",
+  "@sharedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shareOpenedFiles": "Teilen-Dialog geöffnet für {count, plural, one {1 Datei} other {{count} Dateien}}.",
+  "@shareOpenedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cancel": "Abbrechen",
+  "saveLocationInfo": "Dateien werden im selben Ordner wie die Originale mit dem Präfix 'securemark-' gespeichert",
+  "expertOptions": "Experten-Optionen",
+  "fontSizeValue": "Schriftgröße: {value}px",
+  "@fontSizeValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "jpegQualityValue": "JPEG-Qualität: {value}%",
+  "@jpegQualityValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "imageResizingLabel": "Bildgrößenänderung: {size}",
+  "@imageResizingLabel": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "resizeNone": "Keine (Original)",
+  "pixelUnit": "{value} px",
+  "@pixelUnit": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "includeTimestampFilename": "Datum & Uhrzeit in den Dateinamen aufnehmen",
+  "preserveExifData": "Datei-Metadaten beibehalten (EXIF/PDF Info)",
+  "rasterizePdfTitle": "PDF rastern (Flatten)",
+  "rasterizePdfSubtitle": "Konvertieren Sie PDF-Seiten in Bilder für maximale Sicherheit (größere Datei und langsamer)",
+  "steganographyTitle": "Steganographie (Unsichtbare Signatur)",
+  "steganographySubtitle": "Text heimlich in Pixeln einbetten.",
+  "robustSteganographyTitle": "Robustes Wasserzeichen (DCT-Domäne)",
+  "robustSteganographySubtitle": "Experimentell: Übersteht Re-Kompression und Größenänderung besser als LSB.",
+  "filePrefixLabel": "Datei-Präfix",
+  "filePrefixHint": "z.B. wasserzeichen-",
+  "resetExpertHint": "Dies setzt alle Experten-Einstellungen und das Datei-Präfix auf die Standardwerte zurück.",
+  "fontStyleLabel": "Schriftstil",
+  "fontSelectionNote": "Hinweis: Verwendung optimierter Bitmap-Schriften für schnelles plattformübergreifendes Rendering.",
+  "fontSelectionNoteGoogle": "Hinweis: Verwendung von Google Fonts für verbesserte Typografie. Erfordert Internetverbindung bei der ersten Verwendung.",
+  "fontSelectionNoteAsset": "Hinweis: Verwendung einer benutzerdefinierten TTF-Schrift für verbesserte Typografie. Erfordert Schriftdateien in assets/fonts/.",
+  "resetToDefaults": "Auf Standardwerte zurücksetzen",
+  "outputDirectoryLabel": "Ausgabeverzeichnis: {path}",
+  "@outputDirectoryLabel": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "selectOutputDirectory": "Ausgabeverzeichnis wählen",
+  "viewLogs": "Protokolle anzeigen",
+  "saveLogs": "Protokolle speichern",
+  "logsSaved": "Protokolle gespeichert unter: {path}",
+  "@logsSaved": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "appLogs": "App-Protokolle",
+  "noLogsYet": "Noch keine Protokolle",
+  "openGitHub": "GitHub-Repository öffnen",
+  "close": "Schließen",
+  "aboutApp": "Über SecureMark",
+  "appDescription": "Eine professionelle Anwendung zur Sicherung von Dokumenten mit Wasserzeichen für den sicheren Austausch.",
+  "authorLabel": "Autor: {name}",
+  "@authorLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "checkForUpdates": "Nach Updates suchen",
+  "checkingForUpdates": "Suche nach Updates...",
+  "upToDate": "Sie verwenden die neueste Version.",
+  "updateAvailable": "Eine neue Version ({version}) ist verfügbar!",
+  "@updateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateCheckError": "Suche nach Updates fehlgeschlagen.",
+  "githubRepository": "GitHub-Repository",
+  "privacyPolicy": "Datenschutzerklärung",
+  "viewUpdate": "Ansehen",
+  "analyzeFile": "Datei analysieren (LSB)",
+  "fileAnalyzerTitle": "Datei-Analysator (LSB)",
+  "fileAnalyzerDescription": "Wählen Sie eine Datei aus, um nach versteckten SecureMark-Signaturen zu suchen.",
+  "pickAndAnalyze": "Auswählen und analysieren",
+  "signatureFound": "✅ Signatur gefunden: "{message}"",
+  "@signatureFound": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "robustSignatureFound": "💪 Robuste Signatur gefunden: "{message}"",
+  "@robustSignatureFound": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "noSignatureFound": "❌ Keine SecureMark-Signatur in dieser Datei erkannt.",
+  "analysisError": "Fehler bei der Analyse: {error}",
+  "@analysisError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "analysisResult": "Ergebnis:",
+  "steganographyVerified": "Steganographie verifiziert",
+  "steganographyVerificationFailed": "Steganographie-Verifizierung fehlgeschlagen",
+  "steganographyEnabledHint": "Steganographie ist aktiviert und wird angewendet",
+  "hideFileWithSteganographyTitle": "Eine Datei verstecken (experimentell)",
+  "hideFileWithSteganographySubtitle": "Eine ganze Datei in das Bild einbetten (kann die Ausgabegröße erhöhen)",
+  "selectFileToHide": "Zu versteckende Datei auswählen",
+  "selectedHiddenFile": "Versteckte Datei: {name}",
+  "@selectedHiddenFile": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "hiddenFileSecurityWarning": "Sicherheitshinweis: Versteckte Dateien sind nur sicher, wenn sie vor dem Einbetten verschlüsselt wurden. Steganographie verschleiert, verschlüsselt aber nicht Ihre Daten.",
+  "steganographyPasswordLabel": "Verschlüsselungspasswort",
+  "steganographyPasswordHint": "Passwort zum Schutz der versteckten Datei eingeben",
+  "steganographyPasswordNote": "Hinweis: Dieses Passwort wird benötigt, um die versteckte Datei mit SecureMark zu extrahieren. Es verwendet AES-256-Verschlüsselung.",
+  "zipAllFiles": "Alle Dateien zippen",
+  "zipEnabledHint": "ZIP-Komprimierung für den Austausch aktiviert",
+  "zipDisabledHint": "ZIP-Komprimierung deaktiviert",
+  "qrWatermarkTitle": "QR-Code-Wasserzeichen",
+  "enableQrWatermark": "QR-Code aktivieren",
+  "enableQrWatermarkSubtitle": "Metadaten in einen QR-Code einbetten",
+  "qrMode": "QR-Code-Modus",
+  "qrVisibleMode": "Sichtbarer QR-Code",
+  "qrVisibleModeDesc": "QR-Code auf dem Bild anzeigen",
+  "qrAuthorLabel": "Autor-Name",
+  "qrAuthorHint": "z.B. Max Mustermann",
+  "qrUrlLabel": "URL oder Webseite",
+  "qrUrlHint": "z.B. https://example.com",
+  "qrVisibleOptions": "Optionen für sichtbaren QR",
+  "qrPositionLabel": "QR-Code-Position",
+  "qrPosTopLeft": "Oben links",
+  "qrPosTopRight": "Oben rechts",
+  "qrPosBottomLeft": "Unten links",
+  "qrPosBottomRight": "Unten rechts",
+  "qrPosCenter": "Mitte",
+  "qrSizeValue": "QR-Code-Größe: {value}px",
+  "@qrSizeValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "qrOpacityValue": "QR-Code-Deckkraft: {value}%",
+  "@qrOpacityValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "receivedFilesFromSharing": "📥 {count} Datei(en) über Teilen erhalten",
+  "@receivedFilesFromSharing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unsupportedSharedFormat": "⚠️ Geteilte Dateien haben kein unterstütztes Format (JPG, PNG, WebP, PDF, HEIC/HEIF)",
+  "signatureCopied": "Signatur in die Zwischenablage kopiert",
+  "saveHiddenFile": "Versteckte Datei speichern",
+  "fileSaved": "Datei gespeichert: {name}",
+  "@fileSaved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "errorSavingFile": "Fehler beim Speichern der Datei: {error}",
+  "@errorSavingFile": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "antiAiProtectionValue": "Anti-IA-Schutz: {value}%",
+  "@antiAiProtectionValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "antiAiProtectionNote": "Hinweis: Ein höherer Schutz erhöht die Zeit zur Generierung des SecureMark-Bildes erheblich.",
+  "qrContentType": "QR-Inhaltstyp",
+  "qrTypeMetadata": "Metadaten (JSON)",
+  "qrTypeUrl": "Webseiten-Weiterleitung",
+  "qrTypeVCard": "Kontakt (vCard)",
+  "vCardFirstName": "Vorname",
+  "vCardLastName": "Nachname",
+  "vCardPhone": "Telefonnummer",
+  "vCardEmail": "E-Mail-Adresse",
+  "vCardOrg": "Organisation",
+  "invalidUrlError": "Bitte geben Sie eine gültige URL ein (z.B. https://example.com)",
+  "noQrFound": "❌ Kein QR-Code erkannt",
+  "abToggleTooltipOriginal": "Original anzeigen",
+  "abToggleTooltipProcessed": "Verarbeitet anzeigen",
+  "processingCancelled": "Verarbeitung abgebrochen",
+  "processingStatusMultiple": "{successCount} Dateien erfolgreich verarbeitet. {failedCount} Dateien fehlgeschlagen.",
+  "@processingStatusMultiple": {
+    "placeholders": {
+      "successCount": {
+        "type": "int"
+      },
+      "failedCount": {
+        "type": "int"
+      }
+    }
+  },
+  "processingFailedSingle": "Datei konnte nicht verarbeitet werden. Bitte überprüfen Sie das Dateiformat und versuchen Sie es erneut.",
+  "processingFailedMultiple": "{count} Dateien konnten nicht verarbeitet werden. Bitte überprüfen Sie die Dateiformate und versuchen Sie es erneut.",
+  "@processingFailedMultiple": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fileSavedTo": "Datei gespeichert unter: {path}",
+  "@fileSavedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "saveFailedGeneral": "Dateien konnten nicht gespeichert werden. Bitte überprüfen Sie die Berechtigungen und den Speicherplatz.",
+  "saveStatusMultiple": "{successCount} Dateien gespeichert. {failedCount} Dateien fehlgeschlagen.",
+  "@saveStatusMultiple": {
+    "placeholders": {
+      "successCount": {
+        "type": "int"
+      },
+      "failedCount": {
+        "type": "int"
+      }
+    }
+  },
+  "filesSavedTitle": "Dateien gespeichert",
+  "successfullySavedCount": "{count, plural, one {1 Datei erfolgreich gespeichert} other {{count} Dateien erfolgreich gespeichert}}:",
+  "@successfullySavedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "failedSavedCount": "{count, plural, one {1 Datei konnte nicht gespeichert werden} other {{count} Dateien konnten nicht gespeichert werden}}:",
+  "@failedSavedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "willSaveAsIn": "Wird gespeichert als: {name} in {path}/",
+  "@willSaveAsIn": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "willSaveMultipleIn": "Wird {count} Dateien speichern in: {path}/",
+  "@willSaveMultipleIn": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "savingFiles": "Dateien werden gespeichert...",
+  "errorSavingFiles": "Fehler beim Speichern der Dateien: {error}",
+  "@errorSavingFiles": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "foregroundTaskTitle": "SecureMark Verarbeitung",
+  "foregroundTaskDescription": "Fortschritt der Dokumenten-Wasserzeichen-Anwendung anzeigen",
+  "foregroundTaskUpdate": "Verarbeite Datei {current} von {total}: {name}",
+  "@foregroundTaskUpdate": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  }
+}
