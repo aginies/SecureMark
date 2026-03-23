@@ -474,30 +474,6 @@ abstract class AppLocalizations {
   /// **'PDF will be rasterized (flattened)'**
   String get rasterizePdfEnabledHint;
 
-  /// No description provided for @ghostPdfLayerTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Ghost PDF Layer (Copy-Evident)'**
-  String get ghostPdfLayerTitle;
-
-  /// No description provided for @ghostPdfLayerSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Adds a hidden layer visible only when printed (e.g., \'UNAUTHORIZED COPY\').'**
-  String get ghostPdfLayerSubtitle;
-
-  /// No description provided for @ghostPdfLayerEnabledHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Ghost PDF layer is active'**
-  String get ghostPdfLayerEnabledHint;
-
-  /// No description provided for @ghostPdfTextLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Ghost Text (e.g., VOID)'**
-  String get ghostPdfTextLabel;
-
   /// No description provided for @steganographyTitle.
   ///
   /// In en, this message translates to:

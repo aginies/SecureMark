@@ -152,9 +152,6 @@ class _WatermarkPageState extends State<WatermarkPage>
   bool _useSteganography = false;
   bool _useRobustSteganography = false;
   bool _useAiCloaking = false;
-  bool _useGhostPdfLayer = false;
-  final TextEditingController _ghostPdfTextController =
-      TextEditingController(text: 'UNAUTHORIZED COPY');
   bool _steganographyVerificationFailed = false;
   bool _useRandomColor = true;
   Color _selectedColor = Colors.red;
@@ -2021,35 +2018,6 @@ class _WatermarkPageState extends State<WatermarkPage>
                         _savePreference('rasterizePdf', value ?? false);
                       },
                     ),
-                    CheckboxListTile(
-                      title: Text(l10n.ghostPdfLayerTitle),
-                      subtitle: Text(l10n.ghostPdfLayerSubtitle),
-                      value: _useGhostPdfLayer,
-                      contentPadding: EdgeInsets.zero,
-                      onChanged: (value) {
-                        final bool enabled = value ?? false;
-                        setDialogState(() {
-                          _useGhostPdfLayer = enabled;
-                        });
-                        setState(() {
-                          _useGhostPdfLayer = enabled;
-                        });
-                        _savePreference('useGhostPdfLayer', enabled);
-                      },
-                    ),
-                    if (_useGhostPdfLayer) ...[
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _ghostPdfTextController,
-                        decoration: InputDecoration(
-                          labelText: l10n.ghostPdfTextLabel,
-                          border: const OutlineInputBorder(),
-                        ),
-                        onChanged: (value) {
-                          _savePreference('ghostPdfText', value);
-                        },
-                      ),
-                    ],
                     const SizedBox(height: 16),
                     Text(l10n.antiAiProtectionValue(_antiAiLevel.round()),
                         style: theme.textTheme.titleSmall),
@@ -2744,7 +2712,6 @@ class _WatermarkPageState extends State<WatermarkPage>
         _zipOutputs ||
         _antiAiLevel > 0 ||
         _useAiCloaking ||
-        _useGhostPdfLayer ||
         _rasterizePdf ||
         _preserveMetadata ||
         (_hideFileWithSteganography && _hiddenFileBytes != null))) {
@@ -2862,18 +2829,6 @@ class _WatermarkPageState extends State<WatermarkPage>
                       padding: EdgeInsets.symmetric(horizontal: 8.0),
                       child: Icon(Icons.visibility_off_outlined,
                           color: Colors.teal),
-                    ),
-                  ),
-                ),
-              if (_useGhostPdfLayer)
-                GestureDetector(
-                  onDoubleTap: _showExpertOptions,
-                  child: Tooltip(
-                    message: l10n.ghostPdfLayerEnabledHint,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Icon(Icons.print_disabled_outlined,
-                          color: Colors.blueGrey),
                     ),
                   ),
                 ),
@@ -3540,8 +3495,6 @@ class _WatermarkPageState extends State<WatermarkPage>
             useSteganography: shouldApplyStegano,
             useRobustSteganography: _useRobustSteganography,
             useAiCloaking: _useAiCloaking,
-            useGhostPdfLayer: _useGhostPdfLayer,
-            ghostPdfText: _ghostPdfTextController.text,
             watermarkType: _watermarkType,
             watermarkImageBytes: _watermarkImageBytes,
             steganographyPassword: _hidingPassword,

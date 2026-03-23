@@ -259,19 +259,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get rasterizePdfEnabledHint => 'Le PDF sera rasterisé (aplatir)';
 
   @override
-  String get ghostPdfLayerTitle => 'Calque PDF Fantôme (Anti-Copie)';
-
-  @override
-  String get ghostPdfLayerSubtitle =>
-      'Ajoute un calque invisible à l\'écran mais visible à l\'impression (ex: \'COPIE NON AUTORISÉE\').';
-
-  @override
-  String get ghostPdfLayerEnabledHint => 'Le calque PDF fantôme est actif';
-
-  @override
-  String get ghostPdfTextLabel => 'Texte Fantôme (ex: VOID)';
-
-  @override
   String get steganographyTitle => 'Stéganographie (Signature Invisible)';
 
   @override

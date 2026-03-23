@@ -258,19 +258,6 @@ class AppLocalizationsIt extends AppLocalizations {
       'Il PDF verrà rasterizzato (appiattito)';
 
   @override
-  String get ghostPdfLayerTitle => 'Livello PDF Fantasma (Anti-Copia)';
-
-  @override
-  String get ghostPdfLayerSubtitle =>
-      'Aggiunge un livello nascosto visibile solo durante la stampa (es. \'COPIA NON AUTORIZZATA\').';
-
-  @override
-  String get ghostPdfLayerEnabledHint => 'Il livello PDF fantasma è attivo';
-
-  @override
-  String get ghostPdfTextLabel => 'Testo Fantasma (es. VOID)';
-
-  @override
   String get steganographyTitle => 'Steganografia (Firma invisibile)';
 
   @override

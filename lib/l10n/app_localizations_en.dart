@@ -255,19 +255,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get rasterizePdfEnabledHint => 'PDF will be rasterized (flattened)';
 
   @override
-  String get ghostPdfLayerTitle => 'Ghost PDF Layer (Copy-Evident)';
-
-  @override
-  String get ghostPdfLayerSubtitle =>
-      'Adds a hidden layer visible only when printed (e.g., \'UNAUTHORIZED COPY\').';
-
-  @override
-  String get ghostPdfLayerEnabledHint => 'Ghost PDF layer is active';
-
-  @override
-  String get ghostPdfTextLabel => 'Ghost Text (e.g., VOID)';
-
-  @override
   String get steganographyTitle => 'Steganography (Invisible Signature)';
 
   @override
