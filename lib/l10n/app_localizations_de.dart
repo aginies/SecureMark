@@ -471,7 +471,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get steganographyZipNote =>
-      'Wichtig: Wenn Sie Steganographie verwenden und diese Dateien über WhatsApp, Signal oder andere Apps, die Bilder komprimieren, teilen, müssen Sie die ZIP-Komprimierung aktivieren (in den Expertenoptionen) oder sie manuell zippen. Direktes Teilen zerstört normalerweise die unsichtbare Steganographie.';
+      'Wichtig: Wenn Sie Steganographie verwenden und diese Dateien über WhatsApp, Signal oder andere Apps, die Bilder komprimieren, teilen, müssen Sie die ZIP-Komprimierung aktivieren oder sie manuell zippen. Direktes Teilen zerstört normalerweise die unsichtbare Steganographie.';
 
   @override
   String get zipAllFiles => 'Alle Dateien zippen';

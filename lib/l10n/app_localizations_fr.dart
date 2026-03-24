@@ -473,7 +473,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get steganographyZipNote =>
-      'Important : Si vous utilisez la stéganographie et partagez ces fichiers via WhatsApp, Signal ou d\'autres applications qui compressent les images, vous devez activer la compression ZIP (dans les Options Expert) ou les zipper manuellement. Le partage direct détruit généralement la stéganographie invisible.';
+      'Important : Si vous utilisez la stéganographie et partagez ces fichiers via WhatsApp, Signal ou d\'autres applications qui compressent les images, vous devez activer la compression ZIP ou les zipper manuellement. Le partage direct détruit généralement la stéganographie invisible.';
 
   @override
   String get zipAllFiles => 'Zipper tous les fichiers';

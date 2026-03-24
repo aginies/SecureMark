@@ -581,5 +581,30 @@
   "themeLabel": "Thème",
   "themeSystem": "Système",
   "themeLight": "Clair",
-  "themeDark": "Sombre"
+  "themeDark": "Sombre",
+  "resetProfiles": "Réinitialiser les profils",
+  "resetProfileConfirm": "Réinitialiser {profile} aux valeurs d'usine ?",
+  "@resetProfileConfirm": {
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      }
+    }
+  },
+  "profileSaved": "Configuration actuelle enregistrée par défaut pour {profile}",
+  "@profileSaved": {
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      }
+    }
+  },
+  "profileReset": "Profil {profile} réinitialisé aux valeurs d'usine",
+  "@profileReset": {
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      }
+    }
+  }
 }

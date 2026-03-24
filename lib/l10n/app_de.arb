@@ -581,5 +581,30 @@
   "themeLabel": "Design",
   "themeSystem": "Systemstandard",
   "themeLight": "Hell",
-  "themeDark": "Dunkel"
+  "themeDark": "Dunkel",
+  "resetProfiles": "Profile zurücksetzen",
+  "resetProfileConfirm": "{profile} auf Werkseinstellungen zurücksetzen?",
+  "@resetProfileConfirm": {
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      }
+    }
+  },
+  "profileSaved": "Aktuelle Konfiguration als Standard für {profile} gespeichert",
+  "@profileSaved": {
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      }
+    }
+  },
+  "profileReset": "Profil {profile} auf Werkseinstellungen zurückgesetzt",
+  "@profileReset": {
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      }
+    }
+  }
 }
