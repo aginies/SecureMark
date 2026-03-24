@@ -521,5 +521,12 @@
         "type": "String"
       }
     }
-  }
+  },
+  "profileLabel": "Profilo",
+  "profileDescription": "Preselezioni rapide per casi d'uso comuni",
+  "profileNone": "Nessuno",
+  "profileSecureIdentity": "Identità Sicura",
+  "profileOnlineImage": "Immagine Online",
+  "profileQrCode": "Codice QR",
+  "profileShareDocument": "Condividi Documento"
 }

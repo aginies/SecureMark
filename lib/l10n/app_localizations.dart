@@ -1212,6 +1212,48 @@ abstract class AppLocalizations {
   /// **'The file \"{fileName}\" ({fileSize} KB) is too large to hide in this image ({imageDimensions}).\n\nMaximum capacity: {maxCapacity} KB\n\nPlease use a larger image or compress/reduce the file size.'**
   String fileTooLargeMessage(String fileName, String fileSize,
       String imageDimensions, String maxCapacity);
+
+  /// No description provided for @profileLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileLabel;
+
+  /// No description provided for @profileDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick presets for common use cases'**
+  String get profileDescription;
+
+  /// No description provided for @profileNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get profileNone;
+
+  /// No description provided for @profileSecureIdentity.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure Identity'**
+  String get profileSecureIdentity;
+
+  /// No description provided for @profileOnlineImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Online Image'**
+  String get profileOnlineImage;
+
+  /// No description provided for @profileQrCode.
+  ///
+  /// In en, this message translates to:
+  /// **'QR Code'**
+  String get profileQrCode;
+
+  /// No description provided for @profileShareDocument.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Document'**
+  String get profileShareDocument;
 }
 
 class _AppLocalizationsDelegate

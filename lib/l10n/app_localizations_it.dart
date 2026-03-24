@@ -716,4 +716,25 @@ class AppLocalizationsIt extends AppLocalizations {
       String imageDimensions, String maxCapacity) {
     return 'Il file \"$fileName\" ($fileSize KB) è troppo grande per essere nascosto in questa immagine ($imageDimensions).\n\nCapacità massima: $maxCapacity KB\n\nSi prega di utilizzare un\'immagine più grande o comprimere/ridurre la dimensione del file.';
   }
+
+  @override
+  String get profileLabel => 'Profilo';
+
+  @override
+  String get profileDescription => 'Preselezioni rapide per casi d\'uso comuni';
+
+  @override
+  String get profileNone => 'Nessuno';
+
+  @override
+  String get profileSecureIdentity => 'Identità Sicura';
+
+  @override
+  String get profileOnlineImage => 'Immagine Online';
+
+  @override
+  String get profileQrCode => 'Codice QR';
+
+  @override
+  String get profileShareDocument => 'Condividi Documento';
 }

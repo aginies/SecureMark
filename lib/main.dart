@@ -117,6 +117,14 @@ class WatermarkPage extends StatefulWidget {
   State<WatermarkPage> createState() => _WatermarkPageState();
 }
 
+enum SettingsProfile {
+  none, // No profile applied (default)
+  secureIdentity, // High-quality secure documents
+  onlineImage, // Web sharing with steganography
+  qrCode, // QR code enabled
+  shareDocument, // Balanced quality and visibility for sharing
+}
+
 class _WatermarkPageState extends State<WatermarkPage>
     with WidgetsBindingObserver {
   final TextEditingController _textController = TextEditingController();
@@ -155,6 +163,7 @@ class _WatermarkPageState extends State<WatermarkPage>
   bool _steganographyVerificationFailed = false;
   bool _useRandomColor = true;
   Color _selectedColor = Colors.red;
+  SettingsProfile _selectedProfile = SettingsProfile.none;
   bool _dragging = false;
   bool _logoDragging = false;
   bool _processing = false;
@@ -285,6 +294,7 @@ class _WatermarkPageState extends State<WatermarkPage>
           _rasterizePdf = prefs.getBool('rasterizePdf') ?? false;
           _filePrefix = prefs.getString('filePrefix') ?? 'securemark-';
           _antiAiLevel = prefs.getDouble('antiAiLevel') ?? 50.0;
+          _useAiCloaking = prefs.getBool('useAiCloaking') ?? false;
           _useSteganography = prefs.getBool('useSteganography') ?? false;
           _useRobustSteganography =
               prefs.getBool('useRobustSteganography') ?? false;
@@ -307,6 +317,13 @@ class _WatermarkPageState extends State<WatermarkPage>
             } catch (_) {
               // Keep default if not found
             }
+          }
+
+          // Load settings profile
+          final profileIndex = prefs.getInt('selectedProfile') ?? 0;
+          if (profileIndex >= 0 &&
+              profileIndex < SettingsProfile.values.length) {
+            _selectedProfile = SettingsProfile.values[profileIndex];
           }
 
           // Load QR watermark preferences
@@ -384,6 +401,135 @@ class _WatermarkPageState extends State<WatermarkPage>
       }
     } catch (e) {
       _addLog('Error saving preference $key: $e');
+    }
+  }
+
+  void _applyProfile(SettingsProfile profile) {
+    setState(() {
+      _selectedProfile = profile;
+
+      // If not "None", reset all settings to defaults except QR data, output dir, and file prefix
+      if (profile != SettingsProfile.none) {
+        // Preserve QR code data
+        final preservedQrAuthor = _qrAuthor;
+        final preservedQrUrl = _qrUrl;
+        final preservedQrType = _qrType;
+        final preservedVCardFirstName = _vCardFirstName;
+        final preservedVCardLastName = _vCardLastName;
+        final preservedVCardPhone = _vCardPhone;
+        final preservedVCardEmail = _vCardEmail;
+        final preservedVCardOrg = _vCardOrg;
+        final preservedQrPosition = _qrPosition;
+        final preservedQrSize = _qrSize;
+        final preservedQrOpacity = _qrOpacity;
+
+        // Preserve output directory and file prefix
+        final preservedOutputDir = _outputDirectory;
+        final preservedFilePrefix = _filePrefix;
+
+        // Reset all settings to defaults
+        _transparency = 75;
+        _density = 35;
+        _fontSize = 24;
+        _logoSize = 100;
+        _jpegQuality = 75;
+        _targetSize = 1280;
+        _includeTimestamp = true;
+        _preserveMetadata = false;
+        _rasterizePdf = false;
+        _antiAiLevel = 50.0;
+        _useSteganography = false;
+        _useRobustSteganography = false;
+        _useAiCloaking = false;
+        _hideFileWithSteganography = false;
+        _useRandomColor = true;
+        _selectedColor = Colors.deepPurple;
+        _selectedFont = WatermarkFont.arial;
+        _qrVisible = false;
+
+        // Restore preserved values
+        _qrAuthor = preservedQrAuthor;
+        _qrUrl = preservedQrUrl;
+        _qrType = preservedQrType;
+        _vCardFirstName = preservedVCardFirstName;
+        _vCardLastName = preservedVCardLastName;
+        _vCardPhone = preservedVCardPhone;
+        _vCardEmail = preservedVCardEmail;
+        _vCardOrg = preservedVCardOrg;
+        _qrPosition = preservedQrPosition;
+        _qrSize = preservedQrSize;
+        _qrOpacity = preservedQrOpacity;
+        _outputDirectory = preservedOutputDir;
+        _filePrefix = preservedFilePrefix;
+      }
+
+      // Apply profile-specific settings
+      switch (profile) {
+        case SettingsProfile.none:
+          // No changes - keep current settings
+          break;
+
+        case SettingsProfile.secureIdentity:
+          _targetSize = 1280;
+          _transparency = 65;
+          _density = 35;
+          _jpegQuality = 75;
+          _antiAiLevel = 100;
+          _useAiCloaking = true;
+          break;
+
+        case SettingsProfile.onlineImage:
+          _useSteganography = true;
+          _useRobustSteganography = true;
+          _useAiCloaking = true;
+          _transparency = 90;
+          break;
+
+        case SettingsProfile.qrCode:
+          _qrVisible = true;
+          _transparency = 100;
+          _useSteganography = false;
+          _useRobustSteganography = false;
+          _hideFileWithSteganography = false;
+          _antiAiLevel = 0;
+          _useAiCloaking = false;
+          _targetSize = 1600;
+          _preserveMetadata = false;
+          break;
+
+        case SettingsProfile.shareDocument:
+          _targetSize = 1600;
+          _transparency = 50;
+          _density = 40;
+          _jpegQuality = 80;
+          _antiAiLevel = 75;
+          _useAiCloaking = true;
+          break;
+      }
+    });
+
+    // Save all changed settings
+    _savePreference('selectedProfile', profile.index);
+
+    if (profile != SettingsProfile.none) {
+      // Save all reset defaults (excluding preserved QR data, output dir, file prefix)
+      _savePreference('transparency', _transparency);
+      _savePreference('density', _density);
+      _savePreference('fontSize', _fontSize);
+      _savePreference('jpegQuality', _jpegQuality);
+      _savePreference('targetSize', _targetSize);
+      _savePreference('includeTimestamp', _includeTimestamp);
+      _savePreference('preserveMetadata', _preserveMetadata);
+      _savePreference('rasterizePdf', _rasterizePdf);
+      _savePreference('antiAiLevel', _antiAiLevel);
+      _savePreference('useSteganography', _useSteganography);
+      _savePreference('useRobustSteganography', _useRobustSteganography);
+      _savePreference('useAiCloaking', _useAiCloaking);
+      _savePreference('hideFileWithSteganography', _hideFileWithSteganography);
+      _savePreference('useRandomColor', _useRandomColor);
+      _savePreference('selectedColor', _selectedColor.toARGB32());
+      _savePreference('selectedFont', _selectedFont.fontFamily);
+      _savePreference('qrVisible', _qrVisible);
     }
   }
 
@@ -1888,6 +2034,63 @@ class _WatermarkPageState extends State<WatermarkPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 8),
+                    // Profile Selection
+                    Row(
+                      children: [
+                        const Icon(Icons.bookmark_outline, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          l10n.profileLabel,
+                          style: theme.textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: theme.colorScheme.outline),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                      child: DropdownButton<SettingsProfile>(
+                        value: _selectedProfile,
+                        isExpanded: true,
+                        underline: const SizedBox(),
+                        hint: Text(l10n.profileDescription),
+                        items: [
+                          DropdownMenuItem(
+                            value: SettingsProfile.none,
+                            child: Text(l10n.profileNone),
+                          ),
+                          DropdownMenuItem(
+                            value: SettingsProfile.secureIdentity,
+                            child: Text(l10n.profileSecureIdentity),
+                          ),
+                          DropdownMenuItem(
+                            value: SettingsProfile.onlineImage,
+                            child: Text(l10n.profileOnlineImage),
+                          ),
+                          DropdownMenuItem(
+                            value: SettingsProfile.qrCode,
+                            child: Text(l10n.profileQrCode),
+                          ),
+                          DropdownMenuItem(
+                            value: SettingsProfile.shareDocument,
+                            child: Text(l10n.profileShareDocument),
+                          ),
+                        ],
+                        onChanged: (profile) {
+                          if (profile != null) {
+                            _applyProfile(profile);
+                            setDialogState(() {});
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Divider(color: theme.colorScheme.outlineVariant),
+                    const SizedBox(height: 16),
                     TextField(
                       decoration: InputDecoration(
                         labelText: l10n.filePrefixLabel,
