@@ -80,14 +80,14 @@ void main() {
 class SecureMarkApp extends StatefulWidget {
   const SecureMarkApp({super.key});
 
-  static _SecureMarkAppState of(BuildContext context) =>
-      context.findAncestorStateOfType<_SecureMarkAppState>()!;
+  static SecureMarkAppState of(BuildContext context) =>
+      context.findAncestorStateOfType<SecureMarkAppState>()!;
 
   @override
-  State<SecureMarkApp> createState() => _SecureMarkAppState();
+  State<SecureMarkApp> createState() => SecureMarkAppState();
 }
 
-class _SecureMarkAppState extends State<SecureMarkApp> {
+class SecureMarkAppState extends State<SecureMarkApp> {
   ThemeMode _themeMode = ThemeMode.system;
 
   @override
@@ -1135,6 +1135,7 @@ class _WatermarkPageState extends State<WatermarkPage>
           mimeType: 'text/plain',
         );
         await logFile.saveTo(logPath);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.logsSaved(p.basename(logPath))),
@@ -1144,6 +1145,7 @@ class _WatermarkPageState extends State<WatermarkPage>
       } else {
         final File defaultFile = File(logPath);
         await defaultFile.writeAsString(logContent);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Logs saved to ${p.basename(logPath)}'),
@@ -1609,8 +1611,10 @@ class _WatermarkPageState extends State<WatermarkPage>
     try {
       final bytes =
           pickedFile.bytes ?? await File(pickedFile.path!).readAsBytes();
+      if (!mounted) return;
       await _performFileAnalysis(bytes, pickedFile.name, setDialogState);
     } catch (e) {
+      if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
       setDialogState(() {
         _analysisResult = l10n.analysisError(e.toString());
@@ -4554,12 +4558,12 @@ class _WatermarkPageState extends State<WatermarkPage>
       if (!kIsWeb &&
           (Platform.isLinux || Platform.isMacOS || Platform.isWindows)) {
         // Use file_selector for desktop platforms (better initialDirectory support)
-        final XTypeGroup typeGroup = XTypeGroup(
+        const XTypeGroup typeGroup = XTypeGroup(
           label: 'images',
           extensions: <String>['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'],
         );
         final XFile? file = await openFile(
-          acceptedTypeGroups: <XTypeGroup>[typeGroup],
+          acceptedTypeGroups: const <XTypeGroup>[typeGroup],
           initialDirectory: _logoDirectory,
         );
 
