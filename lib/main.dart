@@ -931,23 +931,6 @@ class _WatermarkPageState extends State<WatermarkPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Icon(
-              Icons.category,
-              size: 24,
-              color: theme.colorScheme.primary,
-            ),
-            const SizedBox(width: 8.0),
-            Text(
-              l10n.profileLabel,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-          ],
-        ),
         const SizedBox(height: 4.0),
         if (isMobile)
           SingleChildScrollView(
@@ -1070,26 +1053,45 @@ class _WatermarkPageState extends State<WatermarkPage>
         "${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}";
     final suggestedName = "securemark_logs_$timestamp.txt";
 
+    // Let the user choose a location, but if they cancel, save to default internal storage.
+    FileSaveLocation? selectedLocation;
     try {
-      final FileSaveLocation? saveLocation = await getSaveLocation(
-        suggestedName: suggestedName,
-      );
+      selectedLocation = await getSaveLocation(suggestedName: suggestedName);
+    } catch (_) {
+      selectedLocation = null;
+    }
 
-      if (saveLocation == null) return;
+    String logPath;
+    if (selectedLocation != null) {
+      logPath = selectedLocation.path;
+    } else {
+      // Default: write directly to the app's documents directory (no UI prompt).
+      final docsDir = await getApplicationDocumentsDirectory();
+      logPath = '${docsDir.path}/securemark_logs_$timestamp.txt';
+    }
 
-      final logContent = _logs.join('\n');
-      final logFile = XFile.fromData(
-        Uint8List.fromList(utf8.encode(logContent)),
-        name: suggestedName,
-        mimeType: 'text/plain',
-      );
+    final logContent = _logs.join('\n');
 
-      await logFile.saveTo(saveLocation.path);
-
-      if (mounted) {
+    try {
+      if (selectedLocation != null) {
+        final logFile = XFile.fromData(
+          Uint8List.fromList(utf8.encode(logContent)),
+          name: suggestedName,
+          mimeType: 'text/plain',
+        );
+        await logFile.saveTo(logPath);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.logsSaved(p.basename(saveLocation.path))),
+            content: Text(l10n.logsSaved(p.basename(logPath))),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } else {
+        final File defaultFile = File(logPath);
+        await defaultFile.writeAsString(logContent);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Logs saved to ${p.basename(logPath)}'),
             duration: const Duration(seconds: 3),
           ),
         );
