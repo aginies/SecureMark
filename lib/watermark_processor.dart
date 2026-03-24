@@ -2534,8 +2534,8 @@ class WatermarkProcessor {
     return t.trim().isEmpty ? '$d $s' : '${t.trim()} $d $s';
   }
 
-  /// Applies adversarial AI cloaking by injecting high-frequency noise in the DCT domain.
-  /// This disrupts style and content extraction by AI models while being mostly invisible.
+  /// Applies adversarial AI cloaking with multi-band frequency attacks.
+  /// Disrupts style transfer, CNN feature extraction, and OCR while remaining imperceptible.
   static img.Image _applyAiCloaking(img.Image image) {
     final width = image.width;
     final height = image.height;
@@ -2544,53 +2544,109 @@ class WatermarkProcessor {
 
     final output = img.Image.from(image);
 
+    // Pre-compute edge map and text regions for adaptive processing
+    final edgeMap = _computeEdgeMap(image, numBlocksX, numBlocksY);
+    final textMap = _detectTextRegions(image, numBlocksX, numBlocksY);
+
     for (var by = 0; by < numBlocksY; by++) {
       for (var bx = 0; bx < numBlocksX; bx++) {
         final blockY = List<double>.filled(64, 0.0);
         final blockCb = List<double>.filled(64, 0.0);
         final blockCr = List<double>.filled(64, 0.0);
 
-        // 1. Extract YCbCr
+        // 1. Extract YCbCr for all channels
         for (var y = 0; y < 8; y++) {
           for (var x = 0; x < 8; x++) {
             final p = image.getPixel(bx * 8 + x, by * 8 + y);
-            // standard YCbCr conversion
             blockY[y * 8 + x] = 0.299 * p.r + 0.587 * p.g + 0.114 * p.b;
             blockCb[y * 8 + x] = -0.1687 * p.r - 0.3313 * p.g + 0.5 * p.b + 128;
             blockCr[y * 8 + x] = 0.5 * p.r - 0.4187 * p.g - 0.0813 * p.b + 128;
           }
         }
 
-        // 2. DCT
+        // 2. DCT transform all channels
         final dctY = _dct8x8(blockY);
+        final dctCb = _dct8x8(blockCb);
+        final dctCr = _dct8x8(blockCr);
 
-        // 3. Inject adversarial noise in high-frequency coefficients
-        // We avoid DC [0,0] and very low freq to stay invisible
-        // We target high freq to disrupt fine style/texture extraction
+        // 3. Texture-aware adaptive strength
+        final variance = _calculateVariance(blockY);
+        final isTextured = variance > 400;
+        final isEdge = edgeMap[by * numBlocksX + bx] > 0.3;
+        final isText = textMap[by * numBlocksX + bx] > 0.4;
+
+        // Base strength multipliers
+        final baseStrength = isTextured ? 1.5 : 1.0;
+        final edgeMultiplier = isEdge ? 0.7 : 1.0; // Reduce on edges for invisibility
+        final textMultiplier = isText ? 1.3 : 1.0; // Boost in text regions
+
+        // 4. Multi-band adversarial attacks
         for (var i = 1; i < 64; i++) {
-          // Use a deterministic but "noisy" pattern based on block position
-          final noise =
-              (sin((bx + by + i) * 10.0) * 12.0) * (_random.nextDouble() + 0.5);
-          // Only modify high frequency coeffs (zigzag index > 20 approx)
-          if (i > 32) {
-            dctY[i] += noise;
+          final u = i % 8;
+          final v = i ~/ 8;
+          final freq = u + v; // Approximate frequency
+
+          // Deterministic but pseudo-random noise
+          final seed = (bx * 73 + by * 137 + i * 211) % 1000;
+          final noiseBase = (sin(seed * 0.01) * 2.0 - 1.0);
+
+          double attackStrength = 0.0;
+
+          // Low-mid frequencies (8-20): Gram matrix / style transfer attack
+          if (freq >= 8 && freq < 20) {
+            attackStrength = 18.0 * baseStrength * edgeMultiplier;
+            dctY[i] += noiseBase * attackStrength;
+            // Anti-correlate Cb/Cr to disrupt color statistics
+            dctCb[i] += noiseBase * attackStrength * -0.5;
+            dctCr[i] += noiseBase * attackStrength * 0.5;
+          }
+
+          // Mid frequencies (20-40): CNN feature extraction attack
+          if (freq >= 20 && freq < 40) {
+            attackStrength = 25.0 * baseStrength * textMultiplier;
+            dctY[i] += noiseBase * attackStrength;
+            dctCb[i] += noiseBase * attackStrength * 0.3;
+            dctCr[i] += noiseBase * attackStrength * -0.3;
+          }
+
+          // High frequencies (40-64): Fine texture disruption
+          if (freq >= 40) {
+            attackStrength = 15.0 * baseStrength;
+            dctY[i] += noiseBase * attackStrength;
+          }
+
+          // OCR-specific attacks in text regions
+          if (isText) {
+            // Target horizontal baselines (rows 2-4)
+            if (v >= 2 && v <= 4 && u >= 3 && u <= 6) {
+              dctY[i] += noiseBase * 12.0;
+            }
+            // Target vertical character strokes (columns 3-5)
+            if (u >= 3 && u <= 5 && v >= 1 && v <= 6) {
+              dctY[i] += noiseBase * 10.0;
+            }
+            // Disrupt connected components (corners)
+            if ((u <= 2 && v <= 2) || (u >= 6 && v >= 6)) {
+              dctY[i] += noiseBase * 8.0;
+            }
           }
         }
 
-        // 4. IDCT
+        // 5. IDCT back to spatial domain
         final newY = _idct8x8(dctY);
+        final newCb = _idct8x8(dctCb);
+        final newCr = _idct8x8(dctCr);
 
-        // 5. Reconstruct RGB
+        // 6. Reconstruct RGB with perceptual masking
         for (var y = 0; y < 8; y++) {
           for (var x = 0; x < 8; x++) {
             final yVal = newY[y * 8 + x];
-            final cb = blockCb[y * 8 + x] - 128;
-            final cr = blockCr[y * 8 + x] - 128;
+            final cbVal = newCb[y * 8 + x] - 128;
+            final crVal = newCr[y * 8 + x] - 128;
 
-            final r = (yVal + 1.402 * cr).clamp(0, 255).toInt();
-            final g =
-                (yVal - 0.344136 * cb - 0.714136 * cr).clamp(0, 255).toInt();
-            final b = (yVal + 1.772 * cb).clamp(0, 255).toInt();
+            final r = (yVal + 1.402 * crVal).clamp(0, 255).toInt();
+            final g = (yVal - 0.344136 * cbVal - 0.714136 * crVal).clamp(0, 255).toInt();
+            final b = (yVal + 1.772 * cbVal).clamp(0, 255).toInt();
 
             output.setPixel(bx * 8 + x, by * 8 + y, img.ColorRgb8(r, g, b));
           }
@@ -2598,6 +2654,128 @@ class WatermarkProcessor {
       }
     }
     return output;
+  }
+
+  /// Computes edge strength map for adaptive processing
+  static List<double> _computeEdgeMap(img.Image image, int numBlocksX, int numBlocksY) {
+    final edgeMap = List<double>.filled(numBlocksX * numBlocksY, 0.0);
+
+    for (var by = 0; by < numBlocksY; by++) {
+      for (var bx = 0; bx < numBlocksX; bx++) {
+        double edgeStrength = 0.0;
+        int count = 0;
+
+        // Sample edge strength within this block
+        for (var y = 0; y < 8; y++) {
+          for (var x = 0; x < 8; x++) {
+            final px = bx * 8 + x;
+            final py = by * 8 + y;
+
+            if (px >= image.width - 1 || py >= image.height - 1) continue;
+
+            final p = image.getPixel(px, py);
+            final gray = 0.299 * p.r + 0.587 * p.g + 0.114 * p.b;
+
+            // Sobel-like gradient
+            final pRight = image.getPixel(px + 1, py);
+            final pDown = image.getPixel(px, py + 1);
+
+            final grayRight = 0.299 * pRight.r + 0.587 * pRight.g + 0.114 * pRight.b;
+            final grayDown = 0.299 * pDown.r + 0.587 * pDown.g + 0.114 * pDown.b;
+
+            final gx = (gray - grayRight).abs();
+            final gy = (gray - grayDown).abs();
+
+            edgeStrength += (gx + gy) / 2;
+            count++;
+          }
+        }
+
+        edgeMap[by * numBlocksX + bx] = count > 0 ? (edgeStrength / count) / 255.0 : 0.0;
+      }
+    }
+
+    return edgeMap;
+  }
+
+  /// Calculates variance of a block for texture detection
+  static double _calculateVariance(List<double> blockY) {
+    if (blockY.isEmpty) return 0.0;
+    final mean = blockY.reduce((a, b) => a + b) / blockY.length;
+    double variance = 0.0;
+    for (final val in blockY) {
+      final diff = val - mean;
+      variance += diff * diff;
+    }
+    return variance / blockY.length;
+  }
+
+  /// Detects text regions using edge patterns and variance
+  static List<double> _detectTextRegions(img.Image image, int numBlocksX, int numBlocksY) {
+    final textMap = List<double>.filled(numBlocksX * numBlocksY, 0.0);
+
+    for (var by = 0; by < numBlocksY; by++) {
+      for (var bx = 0; bx < numBlocksX; bx++) {
+        double variance = 0.0;
+        double horizontalEdges = 0.0;
+        double verticalEdges = 0.0;
+        final values = <double>[];
+
+        for (var y = 0; y < 8; y++) {
+          for (var x = 0; x < 8; x++) {
+            final px = bx * 8 + x;
+            final py = by * 8 + y;
+
+            if (px >= image.width || py >= image.height) continue;
+
+            final pixel = image.getPixel(px, py);
+            final gray = 0.299 * pixel.r + 0.587 * pixel.g + 0.114 * pixel.b;
+            values.add(gray);
+
+            // Edge detection
+            if (px < image.width - 1) {
+              final pRight = image.getPixel(px + 1, py);
+              final grayRight = 0.299 * pRight.r + 0.587 * pRight.g + 0.114 * pRight.b;
+              verticalEdges += (gray - grayRight).abs();
+            }
+
+            if (py < image.height - 1) {
+              final pDown = image.getPixel(px, py + 1);
+              final grayDown = 0.299 * pDown.r + 0.587 * pDown.g + 0.114 * pDown.b;
+              horizontalEdges += (gray - grayDown).abs();
+            }
+          }
+        }
+
+        // Calculate variance
+        if (values.isNotEmpty) {
+          final mean = values.reduce((a, b) => a + b) / values.length;
+          for (final val in values) {
+            final diff = val - mean;
+            variance += diff * diff;
+          }
+          variance /= values.length;
+        }
+
+        // Text characteristics:
+        // 1. Moderate variance (200-800)
+        // 2. Strong horizontal edges (text lines/baselines)
+        // 3. Strong vertical edges (character strokes)
+        // 4. Vertical edges stronger than horizontal
+
+        final normalizedVariance = (variance > 200 && variance < 800) ? 1.0 : 0.0;
+        final normalizedHorizontal = (horizontalEdges / (8 * 8 * 255.0)).clamp(0.0, 1.0);
+        final normalizedVertical = (verticalEdges / (8 * 8 * 255.0)).clamp(0.0, 1.0);
+
+        final textScore = normalizedVariance * 0.3 +
+                          normalizedHorizontal * 0.3 +
+                          normalizedVertical * 0.4;
+
+        textMap[by * numBlocksX + bx] = textScore.clamp(0.0, 1.0);
+      }
+    }
+
+    return textMap;
   }
 
   // --- Robust DCT Watermarking (Frequency Domain) ---

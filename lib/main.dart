@@ -2522,15 +2522,14 @@ class _WatermarkPageState extends State<WatermarkPage>
                         return Stack(
                           children: [
                             GestureDetector(
-                              onDoubleTap: () {
+                              onDoubleTapDown: (details) {
                                 final currentScale = _transformationController
                                     .value
                                     .getMaxScaleOnAxis();
-                                // Smart zoom: cycle through 1.0 -> 2.0 -> 3.0 -> 1.0
                                 final targetScale = currentScale <= 1.0
-                                    ? 2.0
-                                    : currentScale <= 2.0
-                                        ? 3.0
+                                    ? 2.5
+                                    : currentScale <= 2.5
+                                        ? 4.0
                                         : 1.0;
 
                                 if (!kIsWeb &&
@@ -2538,9 +2537,22 @@ class _WatermarkPageState extends State<WatermarkPage>
                                   HapticFeedback.lightImpact();
                                 }
 
-                                _transformationController.value =
-                                    Matrix4.diagonal3Values(
-                                        targetScale, targetScale, 1.0);
+                                if (targetScale == 1.0) {
+                                  _transformationController.value =
+                                      Matrix4.identity();
+                                } else {
+                                  // Calculate new matrix for zooming at point
+                                  final tapPosition = details.localPosition;
+                                  final newMatrix = Matrix4.identity()
+                                    ..translateByDouble(
+                                        tapPosition.dx, tapPosition.dy, 0, 1)
+                                    ..scaleByDouble(
+                                        targetScale, targetScale, 1, 1)
+                                    ..translateByDouble(
+                                        -tapPosition.dx, -tapPosition.dy, 0, 1);
+
+                                  _transformationController.value = newMatrix;
+                                }
                               },
                               child: InteractiveViewer(
                                 transformationController:
@@ -2549,6 +2561,7 @@ class _WatermarkPageState extends State<WatermarkPage>
                                 maxScale: 4.0,
                                 panEnabled: true,
                                 scaleEnabled: true,
+                                constrained: true,
                                 child: Center(
                                   child: Image.memory(
                                     _showOriginalPreview
