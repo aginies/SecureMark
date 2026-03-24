@@ -582,6 +582,7 @@
   "themeSystem": "Systemstandard",
   "themeLight": "Hell",
   "themeDark": "Dunkel",
+  "themeAmoled": "Amoled Schwarz",
   "resetProfiles": "Profile zurücksetzen",
   "resetProfileConfirm": "{profile} auf Werkseinstellungen zurücksetzen?",
   "@resetProfileConfirm": {

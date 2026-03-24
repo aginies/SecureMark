@@ -860,6 +860,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get themeDark => 'Sombre';
 
   @override
+  String get themeAmoled => 'Noir Pur (AMOLED)';
+
+  @override
   String get resetProfiles => 'Réinitialiser les profils';
 
   @override

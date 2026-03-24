@@ -1473,6 +1473,12 @@ abstract class AppLocalizations {
   /// **'Dark'**
   String get themeDark;
 
+  /// No description provided for @themeAmoled.
+  ///
+  /// In en, this message translates to:
+  /// **'Amoled Black'**
+  String get themeAmoled;
+
   /// No description provided for @resetProfiles.
   ///
   /// In en, this message translates to:

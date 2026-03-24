@@ -855,6 +855,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get themeDark => 'Scuro';
 
   @override
+  String get themeAmoled => 'Nero AMOLED';
+
+  @override
   String get resetProfiles => 'Ripristina profili';
 
   @override

@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'l10n/app_localizations.dart';
 import 'pages/watermark_page.dart';
 
+enum AppTheme { system, light, dark, amoled }
+
 void main() {
   runApp(const SecureMarkApp());
 }
@@ -20,9 +22,9 @@ class SecureMarkApp extends StatefulWidget {
 }
 
 class SecureMarkAppState extends State<SecureMarkApp> {
-  ThemeMode _themeMode = ThemeMode.system;
+  AppTheme _appTheme = AppTheme.system;
 
-  ThemeMode get themeMode => _themeMode;
+  AppTheme get appTheme => _appTheme;
 
   @override
   void initState() {
@@ -32,24 +34,41 @@ class SecureMarkAppState extends State<SecureMarkApp> {
 
   Future<void> _loadThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
-    final themeIndex = prefs.getInt('themeMode');
+    final themeIndex = prefs.getInt('appTheme');
     if (themeIndex != null) {
       setState(() {
-        _themeMode = ThemeMode.values[themeIndex];
+        _appTheme = AppTheme.values[themeIndex];
       });
     }
   }
 
-  Future<void> setThemeMode(ThemeMode mode) async {
+  Future<void> setThemeMode(AppTheme theme) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('themeMode', mode.index);
+    await prefs.setInt('appTheme', theme.index);
     setState(() {
-      _themeMode = mode;
+      _appTheme = theme;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    ThemeData amoledTheme = ThemeData(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: Colors.deepPurple,
+        brightness: Brightness.dark,
+        surface: Colors.black,
+        surfaceContainer: Colors.black,
+        surfaceContainerHigh: Colors.grey[900],
+        surfaceContainerHighest: Colors.grey[850],
+        surfaceContainerLow: Colors.black,
+        surfaceContainerLowest: Colors.black,
+      ),
+      scaffoldBackgroundColor: Colors.black,
+      cardTheme: const CardThemeData(color: Colors.black),
+      appBarTheme: const AppBarTheme(backgroundColor: Colors.black),
+      useMaterial3: true,
+    );
+
     return MaterialApp(
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       localizationsDelegates: const [
@@ -66,15 +85,32 @@ class SecureMarkAppState extends State<SecureMarkApp> {
         ),
         useMaterial3: true,
       ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
-      themeMode: _themeMode,
+      darkTheme: _appTheme == AppTheme.amoled
+          ? amoledTheme
+          : ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: Colors.deepPurple,
+                brightness: Brightness.dark,
+              ),
+              useMaterial3: true,
+            ),
+      themeMode: _appTheme == AppTheme.amoled
+          ? ThemeMode.dark
+          : _getThemeMode(_appTheme),
       home: const WatermarkPage(),
     );
+  }
+
+  ThemeMode _getThemeMode(AppTheme theme) {
+    switch (theme) {
+      case AppTheme.system:
+        return ThemeMode.system;
+      case AppTheme.light:
+        return ThemeMode.light;
+      case AppTheme.dark:
+        return ThemeMode.dark;
+      default:
+        return ThemeMode.system;
+    }
   }
 }

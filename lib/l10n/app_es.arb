@@ -582,6 +582,7 @@
   "themeSystem": "Predeterminado del sistema",
   "themeLight": "Claro",
   "themeDark": "Oscuro",
+  "themeAmoled": "Negro Amoled",
   "resetProfiles": "Reiniciar perfiles",
   "resetProfileConfirm": "¿Reiniciar {profile} a los valores de fábrica?",
   "@resetProfileConfirm": {

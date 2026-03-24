@@ -597,12 +597,24 @@ class WatermarkPageState extends State<WatermarkPage>
           break;
 
         case SettingsProfile.p1:
-          if (!prefs.containsKey('${pKey}targetSize')) _targetSize = 1280;
-          if (!prefs.containsKey('${pKey}transparency')) _transparency = 75;
-          if (!prefs.containsKey('${pKey}density')) _density = 35;
-          if (!prefs.containsKey('${pKey}jpegQuality')) _jpegQuality = 75;
-          if (!prefs.containsKey('${pKey}antiAiLevel')) _antiAiLevel = 50;
-          if (!prefs.containsKey('${pKey}useAiCloaking')) _useAiCloaking = false;
+          if (!prefs.containsKey('${pKey}targetSize')) {
+            _targetSize = 1280;
+          }
+          if (!prefs.containsKey('${pKey}transparency')) {
+            _transparency = 75;
+          }
+          if (!prefs.containsKey('${pKey}density')) {
+            _density = 35;
+          }
+          if (!prefs.containsKey('${pKey}jpegQuality')) {
+            _jpegQuality = 75;
+          }
+          if (!prefs.containsKey('${pKey}antiAiLevel')) {
+            _antiAiLevel = 50;
+          }
+          if (!prefs.containsKey('${pKey}useAiCloaking')) {
+            _useAiCloaking = false;
+          }
           if (!prefs.containsKey('${pKey}filePrefix')) {
             _filePrefix = 'p1-';
             _filePrefixController.text = _filePrefix;
@@ -1163,12 +1175,7 @@ class WatermarkPageState extends State<WatermarkPage>
                       Colors.transparent,
                       Colors.purple
                     ],
-                    stops: [
-                      0.0,
-                      0.05,
-                      0.95,
-                      1.0
-                    ], // 5% fade on both sides
+                    stops: [0.0, 0.05, 0.95, 1.0], // 5% fade on both sides
                   ).createShader(rect);
                 },
                 blendMode: BlendMode.dstOut,
@@ -2938,21 +2945,25 @@ class WatermarkPageState extends State<WatermarkPage>
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: DropdownButtonHideUnderline(
-                        child: DropdownButton<ThemeMode>(
-                          value: SecureMarkApp.of(context).themeMode,
+                        child: DropdownButton<AppTheme>(
+                          value: SecureMarkApp.of(context).appTheme,
                           isExpanded: true,
                           items: [
                             DropdownMenuItem(
-                              value: ThemeMode.system,
+                              value: AppTheme.system,
                               child: Text(l10n.themeSystem),
                             ),
                             DropdownMenuItem(
-                              value: ThemeMode.light,
+                              value: AppTheme.light,
                               child: Text(l10n.themeLight),
                             ),
                             DropdownMenuItem(
-                              value: ThemeMode.dark,
+                              value: AppTheme.dark,
                               child: Text(l10n.themeDark),
+                            ),
+                            DropdownMenuItem(
+                              value: AppTheme.amoled,
+                              child: Text(l10n.themeAmoled),
                             ),
                           ],
                           onChanged: (mode) {
@@ -5045,16 +5056,14 @@ class WatermarkPageState extends State<WatermarkPage>
       }
 
       final zipData = encoder.encode(archive);
-      if (zipData != null) {
-        final now = DateTime.now();
-        final timestamp =
-            "${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}";
-        final tempDir = await getTemporaryDirectory();
-        final zipPath = p.join(tempDir.path, 'securemark-files-$timestamp.zip');
-        await File(zipPath).writeAsBytes(zipData);
-        _tempFiles.add(zipPath);
-        shareFiles.add(XFile(zipPath, mimeType: 'application/zip'));
-      }
+      final now = DateTime.now();
+      final timestamp =
+          "${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}";
+      final tempDir = await getTemporaryDirectory();
+      final zipPath = p.join(tempDir.path, 'securemark-files-$timestamp.zip');
+      await File(zipPath).writeAsBytes(zipData);
+      _tempFiles.add(zipPath);
+      shareFiles.add(XFile(zipPath, mimeType: 'application/zip'));
     } else {
       for (final file in _processedFiles) {
         String outputPath = file.result.outputPath;

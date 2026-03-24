@@ -127,8 +127,6 @@ class FontLoader {
   Future<void> preloadCommonFonts() async {
     // Pre-load the most popular fonts
     final commonFonts = [
-      WatermarkFont.customRoboto,
-      WatermarkFont.customOpenSans,
       WatermarkFont.roboto,
       WatermarkFont.openSans,
     ];

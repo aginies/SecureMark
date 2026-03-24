@@ -8,8 +8,8 @@ void main() {
   GoogleFonts.config.allowRuntimeFetching = false;
 
   group('WatermarkFont Enum Tests', () {
-    test('Should have exactly 16 fonts', () {
-      expect(WatermarkFont.values.length, 16);
+    test('Should have exactly 13 fonts', () {
+      expect(WatermarkFont.values.length, 13);
     });
 
     test('Verify all font identifiers are unique', () {

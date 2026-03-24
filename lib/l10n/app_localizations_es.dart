@@ -857,6 +857,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get themeDark => 'Oscuro';
 
   @override
+  String get themeAmoled => 'Negro Amoled';
+
+  @override
   String get resetProfiles => 'Reiniciar perfiles';
 
   @override
