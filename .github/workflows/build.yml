@@ -130,12 +130,13 @@ jobs:
             --output appimage
           
           # Move result to a predictable name
-          find . -maxdepth 1 -name "SecureMark*.AppImage" -exec mv {} SecureMark-Linux.AppImage \;
+          VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2 | cut -d '+' -f 1)
+          find . -maxdepth 1 -name "SecureMark*.AppImage" -exec mv {} SecureMark-v$VERSION-Linux.AppImage \;
       - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-release-appimage
-          path: SecureMark-Linux.AppImage
+          path: SecureMark-v*-Linux.AppImage
           if-no-files-found: error
 
   build-ios:
@@ -316,36 +317,37 @@ jobs:
 
       - name: Rename Files for Release
         run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
           # Create release directory
           mkdir -p ./release
           
           # Copy and rename Android APK
           if [ -f "./artifacts/android/app-release.apk" ]; then
-            cp "./artifacts/android/app-release.apk" "./release/SecureMark-Android.apk"
+            cp "./artifacts/android/app-release.apk" "./release/SecureMark-$VERSION-Android.apk"
             echo "✅ Android APK copied successfully"
           fi
           
           # Copy and rename Linux AppImage
-          if [ -f "./artifacts/linux/SecureMark-Linux.AppImage" ]; then
-            cp "./artifacts/linux/SecureMark-Linux.AppImage" "./release/SecureMark-Linux.AppImage"
+          if ls ./artifacts/linux/SecureMark-*-Linux.AppImage 1> /dev/null 2>&1; then
+            cp ./artifacts/linux/SecureMark-*-Linux.AppImage ./release/SecureMark-$VERSION-Linux.AppImage
             echo "✅ Linux AppImage copied successfully"
           fi
 
           # Copy and rename iOS ZIP
           if [ -f "./artifacts/ios/secure-mark-ios.zip" ]; then
-            cp "./artifacts/ios/secure-mark-ios.zip" "./release/SecureMark-iOS.zip"
+            cp "./artifacts/ios/secure-mark-ios.zip" "./release/SecureMark-$VERSION-iOS.zip"
             echo "✅ iOS ZIP copied successfully"
           fi
           
           # Copy and rename Windows ZIP
           if [ -f "./artifacts/windows/secure-mark-windows.zip" ]; then
-            cp "./artifacts/windows/secure-mark-windows.zip" "./release/SecureMark-Windows.zip"
+            cp "./artifacts/windows/secure-mark-windows.zip" "./release/SecureMark-$VERSION-Windows.zip"
             echo "✅ Windows ZIP copied successfully"
           fi
 
           # Copy and rename macOS ZIP
           if [ -f "./artifacts/macos/secure-mark-macos.zip" ]; then
-            cp "./artifacts/macos/secure-mark-macos.zip" "./release/SecureMark-macOS.zip"
+            cp "./artifacts/macos/secure-mark-macos.zip" "./release/SecureMark-$VERSION-macOS.zip"
             echo "✅ macOS ZIP copied successfully"
           fi
           
@@ -354,10 +356,11 @@ jobs:
 
       - name: Verify All Artifacts Present
         run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
           echo "=== Checking for required release files ==="
           MISSING_FILES=0
           
-          for file in "SecureMark-Android.apk" "SecureMark-Linux.AppImage" "SecureMark-iOS.zip" "SecureMark-Windows.zip" "SecureMark-macOS.zip"; do
+          for file in "SecureMark-$VERSION-Android.apk" "SecureMark-$VERSION-Linux.AppImage" "SecureMark-$VERSION-iOS.zip" "SecureMark-$VERSION-Windows.zip" "SecureMark-$VERSION-macOS.zip"; do
             if [ ! -f "./release/$file" ]; then
               echo "❌ $file missing"
               MISSING_FILES=$((MISSING_FILES + 1))
