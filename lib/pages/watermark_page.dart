@@ -616,6 +616,7 @@ class WatermarkPageState extends State<WatermarkPage>
     _savePreference('selectedColor', _selectedColor.toARGB32());
     _savePreference('selectedFont', _selectedFont.fontFamily);
     _savePreference('qrVisible', _qrVisible);
+    _savePreference('filePrefix', _filePrefix);
   }
 
   Future<void> _saveCurrentConfigToProfile(SettingsProfile profile) async {
