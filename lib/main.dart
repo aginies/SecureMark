@@ -2237,7 +2237,7 @@ class _WatermarkPageState extends State<WatermarkPage>
                                     top: -8,
                                     right: -8,
                                     child: GestureDetector(
-                                      onTap: () {
+                                      onTap: () async {
                                         setState(() {
                                           _selectedPaths.removeAt(index);
                                           if (_selectedPaths.isEmpty) {
@@ -2245,14 +2245,15 @@ class _WatermarkPageState extends State<WatermarkPage>
                                             _processedFiles =
                                                 <_ProcessedFile>[];
                                             Navigator.pop(context);
-                                          } else {
-                                            // Trigger re-load of first image if we removed it
-                                            if (index == 0) {
-                                              _selectPaths(
-                                                  List.from(_selectedPaths));
-                                            }
                                           }
                                         });
+
+                                        if (_selectedPaths.isNotEmpty &&
+                                            index == 0) {
+                                          // Trigger re-load of first image if we removed it
+                                          await _selectPaths(
+                                              List.from(_selectedPaths));
+                                        }
                                         setModalState(() {});
                                       },
                                       child: Container(
@@ -2649,318 +2650,334 @@ class _WatermarkPageState extends State<WatermarkPage>
             )
           : _processedFiles.isEmpty
               ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_selectedPaths.isNotEmpty) ...[
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_selectedPaths.isNotEmpty) ...[
+                        Text(
+                          l10n.selectedFilesLabel(_selectedPaths.length),
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: _selectedPaths.length,
+                            itemBuilder: (context, index) {
+                              final fileName =
+                                  p.basename(_selectedPaths[index]);
+                              return ListTile(
+                                leading: Icon(Icons.insert_drive_file_outlined,
+                                    color: theme.colorScheme.primary),
+                                title: Text(fileName),
+                                dense: true,
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          l10n.clickApplyToPreview,
+                          style: theme.textTheme.bodySmall,
+                          textAlign: TextAlign.center,
+                        ),
+                      ] else if (_rawImage != null &&
+                          _shaderProgram != null) ...[
+                        // Live Shader Preview!
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 300),
+                          child: AspectRatio(
+                            aspectRatio: _rawImage!.width / _rawImage!.height,
+                            child: CustomPaint(
+                              painter: WatermarkShaderPainter(
+                                shader: _shaderProgram!.fragmentShader(),
+                                image: _rawImage!,
+                                color: _useRandomColor
+                                    ? Colors.deepPurple
+                                    : _selectedColor,
+                                transparency: _transparency,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          l10n.selectedPreviewHint,
+                          style: theme.textTheme.titleMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                      ] else ...[
+                        Icon(
+                          Icons.touch_app_outlined,
+                          size: 56,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          l10n.emptyPreviewHint,
+                          style: theme.textTheme.titleMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ],
+                  ),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                     Text(
-                      l10n.selectedFilesLabel(_selectedPaths.length),
-                      style: theme.textTheme.titleMedium,
+                      File(_currentProcessedFile!.sourcePath)
+                          .uri
+                          .pathSegments
+                          .last,
+                      style: theme.textTheme.titleSmall,
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
                     Expanded(
-                      child: ListView.builder(
-                        itemCount: _selectedPaths.length,
-                        itemBuilder: (context, index) {
-                          final fileName = p.basename(_selectedPaths[index]);
-                          return ListTile(
-                            leading: Icon(Icons.insert_drive_file_outlined,
-                                color: theme.colorScheme.primary),
-                            title: Text(fileName),
-                            dense: true,
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      l10n.clickApplyToPreview,
-                      style: theme.textTheme.bodySmall,
-                      textAlign: TextAlign.center,
-                    ),
-                  ] else if (_rawImage != null && _shaderProgram != null) ...[
-                    // Live Shader Preview!
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 300),
-                      child: AspectRatio(
-                        aspectRatio: _rawImage!.width / _rawImage!.height,
-                        child: CustomPaint(
-                          painter: WatermarkShaderPainter(
-                            shader: _shaderProgram!.fragmentShader(),
-                            image: _rawImage!,
-                            color: _useRandomColor
-                                ? Colors.deepPurple
-                                : _selectedColor,
-                            transparency: _transparency,
-                          ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: PageView.builder(
+                          controller: _previewController,
+                          itemCount: _processedFiles.length,
+                          onPageChanged: (index) {
+                            setState(() {
+                              _previewIndex = index;
+                            });
+                            // Reset zoom when changing preview
+                            _transformationController.value =
+                                Matrix4.identity();
+                          },
+                          itemBuilder: (context, index) {
+                            final previewBytes =
+                                _processedFiles[index].result.previewBytes;
+                            if (previewBytes == null) {
+                              return Center(
+                                child: Text(
+                                  l10n.previewUnavailable,
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              );
+                            }
+
+                            return Stack(
+                              children: [
+                                GestureDetector(
+                                  onDoubleTapDown: (details) {
+                                    final currentScale =
+                                        _transformationController.value
+                                            .getMaxScaleOnAxis();
+                                    final targetScale = currentScale <= 1.0
+                                        ? 2.5
+                                        : currentScale <= 2.5
+                                            ? 4.0
+                                            : 1.0;
+
+                                    if (!kIsWeb &&
+                                        (Platform.isAndroid ||
+                                            Platform.isIOS)) {
+                                      HapticFeedback.lightImpact();
+                                    }
+
+                                    if (targetScale == 1.0) {
+                                      _transformationController.value =
+                                          Matrix4.identity();
+                                    } else {
+                                      // Calculate new matrix for zooming at point
+                                      final tapPosition = details.localPosition;
+                                      final newMatrix = Matrix4.identity()
+                                        ..translateByDouble(tapPosition.dx,
+                                            tapPosition.dy, 0, 1)
+                                        ..scaleByDouble(
+                                            targetScale, targetScale, 1, 1)
+                                        ..translateByDouble(-tapPosition.dx,
+                                            -tapPosition.dy, 0, 1);
+
+                                      _transformationController.value =
+                                          newMatrix;
+                                    }
+                                  },
+                                  child: InteractiveViewer(
+                                    transformationController:
+                                        _transformationController,
+                                    minScale: 0.5,
+                                    maxScale: 4.0,
+                                    panEnabled: true,
+                                    scaleEnabled: true,
+                                    constrained: true,
+                                    child: Center(
+                                      child: Image.memory(
+                                        _showOriginalPreview
+                                            ? _processedFiles[index]
+                                                .result
+                                                .originalBytes! // Display original
+                                            : previewBytes, // Display processed
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // A/B button
+                                if (_processedFiles[index]
+                                            .result
+                                            .originalBytes !=
+                                        null &&
+                                    !_processedFiles[index].result.isPdf)
+                                  Positioned(
+                                    bottom: 8,
+                                    left: 8,
+                                    child: FloatingActionButton.small(
+                                      heroTag: "ab_toggle_$index",
+                                      onPressed: () {
+                                        setState(() {
+                                          _showOriginalPreview =
+                                              !_showOriginalPreview;
+                                        });
+                                      },
+                                      backgroundColor: theme.colorScheme.surface
+                                          .withValues(alpha: 0.9),
+                                      child: Icon(
+                                        _showOriginalPreview
+                                            ? Icons.flip_to_front
+                                            : Icons.flip_to_back,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                // Steganography verification badge
+                                if (_processedFiles[index]
+                                        .result
+                                        .steganographyVerified ||
+                                    _processedFiles[index]
+                                        .result
+                                        .robustVerified)
+                                  Positioned(
+                                    top: 12,
+                                    right: 12,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green
+                                            .withValues(alpha: 0.85),
+                                        borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black
+                                                .withValues(alpha: 0.2),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.verified_user_outlined,
+                                              color: Colors.white, size: 14),
+                                          SizedBox(width: 6),
+                                          Text(
+                                            'Verified',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                // Navigation arrows for Desktop
+                                if (!kIsWeb &&
+                                    (Platform.isLinux ||
+                                        Platform.isWindows ||
+                                        Platform.isMacOS) &&
+                                    _processedFiles.length > 1) ...[
+                                  Positioned(
+                                    left: 8,
+                                    top: 0,
+                                    bottom: 0,
+                                    child: Center(
+                                      child: IconButton.filledTonal(
+                                        onPressed: _previewIndex > 0
+                                            ? () =>
+                                                _previewController.previousPage(
+                                                    duration: const Duration(
+                                                        milliseconds: 300),
+                                                    curve: Curves.easeInOut)
+                                            : null,
+                                        icon: const Icon(Icons.chevron_left),
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    right: 8,
+                                    top: 0,
+                                    bottom: 0,
+                                    child: Center(
+                                      child: IconButton.filledTonal(
+                                        onPressed: _previewIndex <
+                                                _processedFiles.length - 1
+                                            ? () => _previewController.nextPage(
+                                                duration: const Duration(
+                                                    milliseconds: 300),
+                                                curve: Curves.easeInOut)
+                                            : null,
+                                        icon: const Icon(Icons.chevron_right),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                // Reset zoom button (only visible when zoomed)
+                                ValueListenableBuilder<Matrix4>(
+                                  valueListenable: _transformationController,
+                                  builder: (context, matrix, child) {
+                                    final scale = matrix.getMaxScaleOnAxis();
+                                    if (scale <= 1.0) {
+                                      return const SizedBox.shrink();
+                                    }
+
+                                    return Positioned(
+                                      bottom: 8,
+                                      right: 8,
+                                      child: FloatingActionButton.small(
+                                        heroTag:
+                                            "zoom_reset_$index", // Unique hero tag for PageView
+                                        onPressed: () {
+                                          if (!kIsWeb &&
+                                              (Platform.isAndroid ||
+                                                  Platform.isIOS)) {
+                                            HapticFeedback.lightImpact();
+                                          }
+                                          _transformationController.value =
+                                              Matrix4.identity();
+                                        },
+                                        backgroundColor: theme
+                                            .colorScheme.surface
+                                            .withValues(alpha: 0.9),
+                                        child: const Icon(Icons.zoom_out_map,
+                                            size: 20),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            );
+                          },
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      l10n.selectedPreviewHint,
-                      style: theme.textTheme.titleMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                  ] else ...[
-                    Icon(
-                      Icons.touch_app_outlined,
-                      size: 56,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      l10n.emptyPreviewHint,
-                      style: theme.textTheme.titleMedium,
-                      textAlign: TextAlign.center,
-                    ),
+                    if (_processedFiles.length > 1) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        l10n.swipeHint(
+                            _previewIndex + 1, _processedFiles.length),
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
                   ],
-                ],
-              ),
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  File(_currentProcessedFile!.sourcePath).uri.pathSegments.last,
-                  style: theme.textTheme.titleSmall,
-                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: PageView.builder(
-                      controller: _previewController,
-                      itemCount: _processedFiles.length,
-                      onPageChanged: (index) {
-                        setState(() {
-                          _previewIndex = index;
-                        });
-                        // Reset zoom when changing preview
-                        _transformationController.value = Matrix4.identity();
-                      },
-                      itemBuilder: (context, index) {
-                        final previewBytes =
-                            _processedFiles[index].result.previewBytes;
-                        if (previewBytes == null) {
-                          return Center(
-                            child: Text(
-                              l10n.previewUnavailable,
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                          );
-                        }
-
-                        return Stack(
-                          children: [
-                            GestureDetector(
-                              onDoubleTapDown: (details) {
-                                final currentScale = _transformationController
-                                    .value
-                                    .getMaxScaleOnAxis();
-                                final targetScale = currentScale <= 1.0
-                                    ? 2.5
-                                    : currentScale <= 2.5
-                                        ? 4.0
-                                        : 1.0;
-
-                                if (!kIsWeb &&
-                                    (Platform.isAndroid || Platform.isIOS)) {
-                                  HapticFeedback.lightImpact();
-                                }
-
-                                if (targetScale == 1.0) {
-                                  _transformationController.value =
-                                      Matrix4.identity();
-                                } else {
-                                  // Calculate new matrix for zooming at point
-                                  final tapPosition = details.localPosition;
-                                  final newMatrix = Matrix4.identity()
-                                    ..translateByDouble(
-                                        tapPosition.dx, tapPosition.dy, 0, 1)
-                                    ..scaleByDouble(
-                                        targetScale, targetScale, 1, 1)
-                                    ..translateByDouble(
-                                        -tapPosition.dx, -tapPosition.dy, 0, 1);
-
-                                  _transformationController.value = newMatrix;
-                                }
-                              },
-                              child: InteractiveViewer(
-                                transformationController:
-                                    _transformationController,
-                                minScale: 0.5,
-                                maxScale: 4.0,
-                                panEnabled: true,
-                                scaleEnabled: true,
-                                constrained: true,
-                                child: Center(
-                                  child: Image.memory(
-                                    _showOriginalPreview
-                                        ? _processedFiles[index]
-                                            .result
-                                            .originalBytes! // Display original
-                                        : previewBytes, // Display processed
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // A/B button
-                            if (_processedFiles[index].result.originalBytes !=
-                                    null &&
-                                !_processedFiles[index].result.isPdf)
-                              Positioned(
-                                bottom: 8,
-                                left: 8,
-                                child: FloatingActionButton.small(
-                                  heroTag: "ab_toggle_$index",
-                                  onPressed: () {
-                                    setState(() {
-                                      _showOriginalPreview =
-                                          !_showOriginalPreview;
-                                    });
-                                  },
-                                  backgroundColor: theme.colorScheme.surface
-                                      .withValues(alpha: 0.9),
-                                  child: Icon(
-                                    _showOriginalPreview
-                                        ? Icons.flip_to_front
-                                        : Icons.flip_to_back,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                            // Steganography verification badge
-                            if (_processedFiles[index]
-                                    .result
-                                    .steganographyVerified ||
-                                _processedFiles[index].result.robustVerified)
-                              Positioned(
-                                top: 12,
-                                right: 12,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.withValues(alpha: 0.85),
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color:
-                                            Colors.black.withValues(alpha: 0.2),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.verified_user_outlined,
-                                          color: Colors.white, size: 14),
-                                      SizedBox(width: 6),
-                                      Text(
-                                        'Verified',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            // Navigation arrows for Desktop
-                            if (!kIsWeb &&
-                                (Platform.isLinux ||
-                                    Platform.isWindows ||
-                                    Platform.isMacOS) &&
-                                _processedFiles.length > 1) ...[
-                              Positioned(
-                                left: 8,
-                                top: 0,
-                                bottom: 0,
-                                child: Center(
-                                  child: IconButton.filledTonal(
-                                    onPressed: _previewIndex > 0
-                                        ? () => _previewController.previousPage(
-                                            duration: const Duration(
-                                                milliseconds: 300),
-                                            curve: Curves.easeInOut)
-                                        : null,
-                                    icon: const Icon(Icons.chevron_left),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                right: 8,
-                                top: 0,
-                                bottom: 0,
-                                child: Center(
-                                  child: IconButton.filledTonal(
-                                    onPressed: _previewIndex <
-                                            _processedFiles.length - 1
-                                        ? () => _previewController.nextPage(
-                                            duration: const Duration(
-                                                milliseconds: 300),
-                                            curve: Curves.easeInOut)
-                                        : null,
-                                    icon: const Icon(Icons.chevron_right),
-                                  ),
-                                ),
-                              ),
-                            ],
-                            // Reset zoom button (only visible when zoomed)
-                            ValueListenableBuilder<Matrix4>(
-                              valueListenable: _transformationController,
-                              builder: (context, matrix, child) {
-                                final scale = matrix.getMaxScaleOnAxis();
-                                if (scale <= 1.0) {
-                                  return const SizedBox.shrink();
-                                }
-
-                                return Positioned(
-                                  bottom: 8,
-                                  right: 8,
-                                  child: FloatingActionButton.small(
-                                    heroTag:
-                                        "zoom_reset_$index", // Unique hero tag for PageView
-                                    onPressed: () {
-                                      if (!kIsWeb &&
-                                          (Platform.isAndroid ||
-                                              Platform.isIOS)) {
-                                        HapticFeedback.lightImpact();
-                                      }
-                                      _transformationController.value =
-                                          Matrix4.identity();
-                                    },
-                                    backgroundColor: theme.colorScheme.surface
-                                        .withValues(alpha: 0.9),
-                                    child: const Icon(Icons.zoom_out_map,
-                                        size: 20),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                if (_processedFiles.length > 1) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    l10n.swipeHint(_previewIndex + 1, _processedFiles.length),
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ],
-              ],
-            ),
     );
   }
 
@@ -3127,7 +3144,7 @@ class _WatermarkPageState extends State<WatermarkPage>
                       .whereType<String>()
                       .toSet()
                       .toList();
-                  if (paths.isNotEmpty) _selectPaths(paths);
+                  if (paths.isNotEmpty) await _selectPaths(paths);
                 },
                 child: buildButton(_dragging),
               )
@@ -3704,7 +3721,7 @@ class _WatermarkPageState extends State<WatermarkPage>
       }
 
       _addLog('Captured photo from camera: ${photo.path}');
-      _selectPaths([photo.path]);
+      await _selectPaths([photo.path]);
     } catch (e) {
       _addLog('Error capturing photo: $e');
       if (mounted) {
@@ -3985,7 +4002,10 @@ class _WatermarkPageState extends State<WatermarkPage>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${(_progress * 100).round()}${['fr', 'de'].contains(Localizations.localeOf(context).languageCode) ? ' %' : '%'}',
+                      '${(_progress * 100).round()}${[
+                        'fr',
+                        'de'
+                      ].contains(Localizations.localeOf(context).languageCode) ? ' %' : '%'}',
                       style: theme.textTheme.bodySmall
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),

@@ -1373,7 +1373,8 @@ class WatermarkProcessor {
     SendPort? progressPort,
   }) {
     try {
-      progressPort?.send({'progress': 0.05, 'message': 'progressDecodingImage'});
+      progressPort
+          ?.send({'progress': 0.05, 'message': 'progressDecodingImage'});
       final decoded = img.decodeImage(inputBytes);
       if (decoded == null) {
         throw WatermarkError(
@@ -1383,15 +1384,14 @@ class WatermarkProcessor {
         );
       }
 
-      progressPort?.send({'progress': 0.15, 'message': 'progressResizingImage'});
+      progressPort
+          ?.send({'progress': 0.15, 'message': 'progressResizingImage'});
       final resized = _resizeToTarget(decoded, targetSize);
       var outputImage = img.Image.from(resized);
 
       if (useAiCloaking) {
-        progressPort?.send({
-          'progress': 0.25,
-          'message': 'progressApplyingCloaking'
-        });
+        progressPort
+            ?.send({'progress': 0.25, 'message': 'progressApplyingCloaking'});
         outputImage = _applyAiCloaking(outputImage);
       }
 
@@ -1430,19 +1430,15 @@ class WatermarkProcessor {
       );
 
       if (useRobustSteganography) {
-        progressPort?.send({
-          'progress': 0.80,
-          'message': 'progressEmbeddingRobust'
-        });
+        progressPort
+            ?.send({'progress': 0.80, 'message': 'progressEmbeddingRobust'});
         outputImage = _embedRobustSignature(outputImage, watermarkText);
       }
 
       if (useSteganography) {
         if (hiddenFileName != null && hiddenFileBytes != null) {
-          progressPort?.send({
-            'progress': 0.85,
-            'message': 'progressHidingFile'
-          });
+          progressPort
+              ?.send({'progress': 0.85, 'message': 'progressHidingFile'});
           outputImage = _embedFileIntoImage(
             outputImage,
             hiddenFileName,
@@ -1453,10 +1449,8 @@ class WatermarkProcessor {
           );
         }
         // Always embed watermark text as LSB if steganography is enabled (Blue channel)
-        progressPort?.send({
-          'progress': 0.88,
-          'message': 'progressEmbeddingLsb'
-        });
+        progressPort
+            ?.send({'progress': 0.88, 'message': 'progressEmbeddingLsb'});
         outputImage = _embedLSB(
           outputImage,
           watermarkText,
@@ -1465,7 +1459,8 @@ class WatermarkProcessor {
         );
       }
 
-      progressPort?.send({'progress': 0.90, 'message': 'progressEncodingImage'});
+      progressPort
+          ?.send({'progress': 0.90, 'message': 'progressEncodingImage'});
       final forcePng = useSteganography || useRobustSteganography;
 
       return _encodeImageInOriginalFormat(
