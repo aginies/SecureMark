@@ -96,7 +96,7 @@ class WatermarkPageState extends State<WatermarkPage>
   ui.FragmentProgram? _shaderProgram;
   Stopwatch? _stopwatch;
   Timer? _timer;
-  bool _showOriginalPreview = false;
+  PreviewMode _previewMode = PreviewMode.processed;
   bool _hideFileWithSteganography = false;
   Uint8List? _hiddenFileBytes;
   String? _hiddenFileName;
@@ -3263,39 +3263,78 @@ class WatermarkPageState extends State<WatermarkPage>
                                     constrained: true,
                                     child: Center(
                                       child: Image.memory(
-                                        _showOriginalPreview
+                                        _previewMode == PreviewMode.original
                                             ? _processedFiles[index]
                                                 .result
                                                 .originalBytes!
-                                            : previewBytes,
+                                            : (_previewMode == PreviewMode.heatmap && _processedFiles[index].result.heatmapBytes != null)
+                                                ? _processedFiles[index].result.heatmapBytes!
+                                                : previewBytes,
                                         fit: BoxFit.contain,
                                       ),
                                     ),
                                   ),
                                 ),
-                                if (_processedFiles[index]
-                                            .result
-                                            .originalBytes !=
+                                if (_processedFiles[index].result.originalBytes !=
                                         null &&
                                     !_processedFiles[index].result.isPdf)
                                   Positioned(
                                     bottom: 8,
                                     left: 8,
-                                    child: FloatingActionButton.small(
-                                      heroTag: "ab_toggle_$index",
-                                      onPressed: () {
-                                        setState(() {
-                                          _showOriginalPreview =
-                                              !_showOriginalPreview;
-                                        });
-                                      },
-                                      backgroundColor: theme.colorScheme.surface
-                                          .withValues(alpha: 0.9),
-                                      child: Icon(
-                                        _showOriginalPreview
-                                            ? Icons.flip_to_front
-                                            : Icons.flip_to_back,
-                                        size: 20,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.surface
+                                            .withValues(alpha: 0.9),
+                                        borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black
+                                                .withValues(alpha: 0.1),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 4, vertical: 4),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          _buildPreviewToggleItem(
+                                            label: 'A',
+                                            isSelected: _previewMode ==
+                                                PreviewMode.original,
+                                            onTap: () => setState(() =>
+                                                _previewMode =
+                                                    PreviewMode.original),
+                                            theme: theme,
+                                            tooltip: 'Original',
+                                          ),
+                                          _buildPreviewToggleItem(
+                                            label: 'B',
+                                            isSelected: _previewMode ==
+                                                PreviewMode.processed,
+                                            onTap: () => setState(() =>
+                                                _previewMode =
+                                                    PreviewMode.processed),
+                                            theme: theme,
+                                            tooltip: 'Processed',
+                                          ),
+                                          if (_processedFiles[index]
+                                                  .result
+                                                  .heatmapBytes !=
+                                              null)
+                                            _buildPreviewToggleItem(
+                                              label: 'C',
+                                              isSelected: _previewMode ==
+                                                  PreviewMode.heatmap,
+                                              onTap: () => setState(() =>
+                                                  _previewMode =
+                                                      PreviewMode.heatmap),
+                                              theme: theme,
+                                              tooltip: 'Tamper Heatmap',
+                                            ),
+                                        ],
                                       ),
                                     ),
                                   ),
@@ -3430,6 +3469,44 @@ class WatermarkPageState extends State<WatermarkPage>
                     ],
                   ],
                 ),
+    );
+  }
+
+  Widget _buildPreviewToggleItem({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required ThemeData theme,
+    required String tooltip,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 32,
+          height: 32,
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? theme.colorScheme.primary
+                : Colors.transparent,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? theme.colorScheme.onPrimary
+                    : theme.colorScheme.onSurface,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -4851,7 +4928,7 @@ class WatermarkPageState extends State<WatermarkPage>
     setState(() {
       _processedFiles = <ProcessedFile>[];
       _previewIndex = 0;
-      _showOriginalPreview = false;
+      _previewMode = PreviewMode.processed;
       _transformationController.value = Matrix4.identity();
       _steganographyVerificationFailed = false;
     });

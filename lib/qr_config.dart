@@ -6,6 +6,13 @@ enum WatermarkType {
   image,
 }
 
+/// Preview modes for A/B/C comparison
+enum PreviewMode {
+  original,
+  processed,
+  heatmap,
+}
+
 /// Type of content to encode in the QR code
 enum QrType {
   metadata, // Original JSON format with author, URL, and timestamp

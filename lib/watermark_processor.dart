@@ -103,6 +103,7 @@ class ProcessResult {
     required this.outputBytes,
     required this.previewBytes,
     required this.originalBytes,
+    this.heatmapBytes,
     this.steganographyVerified = false,
     this.robustVerified = false,
     this.isPdf = false,
@@ -112,6 +113,7 @@ class ProcessResult {
   final Uint8List outputBytes;
   final Uint8List? previewBytes;
   final Uint8List? originalBytes;
+  final Uint8List? heatmapBytes;
   final bool steganographyVerified;
   final bool robustVerified;
   final bool isPdf;
@@ -198,6 +200,65 @@ class _ResolvedColor {
 }
 
 class WatermarkProcessor {
+  /// Generate a heatmap highlighting differences between two images
+  static Uint8List? generateHeatmap(Uint8List original, Uint8List processed) {
+    try {
+      final img.Image? originalImg = img.decodeImage(original);
+      final img.Image? processedImg = img.decodeImage(processed);
+
+      if (originalImg == null || processedImg == null) return null;
+
+      // Ensure they are the same size
+      if (originalImg.width != processedImg.width ||
+          originalImg.height != processedImg.height) {
+        return null;
+      }
+
+      final width = originalImg.width;
+      final height = originalImg.height;
+      final heatmap = img.Image(width: width, height: height);
+
+      // We want to highlight differences. 
+      // Background will be a dimmed version of the original image
+      // Differences will be bright red
+      for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+          final originalPixel = originalImg.getPixel(x, y);
+          final processedPixel = processedImg.getPixel(x, y);
+
+          final r1 = originalPixel.r;
+          final g1 = originalPixel.g;
+          final b1 = originalPixel.b;
+
+          final r2 = processedPixel.r;
+          final g2 = processedPixel.g;
+          final b2 = processedPixel.b;
+
+          // Simple difference threshold
+          if ((r1 - r2).abs() > 0 || (g1 - g2).abs() > 0 || (b1 - b2).abs() > 0) {
+            // Highlight difference in bright red
+            heatmap.setPixel(x, y, img.ColorRgb8(255, 0, 0));
+          } else {
+            // Dim original pixel for context
+            heatmap.setPixel(
+                x,
+                y,
+                img.ColorRgb8(
+                  (r1 * 0.3).toInt(),
+                  (g1 * 0.3).toInt(),
+                  (b1 * 0.3).toInt(),
+                ));
+          }
+        }
+      }
+
+      return Uint8List.fromList(img.encodeJpg(heatmap, quality: 85));
+    } catch (e) {
+      debugPrint('Error generating heatmap: $e');
+      return null;
+    }
+  }
+
   /// Cache for processed results to avoid reprocessing identical requests
   static final Map<String, ProcessResult> _resultCache =
       <String, ProcessResult>{};
@@ -750,8 +811,9 @@ class WatermarkProcessor {
       final progressSendPort = receivePort.sendPort;
 
       Uint8List outputBytes;
+      Uint8List? heatmapBytes;
       try {
-        outputBytes = await _runImageIsolate(
+        final isolateResult = await _runImageIsolate(
           inputBytes: inputBytes,
           transparency: transparency,
           density: density,
@@ -778,6 +840,8 @@ class WatermarkProcessor {
           preRenderedStamps: preRenderedStamps,
           progressPort: progressSendPort,
         );
+        outputBytes = isolateResult['output']!;
+        heatmapBytes = isolateResult['heatmap'];
       } finally {
         receivePort.close();
       }
@@ -845,6 +909,7 @@ class WatermarkProcessor {
         outputBytes: outputBytes,
         previewBytes: outputBytes,
         originalBytes: inputBytes, // Store original bytes for A/B comparison
+        heatmapBytes: heatmapBytes,
         steganographyVerified: verified,
         robustVerified: robustVerified,
         isPdf: false,
@@ -1202,7 +1267,7 @@ class WatermarkProcessor {
     return Uint8List.fromList(bytes);
   }
 
-  static Future<Uint8List> _runImageIsolate({
+  static Future<Map<String, Uint8List>> _runImageIsolate({
     required Uint8List inputBytes,
     required double transparency,
     required double density,
@@ -1345,7 +1410,7 @@ class WatermarkProcessor {
     return sync.PdfColor(r, g, b);
   }
 
-  static Uint8List _renderWatermarkedImageBytesWithValidation({
+  static Map<String, Uint8List> _renderWatermarkedImageBytesWithValidation({
     required Uint8List inputBytes,
     required double transparency,
     required double density,
@@ -1387,6 +1452,7 @@ class WatermarkProcessor {
       progressPort
           ?.send({'progress': 0.15, 'message': 'progressResizingImage'});
       final resized = _resizeToTarget(decoded, targetSize);
+      final baselineForHeatmap = img.Image.from(resized);
       var outputImage = img.Image.from(resized);
 
       if (useAiCloaking) {
@@ -1463,8 +1529,26 @@ class WatermarkProcessor {
           ?.send({'progress': 0.90, 'message': 'progressEncodingImage'});
       final forcePng = useSteganography || useRobustSteganography;
 
-      return _encodeImageInOriginalFormat(
+      final outputBytes = _encodeImageInOriginalFormat(
           outputImage, originalExtension, jpegQuality, forcePng);
+
+      final result = {'output': outputBytes};
+
+      // Generate heatmap if steganography or AI cloaking is enabled
+      if (useSteganography ||
+          useRobustSteganography ||
+          useAiCloaking ||
+          antiAiLevel > 0) {
+        progressPort
+            ?.send({'progress': 0.95, 'message': 'Generating heatmap...'});
+        final heatmap = _generateHeatmapImage(baselineForHeatmap, outputImage);
+        if (heatmap != null) {
+          result['heatmap'] =
+              Uint8List.fromList(img.encodeJpg(heatmap, quality: 85));
+        }
+      }
+
+      return result;
     } catch (e) {
       if (e is WatermarkError) rethrow;
       throw WatermarkError(
@@ -1474,6 +1558,45 @@ class WatermarkProcessor {
         originalError: e,
       );
     }
+  }
+
+  static img.Image? _generateHeatmapImage(img.Image original, img.Image processed) {
+    if (original.width != processed.width || original.height != processed.height) {
+      return null;
+    }
+
+    final width = original.width;
+    final height = original.height;
+    final heatmap = img.Image(width: width, height: height);
+
+    for (int y = 0; y < height; y++) {
+      for (int x = 0; x < width; x++) {
+        final originalPixel = original.getPixel(x, y);
+        final processedPixel = processed.getPixel(x, y);
+
+        final r1 = originalPixel.r;
+        final g1 = originalPixel.g;
+        final b1 = originalPixel.b;
+
+        final r2 = processedPixel.r;
+        final g2 = processedPixel.g;
+        final b2 = processedPixel.b;
+
+        if ((r1 - r2).abs() > 0 || (g1 - g2).abs() > 0 || (b1 - b2).abs() > 0) {
+          heatmap.setPixel(x, y, img.ColorRgb8(255, 0, 0));
+        } else {
+          heatmap.setPixel(
+              x,
+              y,
+              img.ColorRgb8(
+                (r1 * 0.3).toInt(),
+                (g1 * 0.3).toInt(),
+                (b1 * 0.3).toInt(),
+              ));
+        }
+      }
+    }
+    return heatmap;
   }
 
   static Future<Uint8List> _renderTextWithFlutterCanvas({
