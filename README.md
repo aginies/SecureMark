@@ -4,7 +4,7 @@ SecureMark is a professional Flutter application designed to secure documents an
 
 The project is designed for high-security document distribution: choose files, apply multi-layered protection, preview results, and securely share them.
 
-![App Screenshot](app.jpg)
+![App Screenshot](/images/app.jpg)
 
 ## Core Features Overview
 
