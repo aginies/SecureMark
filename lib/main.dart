@@ -20,6 +20,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:printing/printing.dart';
 
 import 'l10n/app_localizations.dart';
 import 'watermark_processor.dart';
@@ -966,7 +967,6 @@ class _WatermarkPageState extends State<WatermarkPage>
         const SizedBox(height: 16),
         _buildColorCard(),
         const SizedBox(height: 16),
-        _buildStatusIconsBox(context),
         _buildActionButtons(),
         const SizedBox(height: 16),
         Row(
@@ -2091,6 +2091,205 @@ class _WatermarkPageState extends State<WatermarkPage>
     );
   }
 
+  void _showSelectedFilesModal() {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.7,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 16, 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          l10n.selectedFilesLabel(_selectedPaths.length),
+                          style: theme.textTheme.titleLarge,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(),
+                  Expanded(
+                    child: _selectedPaths.isEmpty
+                        ? Center(child: Text(l10n.emptyPreviewHint))
+                        : GridView.builder(
+                            padding: const EdgeInsets.all(20),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              childAspectRatio: 1,
+                            ),
+                            itemCount: _selectedPaths.length,
+                            itemBuilder: (context, index) {
+                              final path = _selectedPaths[index];
+                              final fileName = p.basename(path);
+                              final extension = p.extension(path).toLowerCase();
+                              final isPdf = extension == '.pdf';
+
+                              return Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  Column(
+                                    children: [
+                                      Expanded(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            border: Border.all(
+                                                color: theme.colorScheme
+                                                    .outlineVariant),
+                                            color: theme.colorScheme
+                                                .surfaceContainerHighest,
+                                          ),
+                                          clipBehavior: Clip.antiAlias,
+                                          child: Center(
+                                            child: isPdf
+                                                ? FutureBuilder<Uint8List>(
+                                                    future: () async {
+                                                      final bytes =
+                                                          await File(path)
+                                                              .readAsBytes();
+                                                      final preview =
+                                                          await Printing.raster(
+                                                                  bytes,
+                                                                  pages: [0],
+                                                                  dpi: 72)
+                                                              .first;
+                                                      return await preview
+                                                          .toPng();
+                                                    }(),
+                                                    builder:
+                                                        (context, snapshot) {
+                                                      if (snapshot.hasData) {
+                                                        return Image.memory(
+                                                          snapshot.data!,
+                                                          fit: BoxFit.cover,
+                                                          width:
+                                                              double.infinity,
+                                                          height:
+                                                              double.infinity,
+                                                        );
+                                                      }
+                                                      return Icon(
+                                                          Icons.picture_as_pdf,
+                                                          size: 40,
+                                                          color: theme
+                                                              .colorScheme
+                                                              .error);
+                                                    },
+                                                  )
+                                                : Image.file(
+                                                    File(path),
+                                                    fit: BoxFit.cover,
+                                                    width: double.infinity,
+                                                    height: double.infinity,
+                                                    errorBuilder: (context,
+                                                            error,
+                                                            stackTrace) =>
+                                                        const Icon(
+                                                            Icons.broken_image),
+                                                  ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        fileName,
+                                        style: theme.textTheme.labelSmall,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                  Positioned(
+                                    top: -8,
+                                    right: -8,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedPaths.removeAt(index);
+                                          if (_selectedPaths.isEmpty) {
+                                            _rawImage = null;
+                                            _processedFiles =
+                                                <_ProcessedFile>[];
+                                            Navigator.pop(context);
+                                          } else {
+                                            // Trigger re-load of first image if we removed it
+                                            if (index == 0) {
+                                              _selectPaths(
+                                                  List.from(_selectedPaths));
+                                            }
+                                          }
+                                        });
+                                        setModalState(() {});
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: theme.colorScheme.error,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black
+                                                  .withValues(alpha: 0.2),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Icon(
+                                          Icons.remove,
+                                          size: 16,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showExpertOptions() {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
@@ -2924,218 +3123,28 @@ class _WatermarkPageState extends State<WatermarkPage>
               buildButton(false),
             if (selectedCount > 0) ...[
               const SizedBox(height: 12),
-              Text(
-                selectedCount == 1
-                    ? l10n.selectedFile(
-                        File(_selectedPaths.first).uri.pathSegments.last)
-                    : l10n.selectedFiles(selectedCount),
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium,
+              InkWell(
+                onTap: _showSelectedFilesModal,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Text(
+                    selectedCount == 1
+                        ? l10n.selectedFile(
+                            File(_selectedPaths.first).uri.pathSegments.last)
+                        : l10n.selectedFiles(selectedCount),
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      decoration: TextDecoration.underline,
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ),
             ],
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusIconsBox(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    if (!((_useSteganography && !_steganographyVerificationFailed) ||
-        _useRobustSteganography ||
-        _steganographyVerificationFailed ||
-        _qrVisible ||
-        _targetSize != null ||
-        _zipOutputs ||
-        _antiAiLevel > 0 ||
-        _useAiCloaking ||
-        _rasterizePdf ||
-        _preserveMetadata ||
-        (_hideFileWithSteganography && _hiddenFileBytes != null))) {
-      return const SizedBox.shrink();
-    }
-
-    // Helper to show tooltip on tap
-    void showTooltip(GlobalKey<TooltipState> key) {
-      key.currentState?.ensureTooltipVisible();
-    }
-
-    final steganoKey = GlobalKey<TooltipState>();
-    final robustKey = GlobalKey<TooltipState>();
-    final resizeKey = GlobalKey<TooltipState>();
-    final warningKey = GlobalKey<TooltipState>();
-    final qrKey = GlobalKey<TooltipState>();
-    final hideKey = GlobalKey<TooltipState>();
-    final zipKey = GlobalKey<TooltipState>();
-    final antiAiKey = GlobalKey<TooltipState>();
-    final cloakingKey = GlobalKey<TooltipState>();
-    final rasterKey = GlobalKey<TooltipState>();
-    final preserveKey = GlobalKey<TooltipState>();
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Wrap(
-            spacing: 0, // Using Padding inside children for precise control
-            runSpacing: 8,
-            alignment: WrapAlignment.start,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              if (_useSteganography && !_steganographyVerificationFailed)
-                GestureDetector(
-                  onTap: () => showTooltip(steganoKey),
-                  onDoubleTap: _showSteganographyOptions,
-                  child: Tooltip(
-                    key: steganoKey,
-                    message: l10n.steganographyEnabledHint,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Icon(Icons.verified_user_outlined,
-                          color: Colors.green),
-                    ),
-                  ),
-                ),
-              if (_useRobustSteganography)
-                GestureDetector(
-                  onTap: () => showTooltip(robustKey),
-                  onDoubleTap: _showSteganographyOptions,
-                  child: Tooltip(
-                    key: robustKey,
-                    message: l10n.robustSteganographyTitle,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Icon(Icons.shield_outlined, color: Colors.indigo),
-                    ),
-                  ),
-                ),
-              if (_targetSize != null)
-                GestureDetector(
-                  onTap: () => showTooltip(resizeKey),
-                  onDoubleTap: _showExpertOptions,
-                  child: Tooltip(
-                    key: resizeKey,
-                    message:
-                        l10n.imageResizingLabel(l10n.pixelUnit(_targetSize!)),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Icon(Icons.photo_size_select_large,
-                          color: Colors.orange),
-                    ),
-                  ),
-                ),
-              if (_steganographyVerificationFailed)
-                GestureDetector(
-                  onTap: () => showTooltip(warningKey),
-                  onDoubleTap: _showSteganographyOptions,
-                  child: Tooltip(
-                    key: warningKey,
-                    message: l10n.steganographyVerificationFailed,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Icon(Icons.warning_outlined, color: Colors.red),
-                    ),
-                  ),
-                ),
-              if (_qrVisible)
-                GestureDetector(
-                  onTap: () => showTooltip(qrKey),
-                  onDoubleTap: _showQrWatermarkOptions,
-                  child: Tooltip(
-                    key: qrKey,
-                    message: l10n.qrWatermarkTitle +
-                        (_qrType != QrType.metadata
-                            ? ' (${_qrType.name.toUpperCase()})'
-                            : ''),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Icon(Icons.qr_code_2, color: Colors.blue),
-                    ),
-                  ),
-                ),
-              if (_hideFileWithSteganography && _hiddenFileBytes != null)
-                GestureDetector(
-                  onTap: () => showTooltip(hideKey),
-                  onDoubleTap: _showSteganographyOptions,
-                  child: Tooltip(
-                    key: hideKey,
-                    message: l10n.hideFileEnabledHint,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Icon(Icons.attachment, color: Colors.brown),
-                    ),
-                  ),
-                ),
-              if (_zipOutputs)
-                GestureDetector(
-                  onTap: () => showTooltip(zipKey),
-                  child: Tooltip(
-                    key: zipKey,
-                    message: l10n.zipEnabledHint,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Icon(Icons.folder_zip, color: Colors.amber),
-                    ),
-                  ),
-                ),
-              if (_antiAiLevel > 0)
-                GestureDetector(
-                  onTap: () => showTooltip(antiAiKey),
-                  onDoubleTap: _showExpertOptions,
-                  child: Tooltip(
-                    key: antiAiKey,
-                    message: l10n.antiAiProtectionValue(_antiAiLevel.round()),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Icon(Icons.auto_awesome, color: Colors.purple),
-                    ),
-                  ),
-                ),
-              if (_useAiCloaking)
-                GestureDetector(
-                  onTap: () => showTooltip(cloakingKey),
-                  onDoubleTap: _showExpertOptions,
-                  child: Tooltip(
-                    key: cloakingKey,
-                    message: l10n.aiCloakingEnabledHint,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Icon(Icons.visibility_off_outlined,
-                          color: Colors.teal),
-                    ),
-                  ),
-                ),
-              if (_rasterizePdf)
-                GestureDetector(
-                  onTap: () => showTooltip(rasterKey),
-                  onDoubleTap: _showExpertOptions,
-                  child: Tooltip(
-                    key: rasterKey,
-                    message: l10n.rasterizePdfEnabledHint,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child:
-                          Icon(Icons.picture_as_pdf, color: Colors.redAccent),
-                    ),
-                  ),
-                ),
-              if (_preserveMetadata)
-                GestureDetector(
-                  onTap: () => showTooltip(preserveKey),
-                  onDoubleTap: _showExpertOptions,
-                  child: Tooltip(
-                    key: preserveKey,
-                    message: l10n.preserveMetadataEnabledHint,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Icon(Icons.info_outline, color: Colors.lightBlue),
-                    ),
-                  ),
-                ),
-            ],
-          ),
         ),
       ),
     );
@@ -3397,28 +3406,224 @@ class _WatermarkPageState extends State<WatermarkPage>
               ],
             );
 
-            if (isWide) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: selectionControls),
-                  const SizedBox(width: 20),
-                  SizedBox(width: 220, child: sliders),
-                ],
-              );
-            }
+            final statusIcons = _buildStatusIcons(l10n);
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                selectionControls,
-                const SizedBox(height: 16),
-                sliders,
+                if (statusIcons != null) ...[
+                  statusIcons,
+                  const SizedBox(height: 12),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+                ],
+                if (isWide)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: selectionControls),
+                      const SizedBox(width: 20),
+                      SizedBox(width: 220, child: sliders),
+                    ],
+                  )
+                else ...[
+                  selectionControls,
+                  const SizedBox(height: 16),
+                  sliders,
+                ],
               ],
             );
           },
         ),
       ),
+    );
+  }
+
+  Widget? _buildStatusIcons(AppLocalizations l10n) {
+    if (!((_useSteganography && !_steganographyVerificationFailed) ||
+        _useRobustSteganography ||
+        _steganographyVerificationFailed ||
+        _qrVisible ||
+        _targetSize != null ||
+        _zipOutputs ||
+        _antiAiLevel > 0 ||
+        _useAiCloaking ||
+        _rasterizePdf ||
+        _preserveMetadata ||
+        (_hideFileWithSteganography && _hiddenFileBytes != null))) {
+      return null;
+    }
+
+    // Helper to show tooltip on tap
+    void showTooltip(GlobalKey<TooltipState> key) {
+      key.currentState?.ensureTooltipVisible();
+    }
+
+    final steganoKey = GlobalKey<TooltipState>();
+    final robustKey = GlobalKey<TooltipState>();
+    final resizeKey = GlobalKey<TooltipState>();
+    final warningKey = GlobalKey<TooltipState>();
+    final qrKey = GlobalKey<TooltipState>();
+    final hideKey = GlobalKey<TooltipState>();
+    final zipKey = GlobalKey<TooltipState>();
+    final antiAiKey = GlobalKey<TooltipState>();
+    final cloakingKey = GlobalKey<TooltipState>();
+    final rasterKey = GlobalKey<TooltipState>();
+    final preserveKey = GlobalKey<TooltipState>();
+
+    return Wrap(
+      spacing: 0,
+      runSpacing: 8,
+      alignment: WrapAlignment.start,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        if (_useSteganography && !_steganographyVerificationFailed)
+          GestureDetector(
+            onTap: () => showTooltip(steganoKey),
+            onDoubleTap: _showSteganographyOptions,
+            child: Tooltip(
+              key: steganoKey,
+              message: l10n.steganographyEnabledHint,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Icon(Icons.verified_user_outlined, color: Colors.green),
+              ),
+            ),
+          ),
+        if (_useRobustSteganography)
+          GestureDetector(
+            onTap: () => showTooltip(robustKey),
+            onDoubleTap: _showSteganographyOptions,
+            child: Tooltip(
+              key: robustKey,
+              message: l10n.robustSteganographyTitle,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Icon(Icons.shield_outlined, color: Colors.indigo),
+              ),
+            ),
+          ),
+        if (_targetSize != null)
+          GestureDetector(
+            onTap: () => showTooltip(resizeKey),
+            onDoubleTap: _showExpertOptions,
+            child: Tooltip(
+              key: resizeKey,
+              message: l10n.imageResizingLabel(l10n.pixelUnit(_targetSize!)),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child:
+                    Icon(Icons.photo_size_select_large, color: Colors.orange),
+              ),
+            ),
+          ),
+        if (_steganographyVerificationFailed)
+          GestureDetector(
+            onTap: () => showTooltip(warningKey),
+            onDoubleTap: _showSteganographyOptions,
+            child: Tooltip(
+              key: warningKey,
+              message: l10n.steganographyVerificationFailed,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Icon(Icons.warning_outlined, color: Colors.red),
+              ),
+            ),
+          ),
+        if (_qrVisible)
+          GestureDetector(
+            onTap: () => showTooltip(qrKey),
+            onDoubleTap: _showQrWatermarkOptions,
+            child: Tooltip(
+              key: qrKey,
+              message: l10n.qrWatermarkTitle +
+                  (_qrType != QrType.metadata
+                      ? ' (${_qrType.name.toUpperCase()})'
+                      : ''),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Icon(Icons.qr_code_2, color: Colors.blue),
+              ),
+            ),
+          ),
+        if (_hideFileWithSteganography && _hiddenFileBytes != null)
+          GestureDetector(
+            onTap: () => showTooltip(hideKey),
+            onDoubleTap: _showSteganographyOptions,
+            child: Tooltip(
+              key: hideKey,
+              message: l10n.hideFileEnabledHint,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Icon(Icons.attachment, color: Colors.brown),
+              ),
+            ),
+          ),
+        if (_zipOutputs)
+          GestureDetector(
+            onTap: () => showTooltip(zipKey),
+            child: Tooltip(
+              key: zipKey,
+              message: l10n.zipEnabledHint,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Icon(Icons.folder_zip, color: Colors.amber),
+              ),
+            ),
+          ),
+        if (_antiAiLevel > 0)
+          GestureDetector(
+            onTap: () => showTooltip(antiAiKey),
+            onDoubleTap: _showExpertOptions,
+            child: Tooltip(
+              key: antiAiKey,
+              message: l10n.antiAiProtectionValue(_antiAiLevel.round()),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Icon(Icons.auto_awesome, color: Colors.purple),
+              ),
+            ),
+          ),
+        if (_useAiCloaking)
+          GestureDetector(
+            onTap: () => showTooltip(cloakingKey),
+            onDoubleTap: _showExpertOptions,
+            child: Tooltip(
+              key: cloakingKey,
+              message: l10n.aiCloakingEnabledHint,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Icon(Icons.visibility_off_outlined, color: Colors.teal),
+              ),
+            ),
+          ),
+        if (_rasterizePdf)
+          GestureDetector(
+            onTap: () => showTooltip(rasterKey),
+            onDoubleTap: _showExpertOptions,
+            child: Tooltip(
+              key: rasterKey,
+              message: l10n.rasterizePdfEnabledHint,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+              ),
+            ),
+          ),
+        if (_preserveMetadata)
+          GestureDetector(
+            onTap: () => showTooltip(preserveKey),
+            onDoubleTap: _showExpertOptions,
+            child: Tooltip(
+              key: preserveKey,
+              message: l10n.preserveMetadataEnabledHint,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Icon(Icons.info_outline, color: Colors.lightBlue),
+              ),
+            ),
+          ),
+      ],
     );
   }
 

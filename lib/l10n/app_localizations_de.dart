@@ -102,7 +102,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String selectedWatermarkImage(String name) {
-    return 'Logo: $name';
+    return '$name';
   }
 
   @override
@@ -725,17 +725,17 @@ class AppLocalizationsDe extends AppLocalizations {
       'Schnelle Voreinstellungen für häufige Anwendungsfälle';
 
   @override
-  String get profileNone => 'Keine';
+  String get profileNone => 'Custom';
 
   @override
-  String get profileSecureIdentity => 'Sichere Identität';
+  String get profileSecureIdentity => 'Identität';
 
   @override
-  String get profileOnlineImage => 'Online-Bild';
+  String get profileOnlineImage => 'Bild';
 
   @override
   String get profileQrCode => 'QR-Code';
 
   @override
-  String get profileShareDocument => 'Dokument Teilen';
+  String get profileShareDocument => 'Dokument';
 }

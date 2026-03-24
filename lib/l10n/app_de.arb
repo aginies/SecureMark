@@ -58,7 +58,7 @@
   "watermarkTypeText": "Text",
   "watermarkTypeImage": "Bild/Logo",
   "selectWatermarkImage": "Logo auswählen",
-  "selectedWatermarkImage": "Logo: {name}",
+  "selectedWatermarkImage": "{name}",
   "@selectedWatermarkImage": {
     "placeholders": {
       "name": {
@@ -524,9 +524,9 @@
   },
   "profileLabel": "Profil",
   "profileDescription": "Schnelle Voreinstellungen für häufige Anwendungsfälle",
-  "profileNone": "Keine",
-  "profileSecureIdentity": "Sichere Identität",
-  "profileOnlineImage": "Online-Bild",
+  "profileNone": "Custom",
+  "profileSecureIdentity": "Identität",
+  "profileOnlineImage": "Bild",
   "profileQrCode": "QR-Code",
-  "profileShareDocument": "Dokument Teilen"
+  "profileShareDocument": "Dokument"
 }

@@ -739,7 +739,7 @@ class WatermarkProcessor {
       final operationText = operations.isEmpty
           ? 'Processing'
           : 'Applying ${operations.join(", ")}';
-      onProgress?.call(0.2, '$operationText...');
+      onProgress?.call(0.1, '$operationText...');
 
       final outputBytes = await Isolate.run(
         () => _renderWatermarkedImageBytesWithValidation(
@@ -767,7 +767,7 @@ class WatermarkProcessor {
           hiddenFileBytes: hiddenFileBytes,
           qrConfig: qrConfig,
           preRenderedStamps: preRenderedStamps,
-          onProgress: null,
+          onProgress: onProgress,
         ),
       );
 
@@ -1257,7 +1257,7 @@ class WatermarkProcessor {
     ProgressCallback? onProgress,
   }) {
     try {
-      onProgress?.call(0.0, 'Decoding image...');
+      onProgress?.call(0.05, 'Decoding image...');
       final decoded = img.decodeImage(inputBytes);
       if (decoded == null) {
         throw WatermarkError(
@@ -1267,12 +1267,12 @@ class WatermarkProcessor {
         );
       }
 
-      onProgress?.call(0.05, 'Resizing image...');
+      onProgress?.call(0.15, 'Resizing image...');
       final resized = _resizeToTarget(decoded, targetSize);
       var outputImage = img.Image.from(resized);
 
       if (useAiCloaking) {
-        onProgress?.call(0.08, 'Applying adversarial AI cloaking...');
+        onProgress?.call(0.25, 'Applying adversarial AI cloaking...');
         outputImage = _applyAiCloaking(outputImage);
       }
 
@@ -1285,7 +1285,7 @@ class WatermarkProcessor {
           'SecureMark (https://github.com/aginies/SecureMark)';
       outputImage.textData!['Software'] = 'SecureMark';
 
-      onProgress?.call(0.10, 'Applying watermark...');
+      onProgress?.call(0.35, 'Applying watermark...');
       _applyWatermarkField(
         outputImage,
         watermarkText,
@@ -1301,8 +1301,8 @@ class WatermarkProcessor {
         watermarkType: watermarkType,
         watermarkImageBytes: watermarkImageBytes,
         onProgress: (progress, message) {
-          // Map internal progress (0.0-1.0) to watermark range (0.10-0.80)
-          onProgress?.call(0.10 + (progress * 0.70), message);
+          // Map internal progress (0.0-1.0) to watermark range (0.35-0.75)
+          onProgress?.call(0.35 + (progress * 0.40), message);
         },
       );
 

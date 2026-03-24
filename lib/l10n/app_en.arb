@@ -58,7 +58,7 @@
   "watermarkTypeText": "Text",
   "watermarkTypeImage": "Image/Logo",
   "selectWatermarkImage": "Select Logo Image",
-  "selectedWatermarkImage": "Logo: {name}",
+  "selectedWatermarkImage": "{name}",
   "@selectedWatermarkImage": {
     "placeholders": {
       "name": {
@@ -524,7 +524,7 @@
   },
   "profileLabel": "Profile",
   "profileDescription": "Quick presets for common use cases",
-  "profileNone": "None",
+  "profileNone": "Custom",
   "profileSecureIdentity": "Identity",
   "profileOnlineImage": "Image",
   "profileQrCode": "QR Code",

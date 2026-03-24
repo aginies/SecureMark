@@ -267,7 +267,7 @@ abstract class AppLocalizations {
   /// No description provided for @selectedWatermarkImage.
   ///
   /// In en, this message translates to:
-  /// **'Logo: {name}'**
+  /// **'{name}'**
   String selectedWatermarkImage(String name);
 
   /// No description provided for @watermarkTextLabel.
@@ -1228,7 +1228,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileNone.
   ///
   /// In en, this message translates to:
-  /// **'None'**
+  /// **'Custom'**
   String get profileNone;
 
   /// No description provided for @profileSecureIdentity.
