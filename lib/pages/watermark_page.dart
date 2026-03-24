@@ -28,6 +28,7 @@ import '../qr_config.dart';
 import '../models/processed_file.dart';
 import '../models/settings_profile.dart';
 import '../widgets/watermark_shader_painter.dart';
+import '../widgets/profile_chip.dart';
 import '../main.dart';
 
 class WatermarkPage extends StatefulWidget {
@@ -1128,31 +1129,14 @@ class WatermarkPageState extends State<WatermarkPage>
           icon = Icons.person_outline;
       }
 
-      return Padding(
-        padding: const EdgeInsets.only(right: 8.0, bottom: 4.0),
-        child: GestureDetector(
-          onLongPress: profile == SettingsProfile.none
-              ? null
-              : () => _saveCurrentConfigToProfile(profile),
-          child: ChoiceChip(
-            label: Text(label),
-            avatar: Icon(
-              icon,
-              size: 16,
-              color: isSelected
-                  ? theme.colorScheme.onPrimaryContainer
-                  : theme.colorScheme.onSurfaceVariant,
-            ),
-            selected: isSelected,
-            onSelected: _processing
-                ? null
-                : (selected) {
-                    if (selected) {
-                      _applyProfile(profile);
-                    }
-                  },
-          ),
-        ),
+      return ProfileChip(
+        profile: profile,
+        label: label,
+        icon: icon,
+        isSelected: isSelected,
+        isDisabled: _processing,
+        onSelected: () => _applyProfile(profile),
+        onLongPress: () => _saveCurrentConfigToProfile(profile),
       );
     }).toList();
 
