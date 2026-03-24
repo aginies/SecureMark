@@ -538,8 +538,8 @@ class _WatermarkPageState extends State<WatermarkPage>
         case SettingsProfile.onlineImage:
           _useSteganography = true;
           _useRobustSteganography = true;
-          _useAiCloaking = true;
-          _transparency = 90;
+          _useAiCloaking = false;
+          _transparency = 80;
           break;
 
         case SettingsProfile.qrCode:
@@ -4863,8 +4863,11 @@ class _WatermarkPageState extends State<WatermarkPage>
 
       final zipData = encoder.encode(archive);
       if (zipData != null) {
+        final now = DateTime.now();
+        final timestamp =
+            "${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}";
         final tempDir = await getTemporaryDirectory();
-        final zipPath = p.join(tempDir.path, 'securemark-files.zip');
+        final zipPath = p.join(tempDir.path, 'securemark-files-$timestamp.zip');
         await File(zipPath).writeAsBytes(zipData);
         _tempFiles.add(zipPath);
         shareFiles.add(XFile(zipPath, mimeType: 'application/zip'));
