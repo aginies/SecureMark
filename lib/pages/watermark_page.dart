@@ -379,6 +379,8 @@ class WatermarkPageState extends State<WatermarkPage>
         _selectedColor = Colors.deepPurple;
         _selectedFont = WatermarkFont.arial;
         _qrVisible = false;
+        _filePrefix = 'securemark-';
+        _filePrefixController.text = _filePrefix;
 
         // Restore preserved values
         _qrAuthor = preservedQrAuthor;
@@ -397,73 +399,328 @@ class WatermarkPageState extends State<WatermarkPage>
       }
 
       // Apply profile-specific settings
-      switch (profile) {
-        case SettingsProfile.none:
-          // No changes - keep current settings
-          break;
-
-        case SettingsProfile.secureIdentity:
-          _targetSize = 1280;
-          _transparency = 65;
-          _density = 35;
-          _jpegQuality = 75;
-          _antiAiLevel = 100;
-          _useAiCloaking = true;
-          _watermarkType = WatermarkType.text;
-          break;
-
-        case SettingsProfile.onlineImage:
-          _useSteganography = true;
-          _useRobustSteganography = true;
-          _useAiCloaking = false;
-          _transparency = 80;
-          break;
-
-        case SettingsProfile.qrCode:
-          _qrVisible = true;
-          _transparency = 100;
-          _useSteganography = false;
-          _useRobustSteganography = false;
-          _hideFileWithSteganography = false;
-          _antiAiLevel = 0;
-          _useAiCloaking = false;
-          _targetSize = 1600;
-          _preserveMetadata = false;
-          break;
-
-        case SettingsProfile.shareDocument:
-          _targetSize = 1600;
-          _transparency = 50;
-          _density = 40;
-          _jpegQuality = 80;
-          _antiAiLevel = 75;
-          _useAiCloaking = true;
-          break;
-      }
+      _loadProfileSettings(profile);
     });
 
     // Save all changed settings
     _savePreference('selectedProfile', profile.index);
 
     if (profile != SettingsProfile.none) {
-      // Save all reset defaults (excluding preserved QR data, output dir, file prefix)
-      _savePreference('transparency', _transparency);
-      _savePreference('density', _density);
-      _savePreference('fontSize', _fontSize);
-      _savePreference('jpegQuality', _jpegQuality);
-      _savePreference('targetSize', _targetSize);
-      _savePreference('includeTimestamp', _includeTimestamp);
-      _savePreference('preserveMetadata', _preserveMetadata);
-      _savePreference('rasterizePdf', _rasterizePdf);
-      _savePreference('antiAiLevel', _antiAiLevel);
-      _savePreference('useSteganography', _useSteganography);
-      _savePreference('useRobustSteganography', _useRobustSteganography);
-      _savePreference('useAiCloaking', _useAiCloaking);
-      _savePreference('hideFileWithSteganography', _hideFileWithSteganography);
-      _savePreference('useRandomColor', _useRandomColor);
-      _savePreference('selectedColor', _selectedColor.toARGB32());
-      _savePreference('selectedFont', _selectedFont.fontFamily);
-      _savePreference('qrVisible', _qrVisible);
+      _saveAllCurrentSettings();
+    }
+  }
+
+  void _loadProfileSettings(SettingsProfile profile) async {
+    final prefs = await SharedPreferences.getInstance();
+    final String pKey = 'profile_${profile.name}_';
+
+    setState(() {
+      // General settings that apply to all profiles if they were customized
+      if (prefs.containsKey('${pKey}transparency')) {
+        _transparency = prefs.getDouble('${pKey}transparency')!;
+      }
+      if (prefs.containsKey('${pKey}density')) {
+        _density = prefs.getDouble('${pKey}density')!;
+      }
+      if (prefs.containsKey('${pKey}jpegQuality')) {
+        _jpegQuality = prefs.getInt('${pKey}jpegQuality')!;
+      }
+      if (prefs.containsKey('${pKey}targetSize')) {
+        _targetSize = prefs.getInt('${pKey}targetSize');
+      }
+      if (prefs.containsKey('${pKey}antiAiLevel')) {
+        _antiAiLevel = prefs.getDouble('${pKey}antiAiLevel')!;
+      }
+      if (prefs.containsKey('${pKey}useAiCloaking')) {
+        _useAiCloaking = prefs.getBool('${pKey}useAiCloaking')!;
+      }
+      if (prefs.containsKey('${pKey}useSteganography')) {
+        _useSteganography = prefs.getBool('${pKey}useSteganography')!;
+      }
+      if (prefs.containsKey('${pKey}useRobustSteganography')) {
+        _useRobustSteganography =
+            prefs.getBool('${pKey}useRobustSteganography')!;
+      }
+      if (prefs.containsKey('${pKey}hideFileWithSteganography')) {
+        _hideFileWithSteganography =
+            prefs.getBool('${pKey}hideFileWithSteganography')!;
+      }
+      if (prefs.containsKey('${pKey}preserveMetadata')) {
+        _preserveMetadata = prefs.getBool('${pKey}preserveMetadata')!;
+      }
+      if (prefs.containsKey('${pKey}qrVisible')) {
+        _qrVisible = prefs.getBool('${pKey}qrVisible')!;
+      }
+      if (prefs.containsKey('${pKey}watermarkType')) {
+        _watermarkType =
+            WatermarkType.values[prefs.getInt('${pKey}watermarkType')!];
+      }
+      if (prefs.containsKey('${pKey}selectedColor')) {
+        _selectedColor = Color(prefs.getInt('${pKey}selectedColor')!);
+      }
+      if (prefs.containsKey('${pKey}fontSize')) {
+        _fontSize = prefs.getDouble('${pKey}fontSize')!;
+      }
+      if (prefs.containsKey('${pKey}filePrefix')) {
+        _filePrefix = prefs.getString('${pKey}filePrefix')!;
+        _filePrefixController.text = _filePrefix;
+      }
+      if (prefs.containsKey('${pKey}selectedFont')) {
+        final fontFamily = prefs.getString('${pKey}selectedFont');
+        if (fontFamily != null) {
+          try {
+            _selectedFont = WatermarkFont.values
+                .firstWhere((f) => f.fontFamily == fontFamily);
+          } catch (_) {}
+        }
+      }
+      if (prefs.containsKey('${pKey}outputDirectory')) {
+        _outputDirectory = prefs.getString('${pKey}outputDirectory');
+      }
+      if (prefs.containsKey('${pKey}useRandomColor')) {
+        _useRandomColor = prefs.getBool('${pKey}useRandomColor')!;
+      }
+      if (prefs.containsKey('${pKey}rasterizePdf')) {
+        _rasterizePdf = prefs.getBool('${pKey}rasterizePdf')!;
+      }
+      if (prefs.containsKey('${pKey}includeTimestamp')) {
+        _includeTimestamp = prefs.getBool('${pKey}includeTimestamp')!;
+      }
+      if (prefs.containsKey('${pKey}logoSize')) {
+        _logoSize = prefs.getDouble('${pKey}logoSize')!;
+      }
+      if (prefs.containsKey('${pKey}qrSize')) {
+        _qrSize = prefs.getDouble('${pKey}qrSize')!;
+      }
+      if (prefs.containsKey('${pKey}qrOpacity')) {
+        _qrOpacity = prefs.getDouble('${pKey}qrOpacity')!;
+      }
+      if (prefs.containsKey('${pKey}qrPosition')) {
+        _qrPosition = QrPosition.values[prefs.getInt('${pKey}qrPosition')!];
+      }
+      if (prefs.containsKey('${pKey}qrType')) {
+        _qrType = QrType.values[prefs.getInt('${pKey}qrType')!];
+      }
+
+      // If no customization exists for a key, provide defaults for specific profiles
+      switch (profile) {
+        case SettingsProfile.none:
+          break;
+
+        case SettingsProfile.secureIdentity:
+          if (!prefs.containsKey('${pKey}targetSize')) _targetSize = 1280;
+          if (!prefs.containsKey('${pKey}transparency')) _transparency = 65;
+          if (!prefs.containsKey('${pKey}density')) _density = 35;
+          if (!prefs.containsKey('${pKey}jpegQuality')) _jpegQuality = 75;
+          if (!prefs.containsKey('${pKey}antiAiLevel')) _antiAiLevel = 100;
+          if (!prefs.containsKey('${pKey}useAiCloaking')) _useAiCloaking = true;
+          if (!prefs.containsKey('${pKey}watermarkType')) {
+            _watermarkType = WatermarkType.text;
+          }
+          if (!prefs.containsKey('${pKey}filePrefix')) {
+            _filePrefix = 'id-';
+            _filePrefixController.text = _filePrefix;
+          }
+          break;
+
+        case SettingsProfile.onlineImage:
+          if (!prefs.containsKey('${pKey}useSteganography')) {
+            _useSteganography = true;
+          }
+          if (!prefs.containsKey('${pKey}useRobustSteganography')) {
+            _useRobustSteganography = true;
+          }
+          if (!prefs.containsKey('${pKey}useAiCloaking')) {
+            _useAiCloaking = false;
+          }
+          if (!prefs.containsKey('${pKey}transparency')) {
+            _transparency = 80;
+          }
+          if (!prefs.containsKey('${pKey}targetSize')) {
+            _targetSize = 1280;
+          }
+          if (!prefs.containsKey('${pKey}jpegQuality')) {
+            _jpegQuality = 75;
+          }
+          if (!prefs.containsKey('${pKey}filePrefix')) {
+            _filePrefix = 'web-';
+            _filePrefixController.text = _filePrefix;
+          }
+          break;
+
+        case SettingsProfile.qrCode:
+          if (!prefs.containsKey('${pKey}qrVisible')) {
+            _qrVisible = true;
+          }
+          if (!prefs.containsKey('${pKey}transparency')) {
+            _transparency = 100;
+          }
+          if (!prefs.containsKey('${pKey}useSteganography')) {
+            _useSteganography = false;
+          }
+          if (!prefs.containsKey('${pKey}useRobustSteganography')) {
+            _useRobustSteganography = false;
+          }
+          if (!prefs.containsKey('${pKey}hideFileWithSteganography')) {
+            _hideFileWithSteganography = false;
+          }
+          if (!prefs.containsKey('${pKey}antiAiLevel')) {
+            _antiAiLevel = 0;
+          }
+          if (!prefs.containsKey('${pKey}useAiCloaking')) {
+            _useAiCloaking = false;
+          }
+          if (!prefs.containsKey('${pKey}targetSize')) {
+            _targetSize = 1600;
+          }
+          if (!prefs.containsKey('${pKey}preserveMetadata')) {
+            _preserveMetadata = false;
+          }
+          if (!prefs.containsKey('${pKey}filePrefix')) {
+            _filePrefix = 'qrcode-';
+            _filePrefixController.text = _filePrefix;
+          }
+          break;
+
+        case SettingsProfile.shareDocument:
+          if (!prefs.containsKey('${pKey}targetSize')) _targetSize = 1600;
+          if (!prefs.containsKey('${pKey}transparency')) _transparency = 50;
+          if (!prefs.containsKey('${pKey}density')) _density = 40;
+          if (!prefs.containsKey('${pKey}jpegQuality')) _jpegQuality = 80;
+          if (!prefs.containsKey('${pKey}antiAiLevel')) _antiAiLevel = 75;
+          if (!prefs.containsKey('${pKey}useAiCloaking')) _useAiCloaking = true;
+          if (!prefs.containsKey('${pKey}filePrefix')) {
+            _filePrefix = 'doc-';
+            _filePrefixController.text = _filePrefix;
+          }
+          break;
+      }
+    });
+  }
+
+  void _saveAllCurrentSettings() {
+    _savePreference('transparency', _transparency);
+    _savePreference('density', _density);
+    _savePreference('fontSize', _fontSize);
+    _savePreference('jpegQuality', _jpegQuality);
+    _savePreference('targetSize', _targetSize);
+    _savePreference('includeTimestamp', _includeTimestamp);
+    _savePreference('preserveMetadata', _preserveMetadata);
+    _savePreference('rasterizePdf', _rasterizePdf);
+    _savePreference('antiAiLevel', _antiAiLevel);
+    _savePreference('useSteganography', _useSteganography);
+    _savePreference('useRobustSteganography', _useRobustSteganography);
+    _savePreference('useAiCloaking', _useAiCloaking);
+    _savePreference('hideFileWithSteganography', _hideFileWithSteganography);
+    _savePreference('useRandomColor', _useRandomColor);
+    _savePreference('selectedColor', _selectedColor.toARGB32());
+    _savePreference('selectedFont', _selectedFont.fontFamily);
+    _savePreference('qrVisible', _qrVisible);
+  }
+
+  Future<void> _saveCurrentConfigToProfile(SettingsProfile profile) async {
+    if (profile == SettingsProfile.none) return;
+
+    final l10n = AppLocalizations.of(context)!;
+    final prefs = await SharedPreferences.getInstance();
+    final String pKey = 'profile_${profile.name}_';
+
+    await prefs.setDouble('${pKey}transparency', _transparency);
+    await prefs.setDouble('${pKey}density', _density);
+    await prefs.setInt('${pKey}jpegQuality', _jpegQuality);
+    if (_targetSize != null) {
+      await prefs.setInt('${pKey}targetSize', _targetSize!);
+    } else {
+      await prefs.remove('${pKey}targetSize');
+    }
+    await prefs.setDouble('${pKey}antiAiLevel', _antiAiLevel);
+    await prefs.setBool('${pKey}useAiCloaking', _useAiCloaking);
+    await prefs.setBool('${pKey}useSteganography', _useSteganography);
+    await prefs.setBool(
+        '${pKey}useRobustSteganography', _useRobustSteganography);
+    await prefs.setBool(
+        '${pKey}hideFileWithSteganography', _hideFileWithSteganography);
+    await prefs.setBool('${pKey}preserveMetadata', _preserveMetadata);
+    await prefs.setBool('${pKey}qrVisible', _qrVisible);
+    await prefs.setInt('${pKey}watermarkType', _watermarkType.index);
+
+    // Additional requested settings
+    await prefs.setInt('${pKey}selectedColor', _selectedColor.toARGB32());
+    await prefs.setDouble('${pKey}fontSize', _fontSize);
+    await prefs.setString('${pKey}filePrefix', _filePrefix);
+    await prefs.setString('${pKey}selectedFont', _selectedFont.fontFamily);
+    if (_outputDirectory != null) {
+      await prefs.setString('${pKey}outputDirectory', _outputDirectory!);
+    } else {
+      await prefs.remove('${pKey}outputDirectory');
+    }
+    await prefs.setBool('${pKey}useRandomColor', _useRandomColor);
+    await prefs.setBool('${pKey}rasterizePdf', _rasterizePdf);
+    await prefs.setBool('${pKey}includeTimestamp', _includeTimestamp);
+    await prefs.setDouble('${pKey}logoSize', _logoSize);
+    await prefs.setDouble('${pKey}qrSize', _qrSize);
+    await prefs.setDouble('${pKey}qrOpacity', _qrOpacity);
+    await prefs.setInt('${pKey}qrPosition', _qrPosition.index);
+    await prefs.setInt('${pKey}qrType', _qrType.index);
+
+    if (mounted) {
+      String profileLabel = '';
+      switch (profile) {
+        case SettingsProfile.secureIdentity:
+          profileLabel = l10n.profileSecureIdentity;
+        case SettingsProfile.onlineImage:
+          profileLabel = l10n.profileOnlineImage;
+        case SettingsProfile.qrCode:
+          profileLabel = l10n.profileQrCode;
+        case SettingsProfile.shareDocument:
+          profileLabel = l10n.profileShareDocument;
+        default:
+          profileLabel = profile.name;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.profileSaved(profileLabel)),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  Future<void> _resetProfileToDefaults(SettingsProfile profile) async {
+    final l10n = AppLocalizations.of(context)!;
+    final prefs = await SharedPreferences.getInstance();
+    final String pKey = 'profile_${profile.name}_';
+
+    final keys = prefs.getKeys().where((k) => k.startsWith(pKey)).toList();
+    for (final key in keys) {
+      await prefs.remove(key);
+    }
+
+    if (mounted) {
+      String profileLabel = '';
+      switch (profile) {
+        case SettingsProfile.secureIdentity:
+          profileLabel = l10n.profileSecureIdentity;
+        case SettingsProfile.onlineImage:
+          profileLabel = l10n.profileOnlineImage;
+        case SettingsProfile.qrCode:
+          profileLabel = l10n.profileQrCode;
+        case SettingsProfile.shareDocument:
+          profileLabel = l10n.profileShareDocument;
+        default:
+          profileLabel = profile.name;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.profileReset(profileLabel)),
+        ),
+      );
+
+      if (_selectedProfile == profile) {
+        _applyProfile(profile);
+      }
     }
   }
 
@@ -839,23 +1096,28 @@ class WatermarkPageState extends State<WatermarkPage>
 
       return Padding(
         padding: const EdgeInsets.only(right: 8.0, bottom: 4.0),
-        child: ChoiceChip(
-          label: Text(label),
-          avatar: Icon(
-            icon,
-            size: 16,
-            color: isSelected
-                ? theme.colorScheme.onPrimaryContainer
-                : theme.colorScheme.onSurfaceVariant,
-          ),
-          selected: isSelected,
-          onSelected: _processing
+        child: GestureDetector(
+          onLongPress: profile == SettingsProfile.none
               ? null
-              : (selected) {
-                  if (selected) {
-                    _applyProfile(profile);
-                  }
-                },
+              : () => _saveCurrentConfigToProfile(profile),
+          child: ChoiceChip(
+            label: Text(label),
+            avatar: Icon(
+              icon,
+              size: 16,
+              color: isSelected
+                  ? theme.colorScheme.onPrimaryContainer
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+            selected: isSelected,
+            onSelected: _processing
+                ? null
+                : (selected) {
+                    if (selected) {
+                      _applyProfile(profile);
+                    }
+                  },
+          ),
         ),
       );
     }).toList();
@@ -2636,6 +2898,18 @@ class WatermarkPageState extends State<WatermarkPage>
                       ),
                     ],
                     const SizedBox(height: 24),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _showResetProfilesModal();
+                      },
+                      icon: const Icon(Icons.settings_backup_restore),
+                      label: Text(l10n.resetProfiles),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 44),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     OutlinedButton.icon(
                       onPressed: () async {
                         final prefs = await SharedPreferences.getInstance();
@@ -4792,5 +5066,83 @@ class WatermarkPageState extends State<WatermarkPage>
       case FontSource.asset:
         return l10n.fontSelectionNoteAsset;
     }
+  }
+
+  void _showResetProfilesModal() {
+    final l10n = AppLocalizations.of(context)!;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(l10n.resetProfiles),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: SettingsProfile.values
+                .where((p) => p != SettingsProfile.none)
+                .map((profile) {
+              String label = '';
+              IconData icon;
+              switch (profile) {
+                case SettingsProfile.secureIdentity:
+                  label = l10n.profileSecureIdentity;
+                  icon = Icons.fingerprint;
+                case SettingsProfile.onlineImage:
+                  label = l10n.profileOnlineImage;
+                  icon = Icons.public;
+                case SettingsProfile.qrCode:
+                  label = l10n.profileQrCode;
+                  icon = Icons.qr_code;
+                case SettingsProfile.shareDocument:
+                  label = l10n.profileShareDocument;
+                  icon = Icons.description;
+                default:
+                  label = profile.name;
+                  icon = Icons.settings;
+              }
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (confirmContext) => AlertDialog(
+                        title: Text(l10n.resetProfiles),
+                        content: Text(l10n.resetProfileConfirm(label)),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(confirmContext),
+                            child: Text(l10n.cancel),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              _resetProfileToDefaults(profile);
+                              Navigator.pop(confirmContext);
+                            },
+                            child: Text(l10n.reset),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  icon: Icon(icon),
+                  label: Text(label),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 44),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.close),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

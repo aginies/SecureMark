@@ -581,5 +581,30 @@
   "themeLabel": "Theme",
   "themeSystem": "System Default",
   "themeLight": "Light",
-  "themeDark": "Dark"
+  "themeDark": "Dark",
+  "resetProfiles": "Reset Profiles",
+  "resetProfileConfirm": "Reset {profile} to factory defaults?",
+  "@resetProfileConfirm": {
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      }
+    }
+  },
+  "profileSaved": "Current configuration saved as default for {profile}",
+  "@profileSaved": {
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      }
+    }
+  },
+  "profileReset": "Profile {profile} reset to factory defaults",
+  "@profileReset": {
+    "placeholders": {
+      "profile": {
+        "type": "String"
+      }
+    }
+  }
 }

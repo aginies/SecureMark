@@ -1472,6 +1472,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Dark'**
   String get themeDark;
+
+  /// No description provided for @resetProfiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Profiles'**
+  String get resetProfiles;
+
+  /// No description provided for @resetProfileConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset {profile} to factory defaults?'**
+  String resetProfileConfirm(String profile);
+
+  /// No description provided for @profileSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Current configuration saved as default for {profile}'**
+  String profileSaved(String profile);
+
+  /// No description provided for @profileReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile {profile} reset to factory defaults'**
+  String profileReset(String profile);
 }
 
 class _AppLocalizationsDelegate
