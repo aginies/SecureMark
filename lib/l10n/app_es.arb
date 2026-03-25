@@ -318,7 +318,10 @@
   "steganographyPasswordLabel": "Contraseña de cifrado",
   "steganographyPasswordHint": "Ingresa la contraseña para proteger el archivo oculto",
   "steganographyPasswordNote": "Nota: esta contraseña será necesaria para extraer el archivo oculto usando SecureMark. Usa cifrado AES-256.",
-  "steganographyZipNote": "Importante: si usa esteganografía y comparte estos archivos a través de WhatsApp, Signal u otras aplicaciones que comprimen imágenes, debe habilitar la compresión ZIP o comprimirlos manualmente. El intercambio directo suele destruir la esteganografía invisible.",
+  "steganographyZipNote": "Importante: si usa esteganografía y comparte estos archivos a través de WhatsApp, Signal u otras aplicaciones que comprimen imágenes, debe habilitar la compresión ZIP o comprimerlos manualmente. El intercambio directo suele destruir la esteganografía invisible.",
+  "steganographyImageOnlyNote": "Nota: La esteganografía (firmas invisibles y archivos ocultos) solo es compatible con archivos de imagen (JPG, PNG, WebP). Se omitirá para archivos PDF.",
+  "steganographyTextLabel": "Firma esteganográfica personalizada",
+  "steganographyTextHint": "Ingrese el texto personalizado para ocultar (por defecto es el texto de la marca de agua si está vacío)",
   "zipAllFiles": "ZIP todos los archivos",
   "zipEnabledHint": "Compresión ZIP habilitada para compartir. NOTA: las aplicaciones de terceros (WhatsApp, Signal, etc.) comprimen las imágenes, lo que puede destruir las firmas de esteganografía. Habilite ZIP para evitar la pérdida de firmas.",
   "zipDisabledHint": "Compresión ZIP deshabilitada",
@@ -607,5 +610,19 @@
         "type": "String"
       }
     }
-  }
+  },
+  "previewModeOriginal": "Original",
+  "previewModeProcessed": "Procesado",
+  "previewModeHeatmap": "Mapa de calor de manipulación",
+  "authenticityVerified": "AUTENTICIDAD VERIFICADA",
+  "fullAuthenticityConfirmed": "AUTENTICIDAD TOTAL CONFIRMADA",
+  "partialAuthenticity": "AUTENTICIDAD PARCIAL",
+  "tamperingDetected": "MANIPULACIÓN DETECTADA",
+  "forensicLayerContent": "Contenido (Imagen + Datos ocultos)",
+  "forensicLayerSource": "Fuente (Imagen visible)",
+  "forensicStatusValid": "VÁLIDO",
+  "forensicStatusModified": "MODIFICADO",
+  "verifFullIntegrity": "Integridad total confirmada (Imagen + Datos ocultos).",
+  "verifPartialIntegrity": "Integridad visual confirmada, pero la esteganografía oculta ha sido modificada o dañada.",
+  "verifTamperingDetected": "Error en la comprobación forense. Tanto los píxeles visuales como los datos ocultos parecen modificados."
 }
