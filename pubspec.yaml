@@ -62,6 +62,11 @@ flutter:
   shaders:
     - shaders/watermark.frag
 
+  assets:
+    - images/guide/
+    - assets/icon/
+    - web/icons/
+
 flutter_launcher_icons:
   android: true
   ios: true

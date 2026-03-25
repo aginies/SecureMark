@@ -30,6 +30,7 @@ import '../models/settings_profile.dart';
 import '../widgets/watermark_shader_painter.dart';
 import '../widgets/profile_chip.dart';
 import '../main.dart';
+import 'onboarding_page.dart';
 
 class WatermarkPage extends StatefulWidget {
   const WatermarkPage({super.key});
@@ -3742,8 +3743,32 @@ class WatermarkPageState extends State<WatermarkPage>
                 ),
               ),
             ],
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: _showGuide,
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: Icon(
+                  Icons.help_outline,
+                  size: 14,
+                  color: theme.hintColor,
+                ),
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showGuide() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => OnboardingPage(
+          onDone: () => Navigator.of(context).pop(),
+        ),
+        fullscreenDialog: true,
       ),
     );
   }

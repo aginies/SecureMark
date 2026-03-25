@@ -1604,6 +1604,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Forensic check failed. Both visual pixels and hidden data appear modified.'**
   String get verifTamperingDetected;
+
+  /// No description provided for @onboardingPage1Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Protect your documents'**
+  String get onboardingPage1Title;
+
+  /// No description provided for @onboardingPage1Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Add visible and invisible watermarks to your sensitive documents before sharing them.'**
+  String get onboardingPage1Body;
+
+  /// No description provided for @onboardingPage2Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Steganography'**
+  String get onboardingPage2Title;
+
+  /// No description provided for @onboardingPage2Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Embed hidden signatures and even entire files inside your images that are invisible to the naked eye.'**
+  String get onboardingPage2Body;
+
+  /// No description provided for @onboardingPage3Title.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Protection'**
+  String get onboardingPage3Title;
+
+  /// No description provided for @onboardingPage3Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Anti-AI removal protection and AI Cloaking to disrupt AI models trying to remove your watermarks or steal your style.'**
+  String get onboardingPage3Body;
+
+  /// No description provided for @onboardingStepTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How it works'**
+  String get onboardingStepTitle;
+
+  /// No description provided for @onboardingStep1.
+  ///
+  /// In en, this message translates to:
+  /// **'1. Choose a Profile preset for your use case.'**
+  String get onboardingStep1;
+
+  /// No description provided for @onboardingStep2.
+  ///
+  /// In en, this message translates to:
+  /// **'2. Import your Images or PDF files.'**
+  String get onboardingStep2;
+
+  /// No description provided for @onboardingStep3.
+  ///
+  /// In en, this message translates to:
+  /// **'3. Click Apply to generate the watermarks.'**
+  String get onboardingStep3;
+
+  /// No description provided for @onboardingStep4.
+  ///
+  /// In en, this message translates to:
+  /// **'4. Share or Save the results.'**
+  String get onboardingStep4;
+
+  /// No description provided for @onboardingExpertTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profiles & Options'**
+  String get onboardingExpertTitle;
+
+  /// No description provided for @onboardingProfileSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Long-press any profile to save your current configuration as the default for that preset.'**
+  String get onboardingProfileSave;
+
+  /// No description provided for @onboardingExpertNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Expert mode (top right) unlocks advanced settings like custom fonts, prefixes, and directory selection.'**
+  String get onboardingExpertNote;
+
+  /// No description provided for @onboardingOptionsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Icons at the bottom show which security layers are active. Click to see parameters, or double-tap to open the configuration.'**
+  String get onboardingOptionsNote;
+
+  /// No description provided for @onboardingNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get onboardingNext;
+
+  /// No description provided for @onboardingDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get onboardingDone;
+
+  /// No description provided for @onboardingSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get onboardingSkip;
+
+  /// No description provided for @showGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'Show Guide'**
+  String get showGuide;
 }
 
 class _AppLocalizationsDelegate

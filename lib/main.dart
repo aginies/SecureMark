@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'l10n/app_localizations.dart';
 import 'pages/watermark_page.dart';
+import 'pages/onboarding_page.dart';
 
 enum AppTheme { system, light, dark, amoled }
 
@@ -23,23 +24,37 @@ class SecureMarkApp extends StatefulWidget {
 
 class SecureMarkAppState extends State<SecureMarkApp> {
   AppTheme _appTheme = AppTheme.system;
+  bool _isFirstLaunch = false;
+  bool _isLoading = true;
 
   AppTheme get appTheme => _appTheme;
 
   @override
   void initState() {
     super.initState();
-    _loadThemeMode();
+    _initApp();
   }
 
-  Future<void> _loadThemeMode() async {
+  Future<void> _initApp() async {
     final prefs = await SharedPreferences.getInstance();
     final themeIndex = prefs.getInt('appTheme');
-    if (themeIndex != null) {
-      setState(() {
+    final isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
+
+    setState(() {
+      if (themeIndex != null) {
         _appTheme = AppTheme.values[themeIndex];
-      });
-    }
+      }
+      _isFirstLaunch = isFirstLaunch;
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _completeOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isFirstLaunch', false);
+    setState(() {
+      _isFirstLaunch = false;
+    });
   }
 
   Future<void> setThemeMode(AppTheme theme) async {
@@ -52,6 +67,13 @@ class SecureMarkAppState extends State<SecureMarkApp> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const MaterialApp(
+        home: Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
     ThemeData amoledTheme = ThemeData(
       colorScheme: ColorScheme.fromSeed(
         seedColor: Colors.deepPurple,
@@ -97,7 +119,9 @@ class SecureMarkAppState extends State<SecureMarkApp> {
       themeMode: _appTheme == AppTheme.amoled
           ? ThemeMode.dark
           : _getThemeMode(_appTheme),
-      home: const WatermarkPage(),
+      home: _isFirstLaunch
+          ? OnboardingPage(onDone: _completeOnboarding)
+          : const WatermarkPage(),
     );
   }
 

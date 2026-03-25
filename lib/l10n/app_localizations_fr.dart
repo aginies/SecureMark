@@ -936,4 +936,69 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get verifTamperingDetected =>
       'Échec du contrôle forensic. Les pixels visuels et les données cachées semblent avoir été modifiés.';
+
+  @override
+  String get onboardingPage1Title => 'Protégez vos documents';
+
+  @override
+  String get onboardingPage1Body =>
+      'Ajoutez des filigranes visibles et invisibles à vos documents sensibles avant de les partager.';
+
+  @override
+  String get onboardingPage2Title => 'Stéganographie';
+
+  @override
+  String get onboardingPage2Body =>
+      'Cachez des signatures et même des fichiers entiers dans vos images, invisibles à l\'œil nu.';
+
+  @override
+  String get onboardingPage3Title => 'Protection IA';
+
+  @override
+  String get onboardingPage3Body =>
+      'Utilisez la protection Anti-Suppression IA et le Cloaking IA pour perturber les modèles d\'IA qui tentent de supprimer vos filigranes.';
+
+  @override
+  String get onboardingStepTitle => 'Comment ça marche';
+
+  @override
+  String get onboardingStep1 =>
+      '1. Choisissez un Profil adapté à votre besoin.';
+
+  @override
+  String get onboardingStep2 => '2. Importez vos Images ou fichiers PDF.';
+
+  @override
+  String get onboardingStep3 =>
+      '3. Cliquez sur Appliquer pour générer les filigranes.';
+
+  @override
+  String get onboardingStep4 => '4. Partagez ou Sauvegardez les résultats.';
+
+  @override
+  String get onboardingExpertTitle => 'Profils & Options';
+
+  @override
+  String get onboardingProfileSave =>
+      'Appuyez longuement sur un profil pour enregistrer votre configuration actuelle par défaut pour ce preset.';
+
+  @override
+  String get onboardingExpertNote =>
+      'Le mode Expert (en haut à droite) débloque des paramètres avancés (polices, préfixes, dossiers).';
+
+  @override
+  String get onboardingOptionsNote =>
+      'Les icônes en bas indiquent les couches de sécurité actives. Cliquez pour voir les paramètres, double-cliquez pour ouvrir la configuration.';
+
+  @override
+  String get onboardingNext => 'Suivant';
+
+  @override
+  String get onboardingDone => 'Compris';
+
+  @override
+  String get onboardingSkip => 'Passer';
+
+  @override
+  String get showGuide => 'Voir le guide';
 }

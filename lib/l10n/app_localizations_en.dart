@@ -923,4 +923,67 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get verifTamperingDetected =>
       'Forensic check failed. Both visual pixels and hidden data appear modified.';
+
+  @override
+  String get onboardingPage1Title => 'Protect your documents';
+
+  @override
+  String get onboardingPage1Body =>
+      'Add visible and invisible watermarks to your sensitive documents before sharing them.';
+
+  @override
+  String get onboardingPage2Title => 'Steganography';
+
+  @override
+  String get onboardingPage2Body =>
+      'Embed hidden signatures and even entire files inside your images that are invisible to the naked eye.';
+
+  @override
+  String get onboardingPage3Title => 'AI Protection';
+
+  @override
+  String get onboardingPage3Body =>
+      'Use Anti-AI removal protection and AI Cloaking to disrupt AI models trying to remove your watermarks or steal your style.';
+
+  @override
+  String get onboardingStepTitle => 'How it works';
+
+  @override
+  String get onboardingStep1 => '1. Choose a Profile preset for your use case.';
+
+  @override
+  String get onboardingStep2 => '2. Import your Images or PDF files.';
+
+  @override
+  String get onboardingStep3 => '3. Click Apply to generate the watermarks.';
+
+  @override
+  String get onboardingStep4 => '4. Share or Save the results.';
+
+  @override
+  String get onboardingExpertTitle => 'Profiles & Options';
+
+  @override
+  String get onboardingProfileSave =>
+      'Long-press any profile to save your current configuration as the default for that preset.';
+
+  @override
+  String get onboardingExpertNote =>
+      'Expert mode (top right) unlocks advanced settings like custom fonts, prefixes, and directory selection.';
+
+  @override
+  String get onboardingOptionsNote =>
+      'Icons at the bottom show which security layers are active. Click to see parameters, or double-tap to open the configuration.';
+
+  @override
+  String get onboardingNext => 'Next';
+
+  @override
+  String get onboardingDone => 'Got it';
+
+  @override
+  String get onboardingSkip => 'Skip';
+
+  @override
+  String get showGuide => 'Show Guide';
 }
