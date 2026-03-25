@@ -473,18 +473,18 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get steganographyZipNote =>
-      'Importante: si usa esteganografía y comparte estos archivos a través de WhatsApp, Signal u otras aplicaciones que comprimen imágenes, debe habilitar la compresión ZIP o comprimirlos manualmente. El intercambio directo suele destruir la esteganografía invisible.';
+      'Importante: si usa esteganografía y comparte estos archivos a través de WhatsApp, Signal u otras aplicaciones que comprimen imágenes, debe habilitar la compresión ZIP o comprimerlos manualmente. El intercambio directo suele destruir la esteganografía invisible.';
 
   @override
   String get steganographyImageOnlyNote =>
-      'Note: Steganography (invisible signatures and hidden files) is only supported for image files (JPG, PNG, WebP). It will be skipped for PDF files.';
+      'Nota: La esteganografía (firmas invisibles y archivos ocultos) solo es compatible con archivos de imagen (JPG, PNG, WebP). Se omitirá para archivos PDF.';
 
   @override
-  String get steganographyTextLabel => 'Custom Steganography Signature';
+  String get steganographyTextLabel => 'Firma esteganográfica personalizada';
 
   @override
   String get steganographyTextHint =>
-      'Enter custom text to hide (defaults to watermark text if empty)';
+      'Ingrese el texto personalizado para ocultar (por defecto es el texto de la marca de agua si está vacío)';
 
   @override
   String get zipAllFiles => 'ZIP todos los archivos';
@@ -892,44 +892,44 @@ class AppLocalizationsEs extends AppLocalizations {
   String get previewModeOriginal => 'Original';
 
   @override
-  String get previewModeProcessed => 'Processed';
+  String get previewModeProcessed => 'Procesado';
 
   @override
-  String get previewModeHeatmap => 'Tamper Heatmap';
+  String get previewModeHeatmap => 'Mapa de calor de manipulación';
 
   @override
-  String get authenticityVerified => 'AUTHENTICITY VERIFIED';
+  String get authenticityVerified => 'AUTENTICIDAD VERIFICADA';
 
   @override
-  String get fullAuthenticityConfirmed => 'FULL AUTHENTICITY CONFIRMED';
+  String get fullAuthenticityConfirmed => 'AUTENTICIDAD TOTAL CONFIRMADA';
 
   @override
-  String get partialAuthenticity => 'PARTIAL AUTHENTICITY';
+  String get partialAuthenticity => 'AUTENTICIDAD PARCIAL';
 
   @override
-  String get tamperingDetected => 'TAMPERING DETECTED';
+  String get tamperingDetected => 'MANIPULACIÓN DETECTADA';
 
   @override
-  String get forensicLayerContent => 'Content (Image + Hidden Data)';
+  String get forensicLayerContent => 'Contenido (Imagen + Datos ocultos)';
 
   @override
-  String get forensicLayerSource => 'Source (Visible Image)';
+  String get forensicLayerSource => 'Fuente (Imagen visible)';
 
   @override
-  String get forensicStatusValid => 'VALID';
+  String get forensicStatusValid => 'VÁLIDO';
 
   @override
-  String get forensicStatusModified => 'MODIFIED';
+  String get forensicStatusModified => 'MODIFICADO';
 
   @override
   String get verifFullIntegrity =>
-      'Full integrity confirmed (Image + Hidden Data).';
+      'Integridad total confirmada (Imagen + Datos ocultos).';
 
   @override
   String get verifPartialIntegrity =>
-      'Visual integrity confirmed, but hidden steganography has been modified or corrupted.';
+      'Integridad visual confirmada, pero la esteganografía oculta ha sido modificada o dañada.';
 
   @override
   String get verifTamperingDetected =>
-      'Forensic check failed. Both visual pixels and hidden data appear modified.';
+      'Error en la comprobación forense. Tanto los píxeles visuales como los datos ocultos parecen modificados.';
 }

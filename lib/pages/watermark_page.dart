@@ -3434,10 +3434,9 @@ class WatermarkPageState extends State<WatermarkPage>
                                   ),
                                 ),
                                 if (_processedFiles[index]
-                                            .result
-                                            .originalBytes !=
-                                        null &&
-                                    !_processedFiles[index].result.isPdf)
+                                        .result
+                                        .originalBytes !=
+                                    null)
                                   Positioned(
                                     bottom: 8,
                                     left: 8,

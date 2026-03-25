@@ -1110,16 +1110,38 @@ class WatermarkProcessor {
       final outputPath =
           _outputPath(file.path, '.pdf', includeTimestamp, filePrefix);
 
-      // Generate a preview of the first page using the existing Printing logic
+      // Generate a preview of the first page of the OUTPUT
       final preview =
           await Printing.raster(outputBytes, pages: [0], dpi: 72).first;
       final previewBytes = await preview.toPng();
+
+      // Generate a preview of the first page of the ORIGINAL for comparison
+      final originalPreview =
+          await Printing.raster(inputBytes, pages: [0], dpi: 72).first;
+      final originalBytesImage = await originalPreview.toPng();
+
+      // Generate heatmap for the first page
+      Uint8List? heatmapBytes;
+      try {
+        final originalImg = img.decodeImage(originalBytesImage);
+        final processedImg = img.decodeImage(previewBytes);
+        if (originalImg != null && processedImg != null) {
+          final heatmap = _generateHeatmapImage(originalImg, processedImg);
+          if (heatmap != null) {
+            heatmapBytes =
+                Uint8List.fromList(img.encodeJpg(heatmap, quality: 85));
+          }
+        }
+      } catch (e) {
+        debugPrint('Failed to generate PDF heatmap: $e');
+      }
 
       return ProcessResult(
         outputPath: outputPath,
         outputBytes: outputBytes,
         previewBytes: previewBytes,
-        originalBytes: inputBytes, // Store original bytes for A/B comparison
+        originalBytes: originalBytesImage,
+        heatmapBytes: heatmapBytes,
         steganographyVerified: false,
         isPdf: true,
       );
@@ -2937,11 +2959,31 @@ class WatermarkProcessor {
                   false;
         }
       }
+
+      // Generate heatmap for the first page
+      Uint8List? heatmapBytes;
+      if (firstPageOriginal != null && preview != null) {
+        try {
+          final originalImg = img.decodeImage(firstPageOriginal);
+          final processedImg = img.decodeImage(preview);
+          if (originalImg != null && processedImg != null) {
+            final heatmap = _generateHeatmapImage(originalImg, processedImg);
+            if (heatmap != null) {
+              heatmapBytes =
+                  Uint8List.fromList(img.encodeJpg(heatmap, quality: 85));
+            }
+          }
+        } catch (e) {
+          debugPrint('Failed to generate PDF raster heatmap: $e');
+        }
+      }
+
       return ProcessResult(
           outputPath: path,
           outputBytes: out,
           previewBytes: preview,
           originalBytes: firstPageOriginal,
+          heatmapBytes: heatmapBytes,
           steganographyVerified: verified,
           robustVerified: robustVerified,
           isPdf: true);

@@ -476,14 +476,14 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get steganographyImageOnlyNote =>
-      'Note: Steganography (invisible signatures and hidden files) is only supported for image files (JPG, PNG, WebP). It will be skipped for PDF files.';
+      'Nota: la steganografia (firme invisibili e file nascosti) è supportata solo per i file immagine (JPG, PNG, WebP). Verrà saltata per i file PDF.';
 
   @override
-  String get steganographyTextLabel => 'Custom Steganography Signature';
+  String get steganographyTextLabel => 'Firma steganografica personalizzata';
 
   @override
   String get steganographyTextHint =>
-      'Enter custom text to hide (defaults to watermark text if empty)';
+      'Inserisci il testo personalizzato da nascondere (usa il testo della filigrana se vuoto)';
 
   @override
   String get zipAllFiles => 'Zippa tutti i file';
@@ -887,47 +887,47 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
-  String get previewModeOriginal => 'Original';
+  String get previewModeOriginal => 'Originale';
 
   @override
-  String get previewModeProcessed => 'Processed';
+  String get previewModeProcessed => 'Elaborato';
 
   @override
-  String get previewModeHeatmap => 'Tamper Heatmap';
+  String get previewModeHeatmap => 'Heatmap di manomissione';
 
   @override
-  String get authenticityVerified => 'AUTHENTICITY VERIFIED';
+  String get authenticityVerified => 'AUTENTICITÀ VERIFICATA';
 
   @override
-  String get fullAuthenticityConfirmed => 'FULL AUTHENTICITY CONFIRMED';
+  String get fullAuthenticityConfirmed => 'AUTENTICITÀ TOTALE CONFERMATA';
 
   @override
-  String get partialAuthenticity => 'PARTIAL AUTHENTICITY';
+  String get partialAuthenticity => 'AUTENTICITÀ PARZIALE';
 
   @override
-  String get tamperingDetected => 'TAMPERING DETECTED';
+  String get tamperingDetected => 'MANOMISSIONE RILEVATA';
 
   @override
-  String get forensicLayerContent => 'Content (Image + Hidden Data)';
+  String get forensicLayerContent => 'Contenuto (Immagine + Dati nascosti)';
 
   @override
-  String get forensicLayerSource => 'Source (Visible Image)';
+  String get forensicLayerSource => 'Sorgente (Immagine visibile)';
 
   @override
-  String get forensicStatusValid => 'VALID';
+  String get forensicStatusValid => 'VALIDO';
 
   @override
-  String get forensicStatusModified => 'MODIFIED';
+  String get forensicStatusModified => 'MODIFICATO';
 
   @override
   String get verifFullIntegrity =>
-      'Full integrity confirmed (Image + Hidden Data).';
+      'Integrità totale confermata (Immagine + Dati nascosti).';
 
   @override
   String get verifPartialIntegrity =>
-      'Visual integrity confirmed, but hidden steganography has been modified or corrupted.';
+      'Integrità visiva confermata, ma la steganografia nascosta è stata modificata o danneggiata.';
 
   @override
   String get verifTamperingDetected =>
-      'Forensic check failed. Both visual pixels and hidden data appear modified.';
+      'Controllo forense fallito. Sia i pixel visivi che i dati nascosti sembrano modificati.';
 }
