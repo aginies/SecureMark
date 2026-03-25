@@ -139,7 +139,7 @@
     }
   },
   "shareOpenedFiles": "Teilen-Dialog geöffnet für {count, plural, one {1 Datei} other {{count} Dateien}}.",
-  "@shareOpenedFiles": {
+  "@sharedFiles": {
     "placeholders": {
       "count": {
         "type": "int"
@@ -319,6 +319,9 @@
   "steganographyPasswordHint": "Passwort zum Schutz der versteckten Datei eingeben",
   "steganographyPasswordNote": "Hinweis: Dieses Passwort wird benötigt, um die versteckte Datei mit SecureMark zu extrahieren. Es verwendet AES-256-Verschlüsselung.",
   "steganographyZipNote": "Wichtig: Wenn Sie Steganographie verwenden und diese Dateien über WhatsApp, Signal oder andere Apps, die Bilder komprimieren, teilen, müssen Sie die ZIP-Komprimierung aktivieren oder sie manuell zippen. Direktes Teilen zerstört normalerweise die unsichtbare Steganographie.",
+  "steganographyImageOnlyNote": "Hinweis: Steganographie (unsichtbare Signaturen und versteckte Dateien) wird nur für Bilddateien (JPG, PNG, WebP) unterstützt. Bei PDF-Dateien wird sie übersprungen.",
+  "steganographyTextLabel": "Benutzerdefinierte steganographische Signatur",
+  "steganographyTextHint": "Geben Sie den benutzerdefinierten Text ein, der ausgeblendet werden soll (verwendet standardmäßig den Wasserzeichen-Text, falls leer)",
   "zipAllFiles": "Alle Dateien zippen",
   "zipEnabledHint": "ZIP-Komprimierung für den Austausch aktiviert",
   "zipDisabledHint": "ZIP-Komprimierung deaktiviert",
@@ -607,5 +610,19 @@
         "type": "String"
       }
     }
-  }
+  },
+  "previewModeOriginal": "Original",
+  "previewModeProcessed": "Verarbeitet",
+  "previewModeHeatmap": "Manipulations-Heatmap",
+  "authenticityVerified": "AUTHENTIZITÄT VERIFIZIERT",
+  "fullAuthenticityConfirmed": "VOLLE AUTHENTIZITÄT BESTÄTIGT",
+  "partialAuthenticity": "TEILWEISE AUTHENTIZITÄT",
+  "tamperingDetected": "MANIPULATION ERKANNT",
+  "forensicLayerContent": "Inhalt (Bild + versteckte Daten)",
+  "forensicLayerSource": "Quelle (sichtbares Bild)",
+  "forensicStatusValid": "GÜLTIG",
+  "forensicStatusModified": "GEÄNDERT",
+  "verifFullIntegrity": "Vollständige Integrität bestätigt (Bild + versteckte Daten).",
+  "verifPartialIntegrity": "Visuelle Integrität bestätigt, aber die versteckte Steganographie wurde geändert oder beschädigt.",
+  "verifTamperingDetected": "Forensische Prüfung fehlgeschlagen. Sowohl visuelle Pixel als auch versteckte Daten scheinen geändert worden zu sein."
 }
