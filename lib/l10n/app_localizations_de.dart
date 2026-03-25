@@ -474,6 +474,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wichtig: Wenn Sie Steganographie verwenden und diese Dateien über WhatsApp, Signal oder andere Apps, die Bilder komprimieren, teilen, müssen Sie die ZIP-Komprimierung aktivieren oder sie manuell zippen. Direktes Teilen zerstört normalerweise die unsichtbare Steganographie.';
 
   @override
+  String get steganographyImageOnlyNote =>
+      'Note: Steganography (invisible signatures and hidden files) is only supported for image files (JPG, PNG, WebP). It will be skipped for PDF files.';
+
+  @override
   String get steganographyTextLabel => 'Custom Steganography Signature';
 
   @override

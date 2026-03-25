@@ -2119,6 +2119,39 @@ class WatermarkPageState extends State<WatermarkPage>
                         ],
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color:
+                              theme.colorScheme.outline.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: theme.colorScheme.primary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l10n.steganographyImageOnlyNote,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     CheckboxListTile(
                       title: Text(l10n.steganographyTitle),
@@ -2156,7 +2189,7 @@ class WatermarkPageState extends State<WatermarkPage>
                     const SizedBox(height: 16),
                     TextField(
                       controller: _steganographyTextController,
-                      maxLines: 10,
+                      maxLines: 3,
                       minLines: 1,
                       decoration: InputDecoration(
                         labelText: l10n.steganographyTextLabel,
@@ -4202,13 +4235,19 @@ class WatermarkPageState extends State<WatermarkPage>
     final rasterKey = GlobalKey<TooltipState>();
     final preserveKey = GlobalKey<TooltipState>();
 
+    final bool currentIsPdf = _processedFiles.isNotEmpty &&
+        _previewIndex < _processedFiles.length &&
+        _processedFiles[_previewIndex].result.isPdf;
+
     return Wrap(
       spacing: 0,
       runSpacing: 8,
       alignment: WrapAlignment.start,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        if (_useSteganography && !_steganographyVerificationFailed)
+        if (_useSteganography &&
+            !_steganographyVerificationFailed &&
+            !currentIsPdf)
           GestureDetector(
             onTap: () => showTooltip(steganoKey),
             onDoubleTap: _showSteganographyOptions,
@@ -4221,7 +4260,7 @@ class WatermarkPageState extends State<WatermarkPage>
               ),
             ),
           ),
-        if (_useRobustSteganography)
+        if (_useRobustSteganography && !currentIsPdf)
           GestureDetector(
             onTap: () => showTooltip(robustKey),
             onDoubleTap: _showSteganographyOptions,
@@ -4248,7 +4287,7 @@ class WatermarkPageState extends State<WatermarkPage>
               ),
             ),
           ),
-        if (_steganographyVerificationFailed)
+        if (_steganographyVerificationFailed && !currentIsPdf)
           GestureDetector(
             onTap: () => showTooltip(warningKey),
             onDoubleTap: _showSteganographyOptions,
@@ -4762,11 +4801,13 @@ class WatermarkPageState extends State<WatermarkPage>
           );
         }
 
-        final bool shouldApplyStegano = _useSteganography ||
-            (_hideFileWithSteganography && _hiddenFileBytes != null);
+        final isPdf = path.toLowerCase().endsWith('.pdf');
+        final bool shouldApplyStegano = !isPdf &&
+            (_useSteganography ||
+                (_hideFileWithSteganography && _hiddenFileBytes != null));
 
         _addLog(
-            'Processing with: useSteganography=$shouldApplyStegano, hideFile=$_hideFileWithSteganography, hiddenFile=$_hiddenFileName (${_hiddenFileBytes?.length ?? 0} bytes)');
+            'Processing with: useSteganography=$shouldApplyStegano (isPdf=$isPdf), hideFile=$_hideFileWithSteganography, hiddenFile=$_hiddenFileName (${_hiddenFileBytes?.length ?? 0} bytes)');
 
         try {
           final result = await WatermarkProcessor.processFile(
@@ -4787,7 +4828,7 @@ class WatermarkPageState extends State<WatermarkPage>
             filePrefix: _filePrefix,
             antiAiLevel: _antiAiLevel,
             useSteganography: shouldApplyStegano,
-            useRobustSteganography: _useRobustSteganography,
+            useRobustSteganography: !isPdf && _useRobustSteganography,
             useAiCloaking: _useAiCloaking,
             watermarkType: _watermarkType,
             watermarkImageBytes: _watermarkImageBytes,
@@ -4877,15 +4918,19 @@ class WatermarkPageState extends State<WatermarkPage>
               .where((f) =>
                   f.result.steganographyVerified || f.result.robustVerified)
               .length;
-          final steganographyFailed =
-              (_useSteganography || _useRobustSteganography) &&
-                  processedFiles.isNotEmpty &&
-                  verifiedCount == 0;
 
-          if ((_useSteganography || _useRobustSteganography) &&
-              verifiedCount > 0) {
+          // Only count as failed if we actually attempted it on at least one image
+          final attemptedCount = processedFiles
+              .where((f) =>
+                  !f.result.isPdf &&
+                  (_useSteganography || _useRobustSteganography))
+              .length;
+
+          final steganographyFailed = attemptedCount > 0 && verifiedCount == 0;
+
+          if (attemptedCount > 0 && verifiedCount > 0) {
             _addLog('Steganography verified for $verifiedCount file(s)');
-          } else if (_useSteganography || _useRobustSteganography) {
+          } else if (attemptedCount > 0) {
             _addLog('Steganography verification failed for all files');
           }
 

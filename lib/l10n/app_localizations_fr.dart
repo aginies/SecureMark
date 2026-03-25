@@ -476,6 +476,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Important : Si vous utilisez la stéganographie et partagez ces fichiers via WhatsApp, Signal ou d\'autres applications qui compressent les images, vous devez activer la compression ZIP ou les zipper manuellement. Le partage direct détruit généralement la stéganographie invisible.';
 
   @override
+  String get steganographyImageOnlyNote =>
+      'Note : La stéganographie (signatures invisibles et fichiers cachés) n\'est supportée que pour les images (JPG, PNG, WebP). Elle sera ignorée pour les fichiers PDF.';
+
+  @override
   String get steganographyTextLabel =>
       'Signature stéganographique personnalisée';
 
