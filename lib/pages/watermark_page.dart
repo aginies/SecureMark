@@ -3717,47 +3717,51 @@ class WatermarkPageState extends State<WatermarkPage>
   }
 
   Widget _buildAuthorFooter(ThemeData theme) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return InkWell(
-      onTap: _showAboutDialog,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(
-              l10n.authorFooter,
-              style: theme.textTheme.bodySmall,
-            ),
-            if (_appVersion.isNotEmpty) ...[
-              const SizedBox(width: 8),
-              Text(
-                'v$_appVersion',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.hintColor,
-                ),
-              ),
-            ],
-            const SizedBox(width: 8),
-            InkWell(
-              onTap: _showGuide,
-              borderRadius: BorderRadius.circular(16),
-              child: Padding(
-                padding: const EdgeInsets.all(4.0),
-                child: Icon(
-                  Icons.help_outline,
-                  size: 14,
-                  color: theme.hintColor,
-                ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          InkWell(
+            onTap: _showAboutDialog,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    'Antoine Giniès',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  if (_appVersion.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Text(
+                      'v$_appVersion',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.hintColor,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 4),
+          IconButton(
+            onPressed: _showGuide,
+            icon: Icon(
+              Icons.help_outline,
+              size: 16,
+              color: theme.hintColor,
+            ),
+            visualDensity: VisualDensity.compact,
+            tooltip: AppLocalizations.of(context)!.showGuide,
+          ),
+        ],
       ),
     );
   }

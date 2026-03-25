@@ -938,21 +938,21 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get onboardingPage1Body =>
-      'Add visible and invisible watermarks to your sensitive documents before sharing them.';
+      'Visible and invisible watermarks for safe sharing.';
 
   @override
   String get onboardingPage2Title => 'Steganography';
 
   @override
   String get onboardingPage2Body =>
-      'Embed hidden signatures and even entire files inside your images that are invisible to the naked eye.';
+      'Embed hidden signatures or entire files inside images.';
 
   @override
   String get onboardingPage3Title => 'AI Protection';
 
   @override
   String get onboardingPage3Body =>
-      'Use Anti-AI removal protection and AI Cloaking to disrupt AI models trying to remove your watermarks or steal your style.';
+      'Anti-AI protection and Cloaking to disrupt AI models.';
 
   @override
   String get onboardingStepTitle => 'How it works';
@@ -973,16 +973,36 @@ class AppLocalizationsEs extends AppLocalizations {
   String get onboardingExpertTitle => 'Profiles & Options';
 
   @override
+  String get onboardingExpertModeTitle => 'Expert Mode';
+
+  @override
+  String get onboardingSaveProfileTitle => 'Save Presets';
+
+  @override
+  String get onboardingLiveStatusTitle => 'Security Status';
+
+  @override
+  String get onboardingFileAnalyzerTitle => 'Verification';
+
+  @override
   String get onboardingProfileSave =>
       'Long-press any profile to save your current configuration as the default for that preset.';
 
   @override
   String get onboardingExpertNote =>
-      'Expert mode (top right) unlocks advanced settings like custom fonts, prefixes, and directory selection.';
+      'Expert mode (top right) unlocks advanced settings';
 
   @override
   String get onboardingOptionsNote =>
-      'Icons at the bottom show which security layers are active. Click to see parameters, or double-tap to open the configuration.';
+      'See which options are active (double-tap to open the configuration)';
+
+  @override
+  String get onboardingFileAnalyzerNote =>
+      'File Analyzer to check for hidden SecureMark signature or files';
+
+  @override
+  String get onboardingQrCodeNote =>
+      'Embed contact info, links, or metadata via QR code.';
 
   @override
   String get onboardingNext => 'Next';

@@ -942,21 +942,21 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get onboardingPage1Body =>
-      'Ajoutez des filigranes visibles et invisibles à vos documents sensibles avant de les partager.';
+      'Filigranes visibles et invisibles pour un partage sûr.';
 
   @override
   String get onboardingPage2Title => 'Stéganographie';
 
   @override
   String get onboardingPage2Body =>
-      'Cachez des signatures et même des fichiers entiers dans vos images, invisibles à l\'œil nu.';
+      'Signatures ou fichiers cachés dans vos images.';
 
   @override
   String get onboardingPage3Title => 'Protection IA';
 
   @override
   String get onboardingPage3Body =>
-      'Utilisez la protection Anti-Suppression IA et le Cloaking IA pour perturber les modèles d\'IA qui tentent de supprimer vos filigranes.';
+      'Protection Anti-IA pour perturber les modèles d\'IA.';
 
   @override
   String get onboardingStepTitle => 'Comment ça marche';
@@ -979,16 +979,36 @@ class AppLocalizationsFr extends AppLocalizations {
   String get onboardingExpertTitle => 'Profils & Options';
 
   @override
+  String get onboardingExpertModeTitle => 'Mode Expert';
+
+  @override
+  String get onboardingSaveProfileTitle => 'Sauvegarder les Presets';
+
+  @override
+  String get onboardingLiveStatusTitle => 'État de Sécurité';
+
+  @override
+  String get onboardingFileAnalyzerTitle => 'Vérification';
+
+  @override
   String get onboardingProfileSave =>
       'Appuyez longuement sur un profil pour enregistrer votre configuration actuelle par défaut pour ce preset.';
 
   @override
   String get onboardingExpertNote =>
-      'Le mode Expert (en haut à droite) débloque des paramètres avancés (polices, préfixes, dossiers).';
+      'Mode expert (en haut à droite) pour les réglages avancés';
 
   @override
   String get onboardingOptionsNote =>
-      'Les icônes en bas indiquent les couches de sécurité actives. Cliquez pour voir les paramètres, double-cliquez pour ouvrir la configuration.';
+      'Voir quelles options sont actives (double-tap pour configurer)';
+
+  @override
+  String get onboardingFileAnalyzerNote =>
+      'L\'analyseur pour vérifier les signatures ou fichiers cachés';
+
+  @override
+  String get onboardingQrCodeNote =>
+      'Infos de contact, liens ou métadonnées via QR code.';
 
   @override
   String get onboardingNext => 'Suivant';

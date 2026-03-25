@@ -1614,7 +1614,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingPage1Body.
   ///
   /// In en, this message translates to:
-  /// **'Add visible and invisible watermarks to your sensitive documents before sharing them.'**
+  /// **'Visible and invisible watermarks for safe sharing.'**
   String get onboardingPage1Body;
 
   /// No description provided for @onboardingPage2Title.
@@ -1626,7 +1626,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingPage2Body.
   ///
   /// In en, this message translates to:
-  /// **'Embed hidden signatures and even entire files inside your images that are invisible to the naked eye.'**
+  /// **'Embed hidden signatures or entire files inside images.'**
   String get onboardingPage2Body;
 
   /// No description provided for @onboardingPage3Title.
@@ -1638,7 +1638,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingPage3Body.
   ///
   /// In en, this message translates to:
-  /// **'Use Anti-AI removal protection and AI Cloaking to disrupt AI models trying to remove your watermarks or steal your style.'**
+  /// **'Anti-AI protection and Cloaking to disrupt AI models.'**
   String get onboardingPage3Body;
 
   /// No description provided for @onboardingStepTitle.
@@ -1677,6 +1677,30 @@ abstract class AppLocalizations {
   /// **'Profiles & Options'**
   String get onboardingExpertTitle;
 
+  /// No description provided for @onboardingExpertModeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Expert Mode'**
+  String get onboardingExpertModeTitle;
+
+  /// No description provided for @onboardingSaveProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Presets'**
+  String get onboardingSaveProfileTitle;
+
+  /// No description provided for @onboardingLiveStatusTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Security Status'**
+  String get onboardingLiveStatusTitle;
+
+  /// No description provided for @onboardingFileAnalyzerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification'**
+  String get onboardingFileAnalyzerTitle;
+
   /// No description provided for @onboardingProfileSave.
   ///
   /// In en, this message translates to:
@@ -1686,14 +1710,26 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingExpertNote.
   ///
   /// In en, this message translates to:
-  /// **'Expert mode (top right) unlocks advanced settings like custom fonts, prefixes, and directory selection.'**
+  /// **'Expert mode (top right) unlocks advanced settings'**
   String get onboardingExpertNote;
 
   /// No description provided for @onboardingOptionsNote.
   ///
   /// In en, this message translates to:
-  /// **'Icons at the bottom show which security layers are active. Click to see parameters, or double-tap to open the configuration.'**
+  /// **'See which options are active (double-tap to open the configuration)'**
   String get onboardingOptionsNote;
+
+  /// No description provided for @onboardingFileAnalyzerNote.
+  ///
+  /// In en, this message translates to:
+  /// **'File Analyzer to check for hidden SecureMark signature or files'**
+  String get onboardingFileAnalyzerNote;
+
+  /// No description provided for @onboardingQrCodeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Embed contact info, links, or metadata via QR code.'**
+  String get onboardingQrCodeNote;
 
   /// No description provided for @onboardingNext.
   ///
