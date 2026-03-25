@@ -3723,22 +3723,25 @@ class WatermarkPageState extends State<WatermarkPage>
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        child: Column(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
           children: [
             Text(
               l10n.authorFooter,
-              textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall,
             ),
-            if (_appVersion.isNotEmpty)
+            if (_appVersion.isNotEmpty) ...[
+              const SizedBox(width: 8),
               Text(
                 'v$_appVersion',
-                textAlign: TextAlign.center,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.hintColor,
                 ),
               ),
+            ],
           ],
         ),
       ),
