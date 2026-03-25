@@ -1202,6 +1202,12 @@ abstract class AppLocalizations {
   /// **'Files Saved'**
   String get filesSavedTitle;
 
+  /// No description provided for @processingErrorsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing Errors'**
+  String get processingErrorsTitle;
+
   /// No description provided for @successfullySavedCount.
   ///
   /// In en, this message translates to:

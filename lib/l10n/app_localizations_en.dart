@@ -685,6 +685,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filesSavedTitle => 'Files Saved';
 
   @override
+  String get processingErrorsTitle => 'Processing Errors';
+
+  @override
   String successfullySavedCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

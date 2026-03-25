@@ -474,6 +474,7 @@
     }
   },
   "filesSavedTitle": "Archivos guardados",
+  "processingErrorsTitle": "Errores de procesamiento",
   "successfullySavedCount": "{count, plural, one {1 archivo guardado con éxito} other {{count} archivos guardados con éxito}}:",
   "@successfullySavedCount": {
     "placeholders": {

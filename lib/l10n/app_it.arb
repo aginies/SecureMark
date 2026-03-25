@@ -474,6 +474,7 @@
     }
   },
   "filesSavedTitle": "File salvati",
+  "processingErrorsTitle": "Errori di elaborazione",
   "successfullySavedCount": "{count, plural, one {1 file salvato correttamente} other {{count} file salvati correttamente}}:",
   "@successfullySavedCount": {
     "placeholders": {

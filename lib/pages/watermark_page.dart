@@ -4714,6 +4714,7 @@ class WatermarkPageState extends State<WatermarkPage>
 
     final processedFiles = <ProcessedFile>[];
     final failedFiles = <String>[];
+    final processingErrors = <String, String>{};
     bool dialogOpened = false;
 
     String translateProgress(String msg) {
@@ -5012,6 +5013,8 @@ class WatermarkPageState extends State<WatermarkPage>
                   : l10n.errorPrefix(e.toString());
             }
 
+            processingErrors[path] = errorMessage;
+
             setState(() {
               _statusMessage = errorMessage;
             });
@@ -5024,8 +5027,7 @@ class WatermarkPageState extends State<WatermarkPage>
           'Processing loop complete: ${processedFiles.length} succeeded, ${failedFiles.length} failed out of ${paths.length} total');
     } finally {
       _stopStopwatch();
-      final hasError = failedFiles.isNotEmpty;
-      if (mounted && dialogOpened && !hasError) {
+      if (mounted && dialogOpened) {
         Navigator.of(context, rootNavigator: true).pop();
         _progressListener = null;
       }
@@ -5039,6 +5041,10 @@ class WatermarkPageState extends State<WatermarkPage>
             _statusMessage = l10n.processingCancelled;
           });
         } else {
+          if (processingErrors.isNotEmpty) {
+            _showProcessingErrorsDialog(processingErrors);
+          }
+
           final verifiedCount = processedFiles
               .where((f) =>
                   f.result.steganographyVerified || f.result.robustVerified)
@@ -5436,6 +5442,55 @@ class WatermarkPageState extends State<WatermarkPage>
                     )),
               ],
             ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.close),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showProcessingErrorsDialog(Map<String, String> errors) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red),
+            const SizedBox(width: 8),
+            Text(l10n.processingErrorsTitle),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: errors.entries.map((entry) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      p.basename(entry.key),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      entry.value,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.red.shade700,
+                          ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           ),
         ),
         actions: [
