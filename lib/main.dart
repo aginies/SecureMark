@@ -65,14 +65,16 @@ class SecureMarkAppState extends State<SecureMarkApp> {
 
     if (Platform.isAndroid) {
       try {
-        _hasCamera = await _platform.invokeMethod('checkCameraHardware') ?? false;
+        _hasCamera =
+            await _platform.invokeMethod('checkCameraHardware') ?? false;
       } catch (e) {
         _hasCamera = false;
       }
     } else if (Platform.isIOS) {
       _hasCamera = true; // Most iOS devices have cameras
     } else {
-      _hasCamera = false; // Desktop usually doesn't have a direct camera API here
+      _hasCamera =
+          false; // Desktop usually doesn't have a direct camera API here
     }
   }
 
