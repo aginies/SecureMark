@@ -1280,9 +1280,9 @@ class WatermarkProcessor {
       builder.add([(crc >> 8) & 0xFF, crc & 0xFF]);
 
       final fullPayload = builder.toBytes();
-      signatureBits = _textToBits(String.fromCharCodes(fullPayload));
+      signatureBits = _bytesToBits(fullPayload);
 
-      // Metadata backup for robustness
+      // Metadata backup for robustness (Keywords storage)
       final encodedPayload = base64Encode(fullPayload);
       keywords += 'SecureMarkSig:$encodedPayload ';
 
@@ -2053,45 +2053,23 @@ class WatermarkProcessor {
       String? signature;
       ExtractedFileResult? file;
 
-      // Split keywords by space and look for our tags
+      // Robust parsing of Keywords string
       final parts = keywords.split(' ');
       for (final part in parts) {
-        // 1. Look for hidden files in keywords
-        if (part.startsWith('SecureMarkHidden:')) {
+        if (file == null && part.startsWith('SecureMarkHidden:')) {
           final base64Data = part.substring('SecureMarkHidden:'.length);
           try {
             final encryptedData = base64Decode(base64Data);
             file = _decryptFileFromSteganography(encryptedData, password);
-          } catch (e) {
-            debugPrint('Error decoding base64 hidden file: $e');
-          }
+          } catch (_) {}
         }
 
-        // 2. Look for signature in keywords
-        if (part.startsWith('SecureMarkSig:')) {
+        if (signature == null && part.startsWith('SecureMarkSig:')) {
           final base64Data = part.substring('SecureMarkSig:'.length);
           try {
             final fullPayload = base64Decode(base64Data);
-            if (fullPayload.length >= 6) {
-              final type = utf8.decode(fullPayload.sublist(0, 2));
-              final payloadLength = (fullPayload[2] << 24) |
-                  (fullPayload[3] << 16) |
-                  (fullPayload[4] << 8) |
-                  (fullPayload[5]);
-
-              if (fullPayload.length >= 6 + payloadLength + 2) {
-                final payloadBytes = fullPayload.sublist(6, 6 + payloadLength);
-                final extractedCrc =
-                    (fullPayload[6 + payloadLength] << 8) |
-                        fullPayload[6 + payloadLength + 1];
-
-                signature = _extractTextFromPayload(
-                    payloadBytes, extractedCrc, type == 'SX', password);
-              }
-            }
-          } catch (e) {
-            debugPrint('Error decoding base64 signature: $e');
-          }
+            signature = _parseSignatureFromPayload(fullPayload, password);
+          } catch (_) {}
         }
       }
 
@@ -2106,6 +2084,27 @@ class WatermarkProcessor {
       debugPrint('Vector PDF analysis failed: $e');
       return const AnalysisResult();
     }
+  }
+
+  static String? _parseSignatureFromPayload(Uint8List fullPayload, String? password) {
+    if (fullPayload.length >= 6) {
+      final type = utf8.decode(fullPayload.sublist(0, 2));
+      final payloadLength = (fullPayload[2] << 24) |
+          (fullPayload[3] << 16) |
+          (fullPayload[4] << 8) |
+          (fullPayload[5]);
+
+      if (fullPayload.length >= 6 + payloadLength + 2) {
+        final payloadBytes = fullPayload.sublist(6, 6 + payloadLength);
+        final extractedCrc =
+            (fullPayload[6 + payloadLength] << 8) |
+                fullPayload[6 + payloadLength + 1];
+
+        return _extractTextFromPayload(
+            payloadBytes, extractedCrc, type == 'SX', password);
+      }
+    }
+    return null;
   }
 
   static Future<AnalysisResult> analyzeImageAsync(Uint8List bytes,
@@ -3668,8 +3667,7 @@ class WatermarkProcessor {
     return output;
   }
 
-  static List<int> _textToBits(String text) {
-    final bytes = utf8.encode(text);
+  static List<int> _bytesToBits(Uint8List bytes) {
     final bits = <int>[];
     for (final byte in bytes) {
       for (var i = 7; i >= 0; i--) {
@@ -3677,6 +3675,10 @@ class WatermarkProcessor {
       }
     }
     return bits;
+  }
+
+  static List<int> _textToBits(String text) {
+    return _bytesToBits(Uint8List.fromList(utf8.encode(text)));
   }
 
   static Uint8List _encryptFileForSteganography({
