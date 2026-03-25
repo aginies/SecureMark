@@ -851,37 +851,37 @@ class WatermarkProcessor {
     if (rasterizePdf) {
       onProgress?.call(0.2, 'Rasterizing PDF (flattening)...');
       return await _processPdfRasterFallback(
-        inputBytes: inputBytes,
-        file: file,
-        transparency: transparency,
-        density: density,
-        watermarkText: watermarkText,
-        useRandomColor: useRandomColor,
-        selectedColorValue: selectedColorValue,
-        fontSize: fontSize,
-        font: font,
-        jpegQuality: jpegQuality,
-        includeTimestamp: includeTimestamp,
-        filePrefix: filePrefix,
-        antiAiLevel: antiAiLevel,
-        useSteganography: useSteganography,
-        useRobustSteganography: useRobustSteganography,
-        useAiCloaking: useAiCloaking,
-        watermarkType: watermarkType,
-        watermarkImageBytes: watermarkImageBytes,
-        steganographyPassword: steganographyPassword,
-        steganographyText: steganographyText,
-        hiddenFileName: hiddenFileName,
-        hiddenFileBytes: hiddenFileBytes,
-        qrConfig: qrConfig,
-        enablePdfSecurity: enablePdfSecurity,
-        pdfUserPassword: pdfUserPassword,
-        pdfOwnerPassword: pdfOwnerPassword,
-        pdfAllowPrinting: pdfAllowPrinting,
-        pdfAllowCopying: pdfAllowCopying,
-        pdfAllowEditing: pdfAllowEditing,
-        onProgress: onProgress,
-        cancellationToken: cancellationToken);
+          inputBytes: inputBytes,
+          file: file,
+          transparency: transparency,
+          density: density,
+          watermarkText: watermarkText,
+          useRandomColor: useRandomColor,
+          selectedColorValue: selectedColorValue,
+          fontSize: fontSize,
+          font: font,
+          jpegQuality: jpegQuality,
+          includeTimestamp: includeTimestamp,
+          filePrefix: filePrefix,
+          antiAiLevel: antiAiLevel,
+          useSteganography: useSteganography,
+          useRobustSteganography: useRobustSteganography,
+          useAiCloaking: useAiCloaking,
+          watermarkType: watermarkType,
+          watermarkImageBytes: watermarkImageBytes,
+          steganographyPassword: steganographyPassword,
+          steganographyText: steganographyText,
+          hiddenFileName: hiddenFileName,
+          hiddenFileBytes: hiddenFileBytes,
+          qrConfig: qrConfig,
+          enablePdfSecurity: enablePdfSecurity,
+          pdfUserPassword: pdfUserPassword,
+          pdfOwnerPassword: pdfOwnerPassword,
+          pdfAllowPrinting: pdfAllowPrinting,
+          pdfAllowCopying: pdfAllowCopying,
+          pdfAllowEditing: pdfAllowEditing,
+          onProgress: onProgress,
+          cancellationToken: cancellationToken);
     }
 
     // Create ReceivePort to get progress updates from isolate
@@ -952,37 +952,37 @@ class WatermarkProcessor {
 
       // Fallback to raster processing
       return await _processPdfRasterFallback(
-        inputBytes: inputBytes,
-        file: file,
-        transparency: transparency,
-        density: density,
-        watermarkText: watermarkText,
-        useRandomColor: useRandomColor,
-        selectedColorValue: selectedColorValue,
-        fontSize: fontSize,
-        font: font,
-        jpegQuality: jpegQuality,
-        includeTimestamp: includeTimestamp,
-        filePrefix: filePrefix,
-        antiAiLevel: antiAiLevel,
-        useSteganography: useSteganography,
-        useRobustSteganography: useRobustSteganography,
-        useAiCloaking: useAiCloaking,
-        watermarkType: watermarkType,
-        watermarkImageBytes: watermarkImageBytes,
-        steganographyPassword: steganographyPassword,
-        steganographyText: steganographyText,
-        hiddenFileName: hiddenFileName,
-        hiddenFileBytes: hiddenFileBytes,
-        qrConfig: qrConfig,
-        enablePdfSecurity: enablePdfSecurity,
-        pdfUserPassword: pdfUserPassword,
-        pdfOwnerPassword: pdfOwnerPassword,
-        pdfAllowPrinting: pdfAllowPrinting,
-        pdfAllowCopying: pdfAllowCopying,
-        pdfAllowEditing: pdfAllowEditing,
-        onProgress: onProgress,
-        cancellationToken: cancellationToken);
+          inputBytes: inputBytes,
+          file: file,
+          transparency: transparency,
+          density: density,
+          watermarkText: watermarkText,
+          useRandomColor: useRandomColor,
+          selectedColorValue: selectedColorValue,
+          fontSize: fontSize,
+          font: font,
+          jpegQuality: jpegQuality,
+          includeTimestamp: includeTimestamp,
+          filePrefix: filePrefix,
+          antiAiLevel: antiAiLevel,
+          useSteganography: useSteganography,
+          useRobustSteganography: useRobustSteganography,
+          useAiCloaking: useAiCloaking,
+          watermarkType: watermarkType,
+          watermarkImageBytes: watermarkImageBytes,
+          steganographyPassword: steganographyPassword,
+          steganographyText: steganographyText,
+          hiddenFileName: hiddenFileName,
+          hiddenFileBytes: hiddenFileBytes,
+          qrConfig: qrConfig,
+          enablePdfSecurity: enablePdfSecurity,
+          pdfUserPassword: pdfUserPassword,
+          pdfOwnerPassword: pdfOwnerPassword,
+          pdfAllowPrinting: pdfAllowPrinting,
+          pdfAllowCopying: pdfAllowCopying,
+          pdfAllowEditing: pdfAllowEditing,
+          onProgress: onProgress,
+          cancellationToken: cancellationToken);
     }
 
     final outPath = WatermarkUtils.outputPath(
@@ -1968,9 +1968,10 @@ class WatermarkProcessor {
     final security = document.security;
     security.algorithm = sync.PdfEncryptionAlgorithm.aesx256Bit;
     security.userPassword = pdfUserPassword ?? '';
-    security.ownerPassword = (pdfOwnerPassword != null && pdfOwnerPassword.isNotEmpty)
-        ? pdfOwnerPassword
-        : (pdfUserPassword ?? '');
+    security.ownerPassword =
+        (pdfOwnerPassword != null && pdfOwnerPassword.isNotEmpty)
+            ? pdfOwnerPassword
+            : (pdfUserPassword ?? '');
 
     // Configure permissions
     security.permissions.addAll([

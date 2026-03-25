@@ -5749,7 +5749,8 @@ class WatermarkPageState extends State<WatermarkPage>
         : displayDir;
 
     if (_zipOutputs) {
-      return l10n.willSaveAsIn('securemark-files-YYYYMMDD_HHMM.zip', displayPath);
+      return l10n.willSaveAsIn(
+          'securemark-files-YYYYMMDD_HHMM.zip', displayPath);
     }
 
     if (_processedFiles.length == 1) {
