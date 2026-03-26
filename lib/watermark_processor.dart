@@ -2059,7 +2059,8 @@ class WatermarkProcessor {
   static Future<AnalysisResult> analyzeImage(Uint8List bytes,
       {String? password, Function(double, String)? onProgress}) async {
     onProgress?.call(0.1, 'progressDecodingImage');
-    final image = img.decodeImage(bytes);
+    // Use compute to decode image in a separate isolate to avoid blocking UI thread
+    final image = await compute(img.decodeImage, bytes);
     if (image == null) {
       return const AnalysisResult();
     }

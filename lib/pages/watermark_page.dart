@@ -2654,6 +2654,7 @@ class WatermarkPageState extends State<WatermarkPage>
       showDialog(
         context: context,
         barrierDismissible: false,
+        useRootNavigator: true,
         builder: (BuildContext context) {
           return StatefulBuilder(
             builder: (context, setProgressState) {
@@ -2708,6 +2709,9 @@ class WatermarkPageState extends State<WatermarkPage>
         },
       );
     }
+
+    // Small delay to allow dialog to render before starting heavy processing
+    await Future.delayed(const Duration(milliseconds: 100));
 
     try {
       final password =
@@ -2840,6 +2844,7 @@ class WatermarkPageState extends State<WatermarkPage>
         showDialog(
           context: context,
           barrierDismissible: false,
+          useRootNavigator: true,
           builder: (BuildContext context) {
             return StatefulBuilder(
               builder: (context, setProgressState) {
@@ -2897,6 +2902,9 @@ class WatermarkPageState extends State<WatermarkPage>
     }
 
     showProgressDialog();
+
+    // Small delay to allow dialog to render
+    await Future.delayed(const Duration(milliseconds: 100));
 
     try {
       String? password =
