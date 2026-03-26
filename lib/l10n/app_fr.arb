@@ -320,6 +320,7 @@
       }
     }
   },
+  "missingSteganographySignature": "La signature de stéganographie personnalisée ne peut pas être vide lorsque la stéganographie est activée.",
   "noSignatureFound": "❌ Aucune signature SecureMark détectée dans ce fichier.",
   "analysisError": "Erreur pendant l'analyse : {error}",
   "@analysisError": {

@@ -5930,6 +5930,17 @@ class WatermarkPageState extends State<WatermarkPage>
         onToggle: () {
           setState(() {
             _useSteganography = !_useSteganography;
+            // If disabling steganography, also disable dependent features
+            if (!_useSteganography) {
+              if (_useRobustSteganography) {
+                _useRobustSteganography = false;
+                _savePreference('useRobustSteganography', false);
+              }
+              if (_hideFileWithSteganography) {
+                _hideFileWithSteganography = false;
+                _savePreference('hideFileWithSteganography', false);
+              }
+            }
           });
           _savePreference('useSteganography', _useSteganography);
         },
@@ -6740,6 +6751,20 @@ class WatermarkPageState extends State<WatermarkPage>
               'Successfully processed $fileName (${i + 1}/${paths.length})');
           processedFiles.add(ProcessedFile(sourcePath: path, result: result));
           _addLog('Total files processed so far: ${processedFiles.length}');
+        } on WatermarkError catch (e) {
+          if (e.type == WatermarkErrorType.missingSteganographySignature) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(e.userMessage),
+                  backgroundColor: theme.colorScheme.error,
+                ),
+              );
+            }
+            _cancelProcessing();
+            return;
+          }
+          rethrow;
         } catch (e) {
           _addLog('Failed to process $fileName (${i + 1}/${paths.length}): $e');
           failedFiles.add(path);

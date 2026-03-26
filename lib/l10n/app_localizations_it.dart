@@ -463,6 +463,10 @@ class AppLocalizationsIt extends AppLocalizations {
   }
 
   @override
+  String get missingSteganographySignature =>
+      'La firma di steganografia personalizzata non può essere vuota quando la steganografia è abilitata.';
+
+  @override
   String get noSignatureFound =>
       '❌ Nessuna firma SecureMark rilevata in questo file.';
 

@@ -320,6 +320,7 @@
       }
     }
   },
+  "missingSteganographySignature": "Die benutzerdefinierte Steganographie-Signatur darf nicht leer sein, wenn die Steganographie aktiviert ist.",
   "noSignatureFound": "❌ Keine SecureMark-Signatur in dieser Datei erkannt.",
   "analysisError": "Fehler bei der Analyse: {error}",
   "@analysisError": {

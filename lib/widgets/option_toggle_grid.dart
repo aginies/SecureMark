@@ -194,10 +194,10 @@ class _OptionTileState extends State<_OptionTile>
       backgroundColor = widget.option.enabledColor.withValues(alpha: 0.15);
       opacity = 1.0;
     } else {
-      // Available but disabled
-      iconColor = Colors.grey.shade600;
-      backgroundColor = Colors.grey.shade100;
-      opacity = 0.7;
+      // Available but disabled - subtle hint of natural color
+      iconColor = widget.option.enabledColor.withValues(alpha: 0.2);
+      backgroundColor = widget.option.enabledColor.withValues(alpha: 0.02);
+      opacity = 1.0;
     }
 
     return ScaleTransition(
@@ -217,7 +217,9 @@ class _OptionTileState extends State<_OptionTile>
               border: Border.all(
                 color: isEnabled
                     ? widget.option.enabledColor.withValues(alpha: 0.4)
-                    : Colors.grey.shade300,
+                    : (isAvailable
+                        ? widget.option.enabledColor.withValues(alpha: 0.2)
+                        : Colors.grey.shade300),
                 width: isEnabled ? 2 : 1,
               ),
               boxShadow: isEnabled

@@ -11,6 +11,7 @@ enum WatermarkErrorType {
   memoryLimitExceeded,
   processingTimeout,
   operationCancelled,
+  missingSteganographySignature,
   unknownError,
 }
 
@@ -80,6 +81,8 @@ class WatermarkError implements Exception {
         return 'Processing took too long and was cancelled. Try using a smaller file.';
       case WatermarkErrorType.operationCancelled:
         return 'Operation was cancelled.';
+      case WatermarkErrorType.missingSteganographySignature:
+        return 'Custom Steganography Signature cannot be empty when steganography is enabled.';
       case WatermarkErrorType.unknownError:
         return 'An unexpected error occurred while processing the file.';
     }

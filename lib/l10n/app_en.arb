@@ -321,6 +321,7 @@
       }
     }
   },
+  "missingSteganographySignature": "Custom Steganography Signature cannot be empty when steganography is enabled.",
   "noSignatureFound": "❌ No SecureMark signature detected in this file.",
   "analysisError": "Error during analysis: {error}",
   "@analysisError": {

@@ -824,6 +824,12 @@ abstract class AppLocalizations {
   /// **'💪 Robust signature found: \"{message}\"'**
   String robustSignatureFound(String message);
 
+  /// No description provided for @missingSteganographySignature.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Steganography Signature cannot be empty when steganography is enabled.'**
+  String get missingSteganographySignature;
+
   /// No description provided for @noSignatureFound.
   ///
   /// In en, this message translates to:

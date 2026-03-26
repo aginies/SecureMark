@@ -462,6 +462,10 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get missingSteganographySignature =>
+      'Die benutzerdefinierte Steganographie-Signatur darf nicht leer sein, wenn die Steganographie aktiviert ist.';
+
+  @override
   String get noSignatureFound =>
       '❌ Keine SecureMark-Signatur in dieser Datei erkannt.';
 

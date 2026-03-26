@@ -320,6 +320,7 @@
       }
     }
   },
+  "missingSteganographySignature": "La firma di steganografia personalizzata non può essere vuota quando la steganografia è abilitata.",
   "noSignatureFound": "❌ Nessuna firma SecureMark rilevata in questo file.",
   "analysisError": "Errore durante l'analisi: {error}",
   "@analysisError": {

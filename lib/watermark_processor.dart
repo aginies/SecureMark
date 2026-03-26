@@ -163,6 +163,14 @@ class WatermarkProcessor {
           type: WatermarkErrorType.operationCancelled, message: 'Cancelled');
     }
 
+    if ((useSteganography || useRobustSteganography) &&
+        (steganographyText == null || steganographyText.isEmpty)) {
+      throw const WatermarkError(
+        type: WatermarkErrorType.missingSteganographySignature,
+        message: 'Custom Steganography Signature cannot be empty.',
+      );
+    }
+
     onProgress?.call(0.0, 'progressValidating');
     String type;
     try {

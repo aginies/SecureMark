@@ -457,6 +457,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get missingSteganographySignature =>
+      'Custom Steganography Signature cannot be empty when steganography is enabled.';
+
+  @override
   String get noSignatureFound =>
       '❌ No SecureMark signature detected in this file.';
 

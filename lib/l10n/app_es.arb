@@ -320,7 +320,8 @@
       }
     }
   },
-  "noSignatureFound": "❌ No se detectó ninguna firma de SecureMark en este archivo.",
+  "missingSteganographySignature": "La firma de esteganografía personalizada no puede estar vacía cuando la esteganografía está habilitada.",
+  "noSignatureFound": "❌ No se ha detectado ninguna firma de SecureMark en este archivo.",
   "analysisError": "Error durante el análisis: {error}",
   "@analysisError": {
     "placeholders": {
