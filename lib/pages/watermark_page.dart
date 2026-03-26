@@ -39,6 +39,7 @@ import '../watermark_error.dart';
 import '../models/processor_models.dart';
 import '../utils/identity_manager.dart';
 import '../utils/local_server_manager.dart';
+import '../steganography/encryption_utils.dart';
 import '../models/watermark_option.dart';
 import '../widgets/option_toggle_grid.dart';
 import 'onboarding_page.dart';
@@ -160,6 +161,9 @@ class WatermarkPageState extends State<WatermarkPage>
   int _servingPort = 0;
   String? _sendingFileName;
   int _selectedLocalIpIndex = 0;
+  String? _localEncryptionKey;
+  bool _useLocalEncryption = true;
+  bool _showReceiveQr = false;
 
   Future<void> _loadShader() async {
     try {
@@ -1223,14 +1227,14 @@ class WatermarkPageState extends State<WatermarkPage>
               tooltip: l10n.fontConfigTitle,
             ),
             IconButton(
-              icon: const Icon(Icons.sensors),
-              onPressed: _showLocalShareDialog,
-              tooltip: l10n.localShareTitle,
-            ),
-            IconButton(
               icon: const Icon(Icons.person_pin_outlined),
               onPressed: _showIdentityDialog,
               tooltip: l10n.myIdentityTitle,
+            ),
+            IconButton(
+              icon: const Icon(Icons.sensors),
+              onPressed: _showLocalShareDialog,
+              tooltip: l10n.localShareTitle,
             ),
           ],
         ),
@@ -2613,7 +2617,7 @@ class WatermarkPageState extends State<WatermarkPage>
                   ],
                 ),
                 content: SizedBox(
-                  width: 400,
+                  width: 500,
                   height: 600,
                   child: Column(
                     children: [
@@ -2678,19 +2682,6 @@ class WatermarkPageState extends State<WatermarkPage>
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    if (_processedFiles.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Text(
-            l10n.noFilesToSend,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-          ),
-        ),
-      );
-    }
-
     final isRunning = LocalServerManager.isRunning;
 
     return SingleChildScrollView(
@@ -2698,54 +2689,90 @@ class WatermarkPageState extends State<WatermarkPage>
         children: [
           const SizedBox(height: 16),
           if (!isRunning) ...[
-            Text(l10n.localShareInstructions,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12)),
-            const SizedBox(height: 16),
-            if (_processedFiles.length > 1) ...[
-              ListTile(
-                title: Text(l10n.sendAllZip,
-                    style: TextStyle(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.bold)),
-                leading: Icon(Icons.folder_zip_outlined,
-                    color: theme.colorScheme.primary),
-                onTap: () async {
-                  final bytes = await _createProcessedZipBytes();
-                  final fileName = 'securemark_batch.zip';
-                  final port =
-                      await LocalServerManager.startServer(bytes, fileName);
-                  setDialogState(() {
-                    _servingPort = port;
-                    _sendingFileName = fileName;
-                  });
-                },
-              ),
-              const Divider(),
-            ],
-            // File list
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _processedFiles.length,
-              itemBuilder: (context, index) {
-                final file = _processedFiles[index];
-                final fileName = p.basename(file.result.outputPath);
-                return ListTile(
-                  title: Text(fileName, style: const TextStyle(fontSize: 14)),
-                  leading: const Icon(Icons.description_outlined),
-                  onTap: () async {
-                    final bytes = file.result.outputBytes;
-                    final port =
-                        await LocalServerManager.startServer(bytes, fileName);
-                    setDialogState(() {
-                      _servingPort = port;
-                      _sendingFileName = fileName;
-                    });
-                  },
-                );
+            // Encryption Toggle
+            SwitchListTile(
+              title: Text(l10n.enableEncryption,
+                  style: const TextStyle(fontSize: 14)),
+              subtitle: !_useLocalEncryption
+                  ? Text(l10n.encryptionDisabledWarning,
+                      style: TextStyle(
+                          color: theme.colorScheme.error, fontSize: 11))
+                  : null,
+              value: _useLocalEncryption,
+              onChanged: (val) {
+                setDialogState(() => _useLocalEncryption = val);
               },
             ),
+            const Divider(),
+
+            // Pick Custom File Button
+            ListTile(
+              title: Text(l10n.pickAnyFile,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              leading: const Icon(Icons.file_open_outlined),
+              onTap: () async {
+                final result = await FilePicker.platform.pickFiles();
+                if (result != null && result.files.single.path != null) {
+                  final file = File(result.files.single.path!);
+                  final bytes = await file.readAsBytes();
+                  final fileName = result.files.single.name;
+                  await _startServingEncrypted(bytes, fileName, setDialogState);
+                }
+              },
+            ),
+            const Divider(),
+
+            if (_processedFiles.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Text(
+                  l10n.noFilesToSend,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              )
+            else ...[
+              Text(l10n.localShareInstructions,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12)),
+              const SizedBox(height: 16),
+              if (_processedFiles.length > 1) ...[
+                ListTile(
+                  title: Text(l10n.sendAllZip,
+                      style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.bold)),
+                  leading: Icon(Icons.folder_zip_outlined,
+                      color: theme.colorScheme.primary),
+                  onTap: () async {
+                    final bytes = await _createProcessedZipBytes();
+                    final fileName = 'securemark_batch.zip';
+                    await _startServingEncrypted(
+                        bytes, fileName, setDialogState);
+                  },
+                ),
+                const Divider(),
+              ],
+              // File list
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _processedFiles.length,
+                itemBuilder: (context, index) {
+                  final file = _processedFiles[index];
+                  final fileName = p.basename(file.result.outputPath);
+                  return ListTile(
+                    title: Text(fileName, style: const TextStyle(fontSize: 14)),
+                    leading: const Icon(Icons.description_outlined),
+                    onTap: () async {
+                      final bytes = file.result.outputBytes;
+                      await _startServingEncrypted(
+                          bytes, fileName, setDialogState);
+                    },
+                  );
+                },
+              ),
+            ],
           ] else ...[
             Text(l10n.sendingFile(_sendingFileName ?? '')),
             const SizedBox(height: 8),
@@ -2777,10 +2804,21 @@ class WatermarkPageState extends State<WatermarkPage>
               ),
               child: QrImageView(
                 data:
-                    'http://${_localIps[_selectedLocalIpIndex]}:$_servingPort/${LocalServerManager.token}/download',
+                    'http://${_localIps[_selectedLocalIpIndex]}:$_servingPort/${LocalServerManager.token}/download?key=$_localEncryptionKey',
                 version: QrVersions.auto,
                 size: 200.0,
               ),
+            ),
+            const SizedBox(height: 16),
+            Text(l10n.manualUrlLabel, style: const TextStyle(fontSize: 11)),
+            SelectableText(
+              'http://${_localIps[_selectedLocalIpIndex]}:$_servingPort/${LocalServerManager.token}/download${_localEncryptionKey != null ? "?key=$_localEncryptionKey" : ""}',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontFamily: 'monospace',
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
@@ -2805,6 +2843,60 @@ class WatermarkPageState extends State<WatermarkPage>
 
   Widget _buildReceiveTab(StateSetter setDialogState) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    if (_showReceiveQr) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(height: 16),
+          Text(l10n.waitingForFile,
+              style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          if (_localIps.length > 1)
+            DropdownButton<int>(
+              value: _selectedLocalIpIndex,
+              isExpanded: true,
+              items: List.generate(
+                  _localIps.length,
+                  (i) => DropdownMenuItem(
+                        value: i,
+                        child: Text(_localIps[i]),
+                      )),
+              onChanged: (val) {
+                if (val != null) {
+                  setDialogState(() => _selectedLocalIpIndex = val);
+                }
+              },
+            ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+                color: Colors.white, borderRadius: BorderRadius.circular(8)),
+            child: QrImageView(
+              data:
+                  'securemark://receive?addr=${_localIps[_selectedLocalIpIndex]}&port=$_servingPort&token=${LocalServerManager.token}',
+              version: QrVersions.auto,
+              size: 200.0,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(l10n.showQrToReceive,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12)),
+          const SizedBox(height: 16),
+          TextButton.icon(
+            onPressed: () {
+              LocalServerManager.stopServer();
+              setDialogState(() => _showReceiveQr = false);
+            },
+            icon: const Icon(Icons.camera_alt_outlined),
+            label: Text("Back to Camera"),
+          ),
+        ],
+      );
+    }
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -2823,12 +2915,14 @@ class WatermarkPageState extends State<WatermarkPage>
                 final List<Barcode> barcodes = capture.barcodes;
                 if (barcodes.isNotEmpty) {
                   final String? code = barcodes.first.rawValue;
-                  if (code != null &&
-                      code.startsWith('http') &&
-                      code.contains('/download')) {
-                    // Stop scanner and pop dialog
-                    Navigator.pop(context);
-                    _downloadFromLocalUrl(code);
+                  if (code != null) {
+                    if (code.startsWith('http') && code.contains('/download')) {
+                      Navigator.pop(context);
+                      _downloadFromLocalUrl(code);
+                    } else if (code.startsWith('securemark://receive')) {
+                      Navigator.pop(context);
+                      _handleReversePush(code);
+                    }
                   }
                 }
               },
@@ -2836,15 +2930,350 @@ class WatermarkPageState extends State<WatermarkPage>
           ),
         ),
         const SizedBox(height: 16),
+        // Target Directory Section
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest
+                .withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.folder_outlined,
+                      size: 18, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    l10n.saveToWhere,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _outputDirectory ?? "Default Storage (Gallery/Downloads)",
+                style: theme.textTheme.bodySmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  await _pickOutputDirectory();
+                  setDialogState(() {});
+                },
+                icon: const Icon(Icons.edit_location_alt_outlined, size: 16),
+                label: Text(l10n.selectOutputDirectory),
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  minimumSize: const Size(double.infinity, 32),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
         Text(l10n.localShareInstructions, textAlign: TextAlign.center),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final port = await LocalServerManager.startReceiveServer(
+                (bytes, name, addr) {
+              _addLog('Received file $name from $addr');
+              _saveDownloadedFile(bytes, name);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.fileReceived(addr))),
+                );
+              }
+            }, onDone: () {
+              if (mounted) {
+                setDialogState(() {
+                  _servingPort = 0;
+                  _showReceiveQr = false;
+                });
+              }
+            });
+            setDialogState(() {
+              _servingPort = port;
+              _showReceiveQr = true;
+            });
+          },
+          icon: const Icon(Icons.qr_code_2),
+          label: Text(l10n.noCameraOption),
+        ),
         const SizedBox(height: 16),
       ],
     );
   }
 
+  Future<void> _handleReversePush(String qrData) async {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    // Parse: securemark://receive?addr=...&port=...&token=...
+    final uri = Uri.parse(qrData.replaceFirst('securemark://', 'http://'));
+    final addr = uri.queryParameters['addr'];
+    final port = uri.queryParameters['port'];
+    final token = uri.queryParameters['token'];
+
+    if (addr == null || port == null || token == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Invalid Receiver QR'),
+              backgroundColor: theme.colorScheme.error),
+        );
+      }
+      return;
+    }
+
+    // 1. Pick file to send
+    Uint8List? fileBytes;
+    String? fileName;
+
+    if (_processedFiles.length == 1) {
+      fileBytes = _processedFiles.first.result.outputBytes;
+      fileName = p.basename(_processedFiles.first.result.outputPath);
+    } else {
+      // Multiple or zero processed, ask user to pick
+      final result = await FilePicker.platform.pickFiles();
+      if (result != null && result.files.single.path != null) {
+        fileBytes = await File(result.files.single.path!).readAsBytes();
+        fileName = result.files.single.name;
+      }
+    }
+
+    if (fileBytes == null || fileName == null) return;
+
+    if (!mounted) return;
+
+    // 2. Perform PUSH (POST)
+    _elapsedTime = '00:00';
+    _startStopwatch();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setProgressState) {
+          _progressListener = () {
+            if (mounted) setProgressState(() {});
+          };
+          return AlertDialog(
+            title: Text(l10n.localShareTitle),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 24),
+                Text(l10n.pushingFile(addr), textAlign: TextAlign.center),
+                const SizedBox(height: 8),
+                Text(_elapsedTime,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    try {
+      final uploadUrl = 'http://$addr:$port/$token/upload';
+      final request = http.Request('POST', Uri.parse(uploadUrl));
+      request.headers['x-file-name'] = fileName;
+      request.bodyBytes = fileBytes;
+
+      final streamedResponse =
+          await request.send().timeout(const Duration(seconds: 60));
+      final response = await http.Response.fromStream(streamedResponse);
+
+      _stopStopwatch();
+      _progressListener = null;
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('File sent successfully!')),
+          );
+        }
+      } else {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    } catch (e) {
+      _stopStopwatch();
+      _progressListener = null;
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Push failed: $e'),
+              backgroundColor: theme.colorScheme.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _startServingEncrypted(
+      Uint8List bytes, String fileName, StateSetter setDialogState) async {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    List<String> progressLogs = [];
+    double progress = 0.0;
+
+    void addLog(String msg) {
+      progressLogs.add(msg);
+      _progressListener?.call();
+    }
+
+    // Show progress dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setProgressState) {
+          _progressListener = () {
+            if (mounted) setProgressState(() {});
+          };
+          return AlertDialog(
+            title: Text(l10n.localShareTitle),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 24),
+                LinearProgressIndicator(value: progress),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 100,
+                  width: double.maxFinite,
+                  child: ListView.builder(
+                    itemCount: progressLogs.length,
+                    reverse: true,
+                    itemBuilder: (context, i) => Text(
+                      progressLogs[progressLogs.length - 1 - i],
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    try {
+      if (_useLocalEncryption) {
+        addLog(l10n.generatingKey);
+        final key = LocalServerManager.token ??
+            'sm-${DateTime.now().millisecondsSinceEpoch}';
+        _localEncryptionKey = key;
+        await Future.delayed(const Duration(milliseconds: 500));
+        progress = 0.3;
+
+        addLog(l10n.encryptingPayload);
+        // Use compute for encryption to keep UI responsive
+        final encryptedBytes =
+            await compute(_encryptBytesTask, {'data': bytes, 'key': key});
+        await Future.delayed(const Duration(milliseconds: 500));
+        progress = 0.7;
+        addLog(l10n.payloadEncrypted);
+
+        addLog(l10n.startingServer);
+        final port = await LocalServerManager.startServer(
+            encryptedBytes, fileName, onDone: () {
+          if (mounted) {
+            setDialogState(() {
+              _servingPort = 0;
+              _sendingFileName = null;
+            });
+          }
+        });
+        await Future.delayed(const Duration(milliseconds: 500));
+        progress = 1.0;
+        addLog(l10n.serverStarted(port));
+
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) Navigator.of(context, rootNavigator: true).pop();
+
+        setDialogState(() {
+          _servingPort = port;
+          _sendingFileName = fileName;
+        });
+      } else {
+        _localEncryptionKey = null;
+        addLog(l10n.startingServer);
+        final port =
+            await LocalServerManager.startServer(bytes, fileName, onDone: () {
+          if (mounted) {
+            setDialogState(() {
+              _servingPort = 0;
+              _sendingFileName = null;
+            });
+          }
+        });
+        progress = 1.0;
+        addLog(l10n.serverStarted(port));
+
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) Navigator.of(context, rootNavigator: true).pop();
+
+        setDialogState(() {
+          _servingPort = port;
+          _sendingFileName = fileName;
+        });
+      }
+    } catch (e) {
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      _addLog('Error starting server: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Error: $e'),
+              backgroundColor: theme.colorScheme.error),
+        );
+      }
+    } finally {
+      _progressListener = null;
+    }
+  }
+
+  static Uint8List _encryptBytesTask(Map<String, dynamic> params) {
+    return EncryptionUtils.encryptBytes(params['data'], params['key']);
+  }
+
+  static Uint8List? _decryptBytesTask(Map<String, dynamic> params) {
+    return EncryptionUtils.decryptBytes(params['data'], params['key']);
+  }
+
   Future<void> _downloadFromLocalUrl(String url) async {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+
+    List<String> progressLogs = [];
+    double progressValue = 0.0;
+    String speedText = '';
+
+    void addLog(String msg) {
+      progressLogs.add(msg);
+      _progressListener?.call();
+    }
 
     _elapsedTime = '00:00';
     _startStopwatch();
@@ -2858,10 +3287,11 @@ class WatermarkPageState extends State<WatermarkPage>
         return StatefulBuilder(
           builder: (context, setProgressState) {
             _progressListener = () {
-              if (context.mounted) setProgressState(() {});
+              if (mounted) setProgressState(() {});
             };
 
             return AlertDialog(
+              title: Text(l10n.receivingFile),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -2878,7 +3308,24 @@ class WatermarkPageState extends State<WatermarkPage>
                   const SizedBox(height: 24),
                   const CircularProgressIndicator(),
                   const SizedBox(height: 24),
-                  Text(l10n.connectingToServer, textAlign: TextAlign.center),
+                  LinearProgressIndicator(value: progressValue),
+                  const SizedBox(height: 8),
+                  if (speedText.isNotEmpty)
+                    Text(l10n.downloadSpeed(speedText),
+                        style: theme.textTheme.bodySmall),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 100,
+                    width: double.maxFinite,
+                    child: ListView.builder(
+                      itemCount: progressLogs.length,
+                      reverse: true,
+                      itemBuilder: (context, i) => Text(
+                        progressLogs[progressLogs.length - 1 - i],
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             );
@@ -2888,26 +3335,72 @@ class WatermarkPageState extends State<WatermarkPage>
     );
 
     try {
+      final uri = Uri.parse(url);
+      final key = uri.queryParameters['key'];
+
+      addLog(l10n.connectingToServer);
+
+      final client = http.Client();
+      final request = http.Request('GET', uri);
       final response =
-          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 30));
-      _stopStopwatch();
-      _progressListener = null;
-      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+          await client.send(request).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
-        // Extract filename from header or URL
+        final totalBytes = response.contentLength ?? 0;
+        int receivedBytes = 0;
+        final List<int> byteBuffer = [];
+        final startTime = DateTime.now();
+
+        addLog(l10n.downloadingFile(''));
+
+        await for (final chunk in response.stream) {
+          byteBuffer.addAll(chunk);
+          receivedBytes += chunk.length;
+
+          final now = DateTime.now();
+          final duration = now.difference(startTime).inMilliseconds / 1000.0;
+          if (duration > 0) {
+            final speed = (receivedBytes / 1024.0 / 1024.0) / duration; // MB/s
+            speedText = '${speed.toStringAsFixed(2)} MB/s';
+          }
+
+          if (totalBytes > 0) {
+            progressValue = receivedBytes / totalBytes;
+          }
+          _progressListener?.call();
+        }
+
+        final bytes = Uint8List.fromList(byteBuffer);
+        addLog(l10n.connectionEstablished);
+
         String fileName = 'downloaded_file';
         final disp = response.headers['content-disposition'];
         if (disp != null && disp.contains('filename=')) {
           fileName = disp.split('filename=').last.replaceAll('"', '');
         } else {
-          // Fallback to URL path
-          fileName = p.basename(Uri.parse(url).path);
+          fileName = p.basename(uri.path);
           if (fileName == 'download') fileName = 'securemark_file';
         }
 
-        final bytes = response.bodyBytes;
-        await _saveDownloadedFile(bytes, fileName);
+        Uint8List finalBytes = bytes;
+
+        if (key != null) {
+          addLog(l10n.decryptingPayload);
+          // Use compute for decryption
+          final decrypted =
+              await compute(_decryptBytesTask, {'data': bytes, 'key': key});
+          if (decrypted == null) {
+            throw Exception('Decryption failed. Wrong key or corrupted data.');
+          }
+          finalBytes = decrypted;
+          progressValue = 1.0;
+        }
+
+        _stopStopwatch();
+        _progressListener = null;
+        if (mounted) Navigator.of(context, rootNavigator: true).pop();
+
+        await _saveDownloadedFile(finalBytes, fileName);
       } else {
         throw Exception('Server returned ${response.statusCode}');
       }
@@ -3048,7 +3541,7 @@ class WatermarkPageState extends State<WatermarkPage>
           return StatefulBuilder(
             builder: (context, setProgressState) {
               _progressListener = () {
-                if (context.mounted) {
+                if (mounted) {
                   setProgressState(() {});
                 }
               };
@@ -3238,7 +3731,7 @@ class WatermarkPageState extends State<WatermarkPage>
             return StatefulBuilder(
               builder: (context, setProgressState) {
                 _progressListener = () {
-                  if (context.mounted) {
+                  if (mounted) {
                     setProgressState(() {});
                   }
                 };
@@ -7180,7 +7673,7 @@ class WatermarkPageState extends State<WatermarkPage>
         return StatefulBuilder(
           builder: (context, setDialogState) {
             _progressListener = () {
-              if (context.mounted) setDialogState(() {});
+              if (mounted) setDialogState(() {});
             };
 
             final message = _progressMessage.isEmpty

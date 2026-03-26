@@ -1235,7 +1235,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sendTab => 'Enviar';
 
   @override
-  String get receiveTab => 'Recibir';
+  String get receiveTab => 'Recibir/Enviar';
 
   @override
   String sendingFile(Object name) {
@@ -1266,4 +1266,65 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get sendAllZip => 'Enviar todo (ZIP)';
+
+  @override
+  String get generatingKey => 'Generando clave de cifrado...';
+
+  @override
+  String get encryptingPayload => 'Cifrando datos (AES-256)...';
+
+  @override
+  String get startingServer => 'Iniciando servidor HTTP local...';
+
+  @override
+  String get decryptingPayload => 'Descifrando datos...';
+
+  @override
+  String get payloadEncrypted => 'Datos cifrados y asegurados';
+
+  @override
+  String get connectionEstablished => 'Conectado al remitente';
+
+  @override
+  String serverStarted(Object port) {
+    return 'Servidor funcionando en el puerto $port';
+  }
+
+  @override
+  String get enableEncryption => 'Usar cifrado de extremo a extremo';
+
+  @override
+  String downloadSpeed(Object speed) {
+    return 'Velocidad: $speed';
+  }
+
+  @override
+  String get pickAnyFile => 'Elegir archivo personalizado';
+
+  @override
+  String get encryptionDisabledWarning =>
+      'Advertencia: Los datos se enviarán sin cifrar por la red local.';
+
+  @override
+  String get noCameraOption => '¿Sin cámara? Mostrar QR para recibir';
+
+  @override
+  String get showQrToReceive =>
+      'Escanea esto desde el dispositivo de envío para enviar un archivo aquí.';
+
+  @override
+  String pushingFile(Object device) {
+    return 'Enviando archivo a $device...';
+  }
+
+  @override
+  String get manualUrlLabel => 'O ingresa esta URL en un navegador:';
+
+  @override
+  String get waitingForFile => 'Esperando archivo entrante...';
+
+  @override
+  String fileReceived(Object address) {
+    return 'Archivo recibido de $address';
+  }
 }

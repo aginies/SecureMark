@@ -1241,7 +1241,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get sendTab => 'Senden';
 
   @override
-  String get receiveTab => 'Empfangen';
+  String get receiveTab => 'Empfangen/Senden';
 
   @override
   String sendingFile(Object name) {
@@ -1272,4 +1272,65 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get sendAllZip => 'Alles als ZIP senden';
+
+  @override
+  String get generatingKey => 'Verschlüsselungsschlüssel wird generiert...';
+
+  @override
+  String get encryptingPayload => 'Daten werden verschlüsselt (AES-256)...';
+
+  @override
+  String get startingServer => 'Lokaler HTTP-Server wird gestartet...';
+
+  @override
+  String get decryptingPayload => 'Daten werden entschlüsselt...';
+
+  @override
+  String get payloadEncrypted => 'Daten verschlüsselt und gesichert';
+
+  @override
+  String get connectionEstablished => 'Mit Absender verbunden';
+
+  @override
+  String serverStarted(Object port) {
+    return 'Server läuft auf Port $port';
+  }
+
+  @override
+  String get enableEncryption => 'Ende-zu-Ende-Verschlüsselung verwenden';
+
+  @override
+  String downloadSpeed(Object speed) {
+    return 'Geschwindigkeit: $speed';
+  }
+
+  @override
+  String get pickAnyFile => 'Benutzerdefinierte Datei auswählen';
+
+  @override
+  String get encryptionDisabledWarning =>
+      'Warnung: Daten werden unverschlüsselt im lokalen Netzwerk gesendet.';
+
+  @override
+  String get noCameraOption => 'Keine Kamera? QR zum Empfangen zeigen';
+
+  @override
+  String get showQrToReceive =>
+      'Scannen Sie dies vom sendenden Gerät, um eine Datei hierher zu übertragen.';
+
+  @override
+  String pushingFile(Object device) {
+    return 'Datei wird an $device übertragen...';
+  }
+
+  @override
+  String get manualUrlLabel => 'Oder geben Sie diese URL in einen Browser ein:';
+
+  @override
+  String get waitingForFile => 'Warten auf eingehende Datei...';
+
+  @override
+  String fileReceived(Object address) {
+    return 'Datei von $address erhalten';
+  }
 }

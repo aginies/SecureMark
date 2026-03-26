@@ -2160,7 +2160,7 @@ abstract class AppLocalizations {
   /// No description provided for @receiveTab.
   ///
   /// In en, this message translates to:
-  /// **'Receive'**
+  /// **'Receive/Send'**
   String get receiveTab;
 
   /// No description provided for @sendingFile.
@@ -2210,6 +2210,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Send All as ZIP'**
   String get sendAllZip;
+
+  /// No description provided for @generatingKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating encryption key...'**
+  String get generatingKey;
+
+  /// No description provided for @encryptingPayload.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypting payload (AES-256)...'**
+  String get encryptingPayload;
+
+  /// No description provided for @startingServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting local HTTP server...'**
+  String get startingServer;
+
+  /// No description provided for @decryptingPayload.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrypting data...'**
+  String get decryptingPayload;
+
+  /// No description provided for @payloadEncrypted.
+  ///
+  /// In en, this message translates to:
+  /// **'Data encrypted and secured'**
+  String get payloadEncrypted;
+
+  /// No description provided for @connectionEstablished.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected to sender'**
+  String get connectionEstablished;
+
+  /// No description provided for @serverStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Server running on port {port}'**
+  String serverStarted(Object port);
+
+  /// No description provided for @enableEncryption.
+  ///
+  /// In en, this message translates to:
+  /// **'Use End-to-End Encryption'**
+  String get enableEncryption;
+
+  /// No description provided for @downloadSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed: {speed}'**
+  String downloadSpeed(Object speed);
+
+  /// No description provided for @pickAnyFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick Custom File'**
+  String get pickAnyFile;
+
+  /// No description provided for @encryptionDisabledWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning: Data will be sent unencrypted on the local network.'**
+  String get encryptionDisabledWarning;
+
+  /// No description provided for @noCameraOption.
+  ///
+  /// In en, this message translates to:
+  /// **'No camera? Show QR to receive'**
+  String get noCameraOption;
+
+  /// No description provided for @showQrToReceive.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan this from the sending device to push a file here.'**
+  String get showQrToReceive;
+
+  /// No description provided for @pushingFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Pushing file to {device}...'**
+  String pushingFile(Object device);
+
+  /// No description provided for @manualUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Or enter this URL in a browser:'**
+  String get manualUrlLabel;
+
+  /// No description provided for @waitingForFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for incoming file...'**
+  String get waitingForFile;
+
+  /// No description provided for @fileReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'File received from {address}'**
+  String fileReceived(Object address);
 }
 
 class _AppLocalizationsDelegate

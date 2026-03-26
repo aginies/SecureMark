@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+import 'dart:ui';
 
 class LocalServerManager {
   static HttpServer? _server;
@@ -30,7 +31,8 @@ class LocalServerManager {
     return ips;
   }
 
-  static Future<int> startServer(Uint8List bytes, String name) async {
+  static Future<int> startServer(Uint8List bytes, String name,
+      {VoidCallback? onDone}) async {
     if (_server != null) {
       await stopServer();
     }
@@ -41,15 +43,19 @@ class LocalServerManager {
 
     _server = await HttpServer.bind(InternetAddress.anyIPv4, 0);
 
-    _server!.listen((HttpRequest request) {
+    _server!.listen((HttpRequest request) async {
       final path = request.uri.path;
       if (path == '/$_token/download') {
-        request.response
-          ..headers.contentType = ContentType.parse('application/octet-stream')
-          ..headers
-              .add('Content-Disposition', 'attachment; filename="$_fileName"')
-          ..add(_fileBytes!)
-          ..close();
+        request.response.headers.contentType =
+            ContentType.parse('application/octet-stream');
+        request.response.headers
+            .add('Content-Disposition', 'attachment; filename="$_fileName"');
+        request.response.add(_fileBytes!);
+        await request.response.close();
+
+        // One-shot: stop server after successful download
+        await stopServer();
+        onDone?.call();
       } else {
         request.response
           ..statusCode = HttpStatus.notFound
@@ -70,6 +76,56 @@ class LocalServerManager {
   }
 
   static String? get token => _token;
+
+  static Future<int> startReceiveServer(
+      Function(Uint8List, String, String) onFileReceived,
+      {VoidCallback? onDone}) async {
+    if (_server != null) {
+      await stopServer();
+    }
+
+    _token = _generateRandomToken();
+    _server = await HttpServer.bind(InternetAddress.anyIPv4, 0);
+
+    _server!.listen((HttpRequest request) async {
+      final path = request.uri.path;
+      if (request.method == 'POST' && path == '/$_token/upload') {
+        try {
+          final fileName =
+              request.headers.value('x-file-name') ?? 'uploaded_file';
+
+          final BytesBuilder builder = BytesBuilder();
+          await for (final chunk in request) {
+            builder.add(chunk);
+          }
+
+          final bytes = builder.toBytes();
+          onFileReceived(bytes, fileName,
+              request.connectionInfo?.remoteAddress.address ?? 'unknown');
+
+          request.response.statusCode = HttpStatus.ok;
+          request.response.write('OK');
+          await request.response.close();
+
+          // One-shot: stop server after successful upload
+          await stopServer();
+          onDone?.call();
+        } catch (e) {
+          request.response
+            ..statusCode = HttpStatus.internalServerError
+            ..write('Error: $e')
+            ..close();
+        }
+      } else {
+        request.response
+          ..statusCode = HttpStatus.notFound
+          ..write('Not Found')
+          ..close();
+      }
+    });
+
+    return _server!.port;
+  }
 
   static String _generateRandomToken() {
     final random = Random();
