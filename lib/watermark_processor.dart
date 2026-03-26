@@ -2049,7 +2049,6 @@ class WatermarkProcessor {
         ForensicUtils.calculateForensicHash(image, excludeAllLSB: true);
 
     for (final chan in ['b', 'g', 'r']) {
-      IdentityManager.onLog?.call('Analyzing channel: $chan');
       // 1. Try to extract a hidden file (always Green channel)
       if (chan == 'g') {
         file = LsbHandler.extractFileFromImage(

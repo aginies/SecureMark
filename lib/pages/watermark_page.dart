@@ -2355,6 +2355,19 @@ class WatermarkPageState extends State<WatermarkPage>
   int? _selectedFileIndex;
 
   Future<void> _pickAndAnalyze(StateSetter setDialogState) async {
+    // Reset state FIRST before picking new file
+    setDialogState(() {
+      _analysisResult = null;
+      _extractedFile = null;
+      _batchAnalysisResult = null;
+      _selectedFileIndex = null;
+      _extractedSignature = null;
+      _verificationResult = null;
+      _integrityVerified = false;
+      _senderPublicKey = null;
+      _analyzingFile = false;
+    });
+
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: false,
       type: FileType.custom,
