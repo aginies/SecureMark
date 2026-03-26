@@ -1,5 +1,6 @@
 import java.util.Properties
 import java.io.FileInputStream
+import java.net.URLDecoder
 
 plugins {
     id("com.android.application")
@@ -25,12 +26,28 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "org.ginies.secure_mark"
+        // Extract TARGET_PACKAGE from dart-defines if present
+        var targetPackage: String? = null
+        if (project.extra.has("DART_DEFINES")) {
+            val dartDefinesString = project.extra.get("DART_DEFINES") as String
+            val dartDefines = dartDefinesString.split(",")
+            for (define in dartDefines) {
+                val pair = URLDecoder.decode(define, "UTF-8").split("=")
+                if (pair.size == 2 && pair[0] == "TARGET_PACKAGE") {
+                    targetPackage = pair[1]
+                }
+            }
+        }
+
+        if (targetPackage != null) {
+            applicationId = targetPackage
+        } else {
+            applicationId = "org.ginies.secure_mark"
+        }
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

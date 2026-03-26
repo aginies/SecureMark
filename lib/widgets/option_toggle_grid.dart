@@ -204,12 +204,13 @@ class _OptionTileState extends State<_OptionTile>
 
     return ScaleTransition(
       scale: _scaleAnimation,
-      child: GestureDetector(
-        onTap: _handleTap,
-        onDoubleTap: _handleDoubleTap,
-        onLongPress: _handleLongPress,
-        child: Tooltip(
-          message: _buildTooltipMessage(),
+      child: Tooltip(
+        message: _buildTooltipMessage(),
+        triggerMode: TooltipTriggerMode.tap,
+        child: GestureDetector(
+          onTap: _handleTap,
+          onDoubleTap: _handleDoubleTap,
+          onLongPressStart: (_) => _handleLongPress(),
           child: Container(
             width: widget.iconSize + 24,
             height: widget.iconSize + 24,
