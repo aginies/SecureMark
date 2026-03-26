@@ -2634,6 +2634,7 @@ class WatermarkPageState extends State<WatermarkPage>
   Future<void> _performFileAnalysis(
       Uint8List bytes, String fileName, StateSetter setDialogState) async {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     setDialogState(() {
       _analyzingFile = true;
@@ -2643,13 +2644,111 @@ class WatermarkPageState extends State<WatermarkPage>
       _verificationResult = null;
     });
 
+    double analysisProgress = 0.0;
+    String analysisMessage = l10n.processingFile;
+    _elapsedTime = '00:00';
+    _startStopwatch();
+
+    // Show progress dialog
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return StatefulBuilder(
+            builder: (context, setProgressState) {
+              _progressListener = () {
+                if (context.mounted) {
+                  setProgressState(() {});
+                }
+              };
+
+              return AlertDialog(
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(l10n.analyzeFile,
+                            style: theme.textTheme.titleMedium),
+                        Text(
+                          _elapsedTime,
+                          style: theme.textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 24),
+                    Text(
+                      analysisMessage,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    LinearProgressIndicator(
+                      value: analysisProgress,
+                      backgroundColor:
+                          theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${(analysisProgress * 100).round()}%',
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      );
+    }
+
     try {
       final password =
           _extractionPassword.isNotEmpty ? _extractionPassword : null;
 
       final analysis = await WatermarkProcessor.analyzeFileAsync(
-          bytes, fileName,
-          password: password);
+        bytes,
+        fileName,
+        password: password,
+        onProgress: (progress, messageKey) {
+          analysisProgress = progress;
+          // Map progress keys to localized messages
+          switch (messageKey) {
+            case 'progressReadingPdf':
+              analysisMessage = l10n.progressReadingPdf;
+              break;
+            case 'progressParsingPdf':
+              analysisMessage = l10n.progressParsingPdf;
+              break;
+            case 'progressDecodingImage':
+              analysisMessage = l10n.progressDecodingImage;
+              break;
+            case 'progressValidating':
+              analysisMessage = l10n.progressValidating;
+              break;
+            case 'progressVerifyingStegano':
+              analysisMessage = l10n.progressVerifyingStegano;
+              break;
+            default:
+              analysisMessage = messageKey;
+          }
+          _progressListener?.call();
+        },
+      );
+
+      // Close progress dialog
+      _stopStopwatch();
+      _progressListener = null;
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
 
       final results = <String>[];
       _verificationResult = analysis.verification;
@@ -2700,6 +2799,11 @@ class WatermarkPageState extends State<WatermarkPage>
         }
       });
     } catch (e) {
+      _stopStopwatch();
+      _progressListener = null;
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
       setDialogState(() {
         _analysisResult = l10n.analysisError(e.toString());
       });
@@ -2713,6 +2817,7 @@ class WatermarkPageState extends State<WatermarkPage>
   Future<void> _performBatchAnalysis(
       Uint8List zipBytes, String fileName, StateSetter setDialogState) async {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     setDialogState(() {
       _analyzingFile = true;
@@ -2724,6 +2829,75 @@ class WatermarkPageState extends State<WatermarkPage>
       _verificationResult = null;
     });
 
+    double analysisProgress = 0.0;
+    String analysisMessage = l10n.processingProcessing;
+    _elapsedTime = '00:00';
+    _startStopwatch();
+
+    // Helper function to show progress dialog
+    void showProgressDialog() {
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return StatefulBuilder(
+              builder: (context, setProgressState) {
+                _progressListener = () {
+                  if (context.mounted) {
+                    setProgressState(() {});
+                  }
+                };
+
+                return AlertDialog(
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(l10n.analyzeFile,
+                              style: theme.textTheme.titleMedium),
+                          Text(
+                            _elapsedTime,
+                            style: theme.textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 24),
+                      Text(
+                        analysisMessage,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 12),
+                      LinearProgressIndicator(
+                        value: analysisProgress,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${(analysisProgress * 100).round()}%',
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      }
+    }
+
+    showProgressDialog();
+
     try {
       String? password =
           _extractionPassword.isNotEmpty ? _extractionPassword : null;
@@ -2734,9 +2908,19 @@ class WatermarkPageState extends State<WatermarkPage>
         archive = ZipDecoder().decodeBytes(zipBytes, password: password);
       } catch (e) {
         // If extraction failed, prompt for password
-        if (!mounted) return;
+        if (!mounted) {
+          _stopStopwatch();
+          _progressListener = null;
+          return;
+        }
+
+        // Hide progress dialog to show password prompt
+        _progressListener = null;
+        Navigator.of(context, rootNavigator: true).pop();
+
         password = await _promptForZipPassword();
         if (password == null) {
+          _stopStopwatch();
           setDialogState(() {
             _analyzingFile = false;
             _analysisResult = 'Analysis cancelled';
@@ -2744,9 +2928,17 @@ class WatermarkPageState extends State<WatermarkPage>
           return;
         }
 
+        // Show progress dialog again
+        showProgressDialog();
+
         try {
           archive = ZipDecoder().decodeBytes(zipBytes, password: password);
         } catch (e) {
+          _stopStopwatch();
+          _progressListener = null;
+          if (mounted) {
+            Navigator.of(context, rootNavigator: true).pop();
+          }
           setDialogState(() {
             _analyzingFile = false;
             _analysisResult = 'Wrong password';
@@ -2767,29 +2959,49 @@ class WatermarkPageState extends State<WatermarkPage>
         '.heif'
       ];
 
-      for (final file in archive.files) {
-        if (file.isFile) {
-          final ext = p.extension(file.name).toLowerCase();
-          if (supportedExtensions.contains(ext)) {
-            try {
-              final fileBytes = file.content as List<int>;
-              final analysis = await WatermarkProcessor.analyzeFileAsync(
-                  Uint8List.fromList(fileBytes), file.name,
-                  password: password);
+      final relevantFiles = archive.files
+          .where((f) =>
+              f.isFile &&
+              supportedExtensions.contains(p.extension(f.name).toLowerCase()))
+          .toList();
 
-              items.add(FileAnalysisItem(
-                fileName: file.name,
-                analysis: analysis,
-              ));
-            } catch (e) {
-              items.add(FileAnalysisItem(
-                fileName: file.name,
-                analysis: null,
-                error: e.toString(),
-              ));
-            }
-          }
+      for (var i = 0; i < relevantFiles.length; i++) {
+        final file = relevantFiles[i];
+        final fileProgress = i / relevantFiles.length;
+
+        analysisMessage =
+            l10n.processingNamedFile(i + 1, relevantFiles.length, file.name);
+        analysisProgress = fileProgress;
+        _progressListener?.call();
+
+        try {
+          final fileBytes = file.content as List<int>;
+          final analysis = await WatermarkProcessor.analyzeFileAsync(
+              Uint8List.fromList(fileBytes), file.name, password: password,
+              onProgress: (p, m) {
+            // Update internal file progress
+            analysisProgress = fileProgress + (p / relevantFiles.length);
+            _progressListener?.call();
+          });
+
+          items.add(FileAnalysisItem(
+            fileName: file.name,
+            analysis: analysis,
+          ));
+        } catch (e) {
+          items.add(FileAnalysisItem(
+            fileName: file.name,
+            analysis: null,
+            error: e.toString(),
+          ));
         }
+      }
+
+      // Close progress dialog
+      _stopStopwatch();
+      _progressListener = null;
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
       }
 
       if (items.isEmpty) {
@@ -2805,6 +3017,12 @@ class WatermarkPageState extends State<WatermarkPage>
         });
       }
     } catch (e) {
+      // Close progress dialog
+      _stopStopwatch();
+      _progressListener = null;
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
       setDialogState(() {
         _analysisResult = l10n.analysisError(e.toString());
       });

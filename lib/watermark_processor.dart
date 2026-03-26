@@ -1937,15 +1937,17 @@ class WatermarkProcessor {
 
   static Future<AnalysisResult> analyzeFileAsync(
       Uint8List bytes, String fileName,
-      {String? password}) async {
+      {String? password, Function(double, String)? onProgress}) async {
     if (p.extension(fileName).toLowerCase() == '.pdf') {
-      final res = await _analyzePdfVector(bytes, password: password);
+      final res = await _analyzePdfVector(bytes,
+          password: password, onProgress: onProgress);
       if (res.signature != null || res.file != null || res.integrityVerified) {
         return res;
       }
       return const AnalysisResult();
     }
-    return await analyzeImage(bytes, password: password);
+    return await analyzeImage(bytes,
+        password: password, onProgress: onProgress);
   }
 
   static Future<AnalysisResult> analyzeImageAsync(Uint8List bytes,
@@ -1961,9 +1963,11 @@ class WatermarkProcessor {
   }
 
   static Future<AnalysisResult> _analyzePdfVector(Uint8List bytes,
-      {String? password}) async {
+      {String? password, Function(double, String)? onProgress}) async {
     try {
+      onProgress?.call(0.1, 'progressReadingPdf');
       final doc = sync.PdfDocument(inputBytes: bytes);
+      onProgress?.call(0.3, 'progressParsingPdf');
       final kw = doc.documentInformation.keywords;
       String? sig;
       ExtractedFileResult? file;
@@ -1971,7 +1975,12 @@ class WatermarkProcessor {
       String? publicKey;
       String? originalHash;
 
-      for (final part in kw.split(' ')) {
+      final kwParts = kw.split(' ');
+      for (var i = 0; i < kwParts.length; i++) {
+        final part = kwParts[i];
+        final progress = 0.3 + (0.4 * (i / kwParts.length));
+        onProgress?.call(progress, 'progressParsingPdf');
+
         if (part.startsWith('SecureMarkHidden:')) {
           final encoded = part.substring(17);
           try {
@@ -2003,6 +2012,7 @@ class WatermarkProcessor {
 
       bool integrityVerified = false;
       if (integritySig != null && publicKey != null && originalHash != null) {
+        onProgress?.call(0.8, 'progressVerifyingStegano');
         IdentityManager.onLog
             ?.call('[VERIFY] Found integrity signature. Verifying...');
 
@@ -2047,7 +2057,8 @@ class WatermarkProcessor {
   }
 
   static Future<AnalysisResult> analyzeImage(Uint8List bytes,
-      {String? password}) async {
+      {String? password, Function(double, String)? onProgress}) async {
+    onProgress?.call(0.1, 'progressDecodingImage');
     final image = img.decodeImage(bytes);
     if (image == null) {
       return const AnalysisResult();
@@ -2058,12 +2069,18 @@ class WatermarkProcessor {
     String? integritySig;
     String? publicKey;
 
+    onProgress?.call(0.3, 'progressValidating');
     final cHash =
         ForensicUtils.calculateForensicHash(image, excludeRedLSB: true);
     final sHash =
         ForensicUtils.calculateForensicHash(image, excludeAllLSB: true);
 
-    for (final chan in ['b', 'g', 'r']) {
+    final channels = ['b', 'g', 'r'];
+    for (var i = 0; i < channels.length; i++) {
+      final chan = channels[i];
+      final progress = 0.4 + (0.4 * (i / channels.length));
+      onProgress?.call(progress, 'progressVerifyingStegano');
+
       // 1. Try to extract a hidden file (always Green channel)
       if (chan == 'g') {
         file = LsbHandler.extractFileFromImage(
@@ -2132,6 +2149,7 @@ class WatermarkProcessor {
     }
 
     bool integrityVerified = false;
+    onProgress?.call(0.9, 'progressVerifyingStegano');
     if (integritySig != null && publicKey != null) {
       IdentityManager.onLog
           ?.call('Verifying digital signature with public key...');
