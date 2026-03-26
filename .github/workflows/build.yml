@@ -139,6 +139,48 @@ jobs:
           path: SecureMark-v*-Linux.AppImage
           if-no-files-found: error
 
+  build-windows:
+    name: Build Windows
+    needs: [test]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Build Windows
+        run: flutter build windows --release
+      - name: Verify Windows build
+        run: |
+          if (Test-Path "build\windows\x64\runner\Release") {
+            Write-Host "✅ Windows build completed successfully"
+            Get-ChildItem -Recurse "build\windows\x64\runner\Release" | Format-Table Name, Length
+          } else {
+            Write-Host "❌ Windows build directory not found"
+            Get-ChildItem -Recurse "build\windows" | Format-Table FullName
+          }
+        shell: powershell
+      - name: Package Windows Build
+        run: |
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath secure-mark-windows.zip
+          if (Test-Path "secure-mark-windows.zip") {
+            Write-Host "✅ Windows ZIP created successfully"
+            Get-Item "secure-mark-windows.zip" | Format-List Name, Length
+          } else {
+            Write-Host "❌ Windows ZIP creation failed"
+          }
+        shell: powershell
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-exe
+          path: secure-mark-windows.zip
+          if-no-files-found: error
+
   build-macos:
     name: Build macOS
     needs: [test]
