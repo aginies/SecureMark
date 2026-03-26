@@ -229,7 +229,7 @@ class _OptionTileState extends State<_OptionTile>
                   child: Icon(
                     widget.option.icon,
                     color: iconColor,
-                    size: widget.iconSize * 0.6,
+                    size: widget.iconSize * 0.9,
                   ),
                 ),
                 // Lock overlay for unavailable
@@ -246,7 +246,7 @@ class _OptionTileState extends State<_OptionTile>
                       ),
                       child: Icon(
                         Icons.lock_outline,
-                        size: 12,
+                        size: 14,
                         color: Colors.grey.shade600,
                       ),
                     ),

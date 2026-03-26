@@ -6122,8 +6122,8 @@ class WatermarkPageState extends State<WatermarkPage>
         OptionToggleGrid(
           options: allOptions,
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-          iconSize: 36,
-          spacing: 8,
+          iconSize: 44,
+          spacing: 6,
         ),
         // Verification failed warning (if applicable)
         if (showVerificationWarning)
