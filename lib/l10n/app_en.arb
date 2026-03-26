@@ -72,8 +72,7 @@
   },
   "watermarkTextLabel": "Text to Stamp (+Date-time)",
   "watermarkTextHint": "Enter the text to stamp",
-  "randomColor": "Random color",
-  "selectedColor": "Selected color",
+  "color": "Color",
   "transparencyValue": "Transparency: {value}%",
   "@transparencyValue": {
     "placeholders": {

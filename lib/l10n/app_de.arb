@@ -72,8 +72,7 @@
   },
   "watermarkTextLabel": "Text zum Stempeln (+Datum-Uhrzeit)",
   "watermarkTextHint": "Geben Sie den Text zum Stempeln ein",
-  "randomColor": "Zufällige Farbe",
-  "selectedColor": "Ausgewählte Farbe",
+  "color": "Farbe",
   "transparencyValue": "Transparenz: {value}%",
   "@transparencyValue": {
     "placeholders": {

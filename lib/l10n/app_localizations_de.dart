@@ -124,10 +124,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get watermarkTextHint => 'Geben Sie den Text zum Stempeln ein';
 
   @override
-  String get randomColor => 'Zufällige Farbe';
-
-  @override
-  String get selectedColor => 'Ausgewählte Farbe';
+  String get color => 'Farbe';
 
   @override
   String transparencyValue(int value) {

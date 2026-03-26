@@ -308,17 +308,11 @@ abstract class AppLocalizations {
   /// **'Enter the text to stamp'**
   String get watermarkTextHint;
 
-  /// No description provided for @randomColor.
+  /// No description provided for @color.
   ///
   /// In en, this message translates to:
-  /// **'Random color'**
-  String get randomColor;
-
-  /// No description provided for @selectedColor.
-  ///
-  /// In en, this message translates to:
-  /// **'Selected color'**
-  String get selectedColor;
+  /// **'Color'**
+  String get color;
 
   /// No description provided for @transparencyValue.
   ///

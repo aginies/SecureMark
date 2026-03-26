@@ -72,8 +72,7 @@
   },
   "watermarkTextLabel": "Texto para estampar (+Fecha-hora)",
   "watermarkTextHint": "Ingresa el texto para estampar",
-  "randomColor": "Color aleatorio",
-  "selectedColor": "Color seleccionado",
+  "color": "Color",
   "transparencyValue": "Transparencia: {value}%",
   "@transparencyValue": {
     "placeholders": {

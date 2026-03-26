@@ -124,10 +124,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get watermarkTextHint => 'Ingresa el texto para estampar';
 
   @override
-  String get randomColor => 'Color aleatorio';
-
-  @override
-  String get selectedColor => 'Color seleccionado';
+  String get color => 'Color';
 
   @override
   String transparencyValue(int value) {

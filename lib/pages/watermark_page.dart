@@ -1218,7 +1218,7 @@ class WatermarkPageState extends State<WatermarkPage>
               tooltip: l10n.analyzeFile,
             ),
             IconButton(
-              icon: const Icon(Icons.password_outlined),
+              icon: const Icon(Icons.verified_user_outlined),
               onPressed: _showSteganographyOptions,
               tooltip: l10n.steganographyTitle,
             ),
@@ -1228,17 +1228,19 @@ class WatermarkPageState extends State<WatermarkPage>
               tooltip: l10n.qrWatermarkTitle,
             ),
             IconButton(
-              icon: const Icon(Icons.settings_suggest_outlined),
-              onPressed: _showExpertOptions,
-              tooltip: l10n.expertOptions,
-            ),
-            IconButton(
               icon: const Icon(Icons.person_pin_outlined),
               onPressed: _showIdentityDialog,
               tooltip: l10n.myIdentityTitle,
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_suggest_outlined),
+            onPressed: _showExpertOptions,
+            tooltip: l10n.expertOptions,
+          ),
+        ],
         centerTitle: false,
       ),
       body: SafeArea(
@@ -5769,14 +5771,43 @@ class WatermarkPageState extends State<WatermarkPage>
             Widget selectionControls;
             if (_watermarkType == WatermarkType.text) {
               selectionControls = Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   SegmentedButton<bool>(
                     segments: [
                       ButtonSegment<bool>(
-                          value: true, label: Text(l10n.randomColor)),
+                        value: true,
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.shuffle, size: 18),
+                            const SizedBox(width: 6),
+                            Text(l10n.color),
+                          ],
+                        ),
+                      ),
                       ButtonSegment<bool>(
-                          value: false, label: Text(l10n.selectedColor)),
+                        value: false,
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: _selectedColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.grey.shade400,
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(l10n.color),
+                          ],
+                        ),
+                      ),
                     ],
                     selected: <bool>{_useRandomColor},
                     onSelectionChanged: _processing
@@ -5784,6 +5815,7 @@ class WatermarkPageState extends State<WatermarkPage>
                         : (selection) {
                             _updateColorMode(selection.first);
                           },
+                    expandedInsets: EdgeInsets.zero,
                   ),
                   if (!_useRandomColor) ...[
                     const SizedBox(height: 12),
@@ -5884,9 +5916,6 @@ class WatermarkPageState extends State<WatermarkPage>
 
   /// Builds the complete list of toggleable watermark options
   List<WatermarkOption> _buildAllOptions(AppLocalizations l10n) {
-    // Check if steganography password is set
-    final bool hasStegoPassword = _hidingPasswordController.text.isNotEmpty;
-
     return [
       // Digital Signature
       WatermarkOption(
@@ -5918,16 +5947,12 @@ class WatermarkPageState extends State<WatermarkPage>
         icon: Icons.verified_user_outlined,
         enabledColor: Colors.green,
         isEnabled: _useSteganography,
-        isAvailable: hasStegoPassword,
-        unavailableReason: hasStegoPassword ? null : 'Password required',
         subtitle: _useSteganography ? l10n.steganographyEnabledHint : null,
         onToggle: () {
-          if (hasStegoPassword) {
-            setState(() {
-              _useSteganography = !_useSteganography;
-            });
-            _savePreference('useSteganography', _useSteganography);
-          }
+          setState(() {
+            _useSteganography = !_useSteganography;
+          });
+          _savePreference('useSteganography', _useSteganography);
         },
         onConfigure: _showSteganographyOptions,
       ),

@@ -72,8 +72,7 @@
   },
   "watermarkTextLabel": "Texte à tamponner (+Date-Heure)",
   "watermarkTextHint": "Saisissez le texte à tamponner",
-  "randomColor": "Couleur aléatoire",
-  "selectedColor": "Couleur choisie",
+  "color": "Couleur",
   "transparencyValue": "Transparence : {value}%",
   "@transparencyValue": {
     "placeholders": {

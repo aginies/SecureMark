@@ -72,8 +72,7 @@
   },
   "watermarkTextLabel": "Testo da timbrare (+Data-ora)",
   "watermarkTextHint": "Inserisci il testo da timbrare",
-  "randomColor": "Colore casuale",
-  "selectedColor": "Colore selezionato",
+  "color": "Colore",
   "transparencyValue": "Trasparenza: {value}%",
   "@transparencyValue": {
     "placeholders": {
