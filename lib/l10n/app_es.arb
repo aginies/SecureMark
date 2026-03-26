@@ -431,6 +431,8 @@
   },
   "antiAiProtectionNote": "Nota: añade ruido y ruido para hacer la marca de agua mucho más difícil de eliminar con IA. Los niveles más altos tardan más.",
   "antiAiEnabledHint": "La protección de eliminación anti-IA está habilitada",
+  "antiAiProtectionTitle": "Protección Anti-Eliminación IA",
+  "antiAiProtectionSubtitle": "Añade ruido para hacer las marcas de agua más difíciles de eliminar por IA",
   "aiCloakingTitle": "Cloaking de IA (Adversarial)",
   "aiCloakingSubtitle": "Inyecta ruido adversario invisible para interrumpir el entrenamiento de IA y robo de estilo.",
   "aiCloakingEnabledHint": "El cloaking de IA está activo",
@@ -719,5 +721,6 @@
   "exportConfigDesc": "Esto creará un archivo ZIP protegido por contraseña con todos sus ajustes y claves de identidad digital.",
   "exportConfigButton": "Exportar",
   "importConfigButton": "Importar",
-  "configExportSuccess": "Configuración exportada con éxito a: {path}"
+  "configExportSuccess": "Configuración exportada con éxito a: {path}",
+  "fontConfigTitle": "Configuración de Fuente"
 }

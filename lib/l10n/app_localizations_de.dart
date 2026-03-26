@@ -327,6 +327,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dies setzt alle Experten-Einstellungen und das Datei-Präfix auf die Standardwerte zurück.';
 
   @override
+  String get fontConfigTitle => 'Schriftkonfiguration';
+
+  @override
   String get fontStyleLabel => 'Schriftstil';
 
   @override
@@ -654,6 +657,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get antiAiEnabledHint => 'Anti-KI-Schutz ist aktiviert';
+
+  @override
+  String get antiAiProtectionTitle => 'Anti-KI-Entfernungsschutz';
+
+  @override
+  String get antiAiProtectionSubtitle =>
+      'Fügt Rauschen hinzu, um Wasserzeichen schwerer durch KI entfernbar zu machen';
 
   @override
   String get aiCloakingTitle => 'KI-Cloaking (Adversarial)';

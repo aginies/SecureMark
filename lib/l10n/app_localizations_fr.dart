@@ -328,6 +328,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cela réinitialisera tous les réglages experts et le préfixe de fichier aux valeurs par défaut.';
 
   @override
+  String get fontConfigTitle => 'Configuration de Police';
+
+  @override
   String get fontStyleLabel => 'Style de police';
 
   @override
@@ -656,6 +659,13 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get antiAiEnabledHint =>
       'La protection contre la suppression par IA est activée';
+
+  @override
+  String get antiAiProtectionTitle => 'Protection Anti-Suppression IA';
+
+  @override
+  String get antiAiProtectionSubtitle =>
+      'Ajoute des variations pour rendre les filigranes plus difficiles à supprimer par IA';
 
   @override
   String get aiCloakingTitle => 'Cloaking IA (Adversaire)';

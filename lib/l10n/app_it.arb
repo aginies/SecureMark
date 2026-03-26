@@ -431,6 +431,8 @@
   },
   "antiAiProtectionNote": "Nota: una protezione più elevata aumenta significativamente il tempo necessario per generare l'immagine protetta.",
   "antiAiEnabledHint": "La protezione Anti-IA è abilitata",
+  "antiAiProtectionTitle": "Protezione Anti-Rimozione IA",
+  "antiAiProtectionSubtitle": "Aggiunge rumore per rendere le filigrane più difficili da rimuovere con IA",
   "aiCloakingTitle": "Cloaking IA (Adversarial)",
   "aiCloakingSubtitle": "Inietta rumore invisibile per disturbare l'addestramento dell'IA e il furto di stile.",
   "aiCloakingEnabledHint": "Il Cloaking IA è attivo",
@@ -719,5 +721,6 @@
   "exportConfigDesc": "Questo creerà un file ZIP protetto da password con tutte le tue impostazioni e le chiavi di identità digitale.",
   "exportConfigButton": "Esporta",
   "importConfigButton": "Importa",
-  "configExportSuccess": "Configurazione esportata con successo in: {path}"
+  "configExportSuccess": "Configurazione esportata con successo in: {path}",
+  "fontConfigTitle": "Configurazione Carattere"
 }

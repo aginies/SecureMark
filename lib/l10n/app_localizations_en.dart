@@ -322,6 +322,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'This will reset all expert settings and file prefix to defaults.';
 
   @override
+  String get fontConfigTitle => 'Font Configuration';
+
+  @override
   String get fontStyleLabel => 'Font Style';
 
   @override
@@ -646,6 +649,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get antiAiEnabledHint => 'Anti-AI removal protection is enabled';
+
+  @override
+  String get antiAiProtectionTitle => 'Anti-AI Removal Protection';
+
+  @override
+  String get antiAiProtectionSubtitle =>
+      'Adds jitter and noise to make watermarks harder to remove by AI';
 
   @override
   String get aiCloakingTitle => 'AI Cloaking (Adversarial)';

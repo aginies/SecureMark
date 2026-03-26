@@ -431,6 +431,8 @@
   },
   "antiAiProtectionNote": "Note : ajoute des micro-variations et du bruit pour rendre le filigrane beaucoup plus difficile à supprimer par une IA. Les niveaux élevés prennent plus de temps.",
   "antiAiEnabledHint": "La protection contre la suppression par IA est activée",
+  "antiAiProtectionTitle": "Protection Anti-Suppression IA",
+  "antiAiProtectionSubtitle": "Ajoute des variations pour rendre les filigranes plus difficiles à supprimer par IA",
   "aiCloakingTitle": "Cloaking IA (Adversaire)",
   "aiCloakingSubtitle": "Injecte un bruit invisible pour perturber l'entraînement des IA et le vol de style.",
   "aiCloakingEnabledHint": "Le Cloaking IA est actif",
@@ -719,5 +721,6 @@
   "exportConfigDesc": "Ceci créera un ZIP protégé par mot de passe avec tous vos réglages et clés d'identité numérique.",
   "exportConfigButton": "Exporter",
   "importConfigButton": "Importer",
-  "configExportSuccess": "Configuration exportée avec succès vers : {path}"
+  "configExportSuccess": "Configuration exportée avec succès vers : {path}",
+  "fontConfigTitle": "Configuration de Police"
 }

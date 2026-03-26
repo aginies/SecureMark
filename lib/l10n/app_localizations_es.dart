@@ -329,6 +329,9 @@ class AppLocalizationsEs extends AppLocalizations {
       'Esto reiniciará todas las opciones de experto y el prefijo de archivo a valores predeterminados.';
 
   @override
+  String get fontConfigTitle => 'Configuración de Fuente';
+
+  @override
   String get fontStyleLabel => 'Estilo de fuente';
 
   @override
@@ -655,6 +658,13 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get antiAiEnabledHint =>
       'La protección de eliminación anti-IA está habilitada';
+
+  @override
+  String get antiAiProtectionTitle => 'Protección Anti-Eliminación IA';
+
+  @override
+  String get antiAiProtectionSubtitle =>
+      'Añade ruido para hacer las marcas de agua más difíciles de eliminar por IA';
 
   @override
   String get aiCloakingTitle => 'Cloaking de IA (Adversarial)';

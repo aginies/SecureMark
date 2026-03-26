@@ -34,7 +34,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           _FeatureItem(
             title: l10n.steganographyTitle,
             body: l10n.steganographySubtitle,
-            icon: Icons.visibility_off,
+            icon: Icons.verified_user_outlined,
             color: Colors.green,
           ),
           _FeatureItem(
@@ -52,6 +52,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
           _FeatureItem(
             title: l10n.aiCloakingTitle,
             body: l10n.aiCloakingSubtitle,
+            icon: Icons.visibility_off_outlined,
+            color: Colors.teal,
+          ),
+          _FeatureItem(
+            title: l10n.antiAiProtectionTitle,
+            body: l10n.antiAiProtectionSubtitle,
             icon: Icons.auto_awesome,
             color: Colors.purple,
           ),

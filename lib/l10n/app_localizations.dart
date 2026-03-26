@@ -602,6 +602,12 @@ abstract class AppLocalizations {
   /// **'This will reset all expert settings and file prefix to defaults.'**
   String get resetExpertHint;
 
+  /// No description provided for @fontConfigTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Font Configuration'**
+  String get fontConfigTitle;
+
   /// No description provided for @fontStyleLabel.
   ///
   /// In en, this message translates to:
@@ -1147,6 +1153,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Anti-AI removal protection is enabled'**
   String get antiAiEnabledHint;
+
+  /// No description provided for @antiAiProtectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Anti-AI Removal Protection'**
+  String get antiAiProtectionTitle;
+
+  /// No description provided for @antiAiProtectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds jitter and noise to make watermarks harder to remove by AI'**
+  String get antiAiProtectionSubtitle;
 
   /// No description provided for @aiCloakingTitle.
   ///

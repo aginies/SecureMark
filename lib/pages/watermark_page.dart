@@ -1189,30 +1189,6 @@ class WatermarkPageState extends State<WatermarkPage>
         title: Row(
           children: [
             IconButton(
-              icon: Icon(_zipOutputs || _digitallySign
-                  ? Icons.folder_zip
-                  : Icons.folder_zip_outlined),
-              onPressed: _digitallySign
-                  ? null
-                  : () {
-                      setState(() {
-                        _zipOutputs = !_zipOutputs;
-                      });
-                      _savePreference('zipOutputs', _zipOutputs);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(_zipOutputs
-                              ? l10n.zipEnabledHint
-                              : l10n.zipDisabledHint),
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
-                    },
-              tooltip: _digitallySign
-                  ? '${l10n.zipAllFiles} (Required)'
-                  : l10n.zipAllFiles,
-            ),
-            IconButton(
               icon: const Icon(Icons.search_rounded),
               onPressed: _showFileAnalyzer,
               tooltip: l10n.analyzeFile,
@@ -1226,6 +1202,11 @@ class WatermarkPageState extends State<WatermarkPage>
               icon: const Icon(Icons.qr_code_2),
               onPressed: _showQrWatermarkOptions,
               tooltip: l10n.qrWatermarkTitle,
+            ),
+            IconButton(
+              icon: const Icon(Icons.font_download_outlined),
+              onPressed: _showFontOptions,
+              tooltip: l10n.fontConfigTitle,
             ),
             IconButton(
               icon: const Icon(Icons.person_pin_outlined),
@@ -1451,12 +1432,14 @@ class WatermarkPageState extends State<WatermarkPage>
       children: [
         _buildProfileSelector(theme, l10n),
         const SizedBox(height: 16),
-        _buildTextCard(),
-        const SizedBox(height: 16),
         _buildPrimaryActionCard(),
         const SizedBox(height: 16),
-        _buildColorCard(),
+        _buildCombinedWatermarkCard(),
         const SizedBox(height: 16),
+        if (_buildStatusIcons(l10n) != null) ...[
+          _buildStatusIcons(l10n)!,
+          const SizedBox(height: 16),
+        ],
         _buildActionButtons(),
         const SizedBox(height: 16),
         Row(
@@ -4173,7 +4156,7 @@ class WatermarkPageState extends State<WatermarkPage>
     );
   }
 
-  void _showExpertOptions() {
+  void _showFontOptions() {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
@@ -4184,9 +4167,9 @@ class WatermarkPageState extends State<WatermarkPage>
             return AlertDialog(
               title: Row(
                 children: [
-                  const Icon(Icons.settings_suggest_outlined),
+                  const Icon(Icons.font_download_outlined),
                   const SizedBox(width: 12),
-                  Text(l10n.expertOptions),
+                  Text(l10n.fontConfigTitle),
                 ],
               ),
               content: SingleChildScrollView(
@@ -4194,21 +4177,6 @@ class WatermarkPageState extends State<WatermarkPage>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 16),
-                    TextField(
-                      decoration: InputDecoration(
-                        labelText: l10n.filePrefixLabel,
-                        hintText: l10n.filePrefixHint,
-                        border: const OutlineInputBorder(),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _filePrefix = value;
-                        });
-                        _savePreference('filePrefix', value);
-                      },
-                      controller: _filePrefixController,
-                    ),
                     const SizedBox(height: 16),
                     Text(l10n.fontSizeValue(_fontSize.round()),
                         style: theme.textTheme.titleSmall),
@@ -4263,23 +4231,57 @@ class WatermarkPageState extends State<WatermarkPage>
                       style: theme.textTheme.bodySmall
                           ?.copyWith(fontStyle: FontStyle.italic),
                     ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(l10n.close),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showExpertOptions() {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final theme = Theme.of(context);
+            return AlertDialog(
+              title: Row(
+                children: [
+                  const Icon(Icons.settings_suggest_outlined),
+                  const SizedBox(width: 12),
+                  Text(l10n.expertOptions),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     const SizedBox(height: 16),
-                    Text(l10n.jpegQualityValue(_jpegQuality),
-                        style: theme.textTheme.titleSmall),
-                    Slider(
-                      value: _jpegQuality.toDouble(),
-                      min: 10,
-                      max: 100,
-                      divisions: 18,
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: l10n.filePrefixLabel,
+                        hintText: l10n.filePrefixHint,
+                        border: const OutlineInputBorder(),
+                      ),
                       onChanged: (value) {
-                        setDialogState(() {
-                          _jpegQuality = value.round();
-                        });
                         setState(() {
-                          _jpegQuality = value.round();
+                          _filePrefix = value;
                         });
-                        _savePreference('jpegQuality', value.round());
+                        _savePreference('filePrefix', value);
                       },
+                      controller: _filePrefixController,
                     ),
                     const SizedBox(height: 16),
                     CheckboxListTile(
@@ -4325,6 +4327,8 @@ class WatermarkPageState extends State<WatermarkPage>
                         _savePreference('rasterizePdf', value ?? false);
                       },
                     ),
+                    const Divider(),
+                    const SizedBox(height: 8),
                     CheckboxListTile(
                       title: Text(l10n.digitallySignTitle),
                       subtitle: Text(l10n.digitallySignSubtitle),
@@ -4532,6 +4536,68 @@ class WatermarkPageState extends State<WatermarkPage>
                     */
                     const Divider(),
                     const SizedBox(height: 8),
+                    Text(
+                      l10n.imageResizingLabel('').replaceAll(': ', ''),
+                      style: theme.textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: theme.dividerColor),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int?>(
+                          value: _targetSize,
+                          isExpanded: true,
+                          items: [
+                            DropdownMenuItem<int?>(
+                                value: null, child: Text(l10n.resizeNone)),
+                            DropdownMenuItem<int?>(
+                                value: 2048, child: Text(l10n.pixelUnit(2048))),
+                            DropdownMenuItem<int?>(
+                                value: 1600, child: Text(l10n.pixelUnit(1600))),
+                            DropdownMenuItem<int?>(
+                                value: 1280, child: Text(l10n.pixelUnit(1280))),
+                            DropdownMenuItem<int?>(
+                                value: 1024, child: Text(l10n.pixelUnit(1024))),
+                            DropdownMenuItem<int?>(
+                                value: 800, child: Text(l10n.pixelUnit(800))),
+                          ],
+                          onChanged: (value) {
+                            setDialogState(() {
+                              _targetSize = value;
+                            });
+                            setState(() {
+                              _targetSize = value;
+                            });
+                            _savePreference('targetSize', value);
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(l10n.jpegQualityValue(_jpegQuality),
+                        style: theme.textTheme.titleSmall),
+                    Slider(
+                      value: _jpegQuality.toDouble(),
+                      min: 10,
+                      max: 100,
+                      divisions: 18,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          _jpegQuality = value.round();
+                        });
+                        setState(() {
+                          _jpegQuality = value.round();
+                        });
+                        _savePreference('jpegQuality', value.round());
+                      },
+                    ),
+                    const Divider(),
+                    const SizedBox(height: 8),
                     Text(l10n.antiAiProtectionValue(_antiAiLevel.round()),
                         style: theme.textTheme.titleSmall),
                     Slider(
@@ -4578,49 +4644,8 @@ class WatermarkPageState extends State<WatermarkPage>
                       },
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      l10n.imageResizingLabel('').replaceAll(': ', ''),
-                      style: theme.textTheme.titleSmall,
-                    ),
+                    const Divider(),
                     const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: theme.dividerColor),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<int?>(
-                          value: _targetSize,
-                          isExpanded: true,
-                          items: [
-                            DropdownMenuItem<int?>(
-                                value: null, child: Text(l10n.resizeNone)),
-                            DropdownMenuItem<int?>(
-                                value: 2048, child: Text(l10n.pixelUnit(2048))),
-                            DropdownMenuItem<int?>(
-                                value: 1600, child: Text(l10n.pixelUnit(1600))),
-                            DropdownMenuItem<int?>(
-                                value: 1280, child: Text(l10n.pixelUnit(1280))),
-                            DropdownMenuItem<int?>(
-                                value: 1024, child: Text(l10n.pixelUnit(1024))),
-                            DropdownMenuItem<int?>(
-                                value: 800, child: Text(l10n.pixelUnit(800))),
-                          ],
-                          onChanged: (value) {
-                            setDialogState(() {
-                              _targetSize = value;
-                            });
-                            setState(() {
-                              _targetSize = value;
-                            });
-                            _savePreference('targetSize', value);
-                          },
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
                     Text(
                       l10n.themeLabel,
                       style: theme.textTheme.titleSmall,
@@ -4707,7 +4732,9 @@ class WatermarkPageState extends State<WatermarkPage>
                         ),
                       ),
                     ],
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 8),
                     OutlinedButton.icon(
                       onPressed: () {
                         Navigator.of(context).pop();
@@ -5660,8 +5687,21 @@ class WatermarkPageState extends State<WatermarkPage>
     );
   }
 
-  Widget _buildTextCard() {
+  Widget _buildCombinedWatermarkCard() {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    const palette = <Color>[
+      Colors.red,
+      Colors.blue,
+      Colors.green,
+      Colors.orange,
+      Colors.pink,
+      Colors.cyan,
+      Colors.yellow,
+      Colors.white,
+      Colors.purple,
+      Colors.black,
+    ];
 
     return Card(
       child: Padding(
@@ -5669,6 +5709,7 @@ class WatermarkPageState extends State<WatermarkPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Text | Image/Logo toggle
             SegmentedButton<WatermarkType>(
               segments: [
                 ButtonSegment<WatermarkType>(
@@ -5692,6 +5733,7 @@ class WatermarkPageState extends State<WatermarkPage>
                     },
             ),
             const SizedBox(height: 16),
+            // Text input OR Logo button
             if (_watermarkType == WatermarkType.text)
               TextField(
                 controller: _textController,
@@ -5716,6 +5758,112 @@ class WatermarkPageState extends State<WatermarkPage>
               )
             else
               _buildLogoButton(l10n, false),
+            const SizedBox(height: 16),
+            // Color selection OR Logo size
+            if (_watermarkType == WatermarkType.text) ...[
+              SegmentedButton<bool>(
+                segments: [
+                  ButtonSegment<bool>(
+                    value: true,
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.shuffle, size: 18),
+                        const SizedBox(width: 6),
+                        Text(l10n.color),
+                      ],
+                    ),
+                  ),
+                  ButtonSegment<bool>(
+                    value: false,
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: _selectedColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.grey.shade400,
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(l10n.color),
+                      ],
+                    ),
+                  ),
+                ],
+                selected: <bool>{_useRandomColor},
+                onSelectionChanged: _processing
+                    ? null
+                    : (selection) {
+                        _updateColorMode(selection.first);
+                      },
+                expandedInsets: EdgeInsets.zero,
+              ),
+              if (!_useRandomColor) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: palette.map((color) {
+                    final isSelected =
+                        color.toARGB32() == _selectedColor.toARGB32();
+                    return InkWell(
+                      onTap: _processing ? null : () => _selectColor(color),
+                      borderRadius: BorderRadius.circular(999),
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected
+                                ? Colors.black
+                                : Colors.grey.shade400,
+                            width: isSelected ? 3 : 1,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+              ] else
+                const SizedBox(height: 16),
+            ] else ...[
+              Text(l10n.logoSizeLabel(_logoSize.round()),
+                  style: theme.textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Slider(
+                value: _logoSize,
+                min: 30,
+                max: 100,
+                divisions: 70,
+                label: '${_logoSize.round()}px',
+                onChanged: _processing
+                    ? null
+                    : (value) {
+                        setState(() {
+                          _logoSize = value;
+                        });
+                      },
+              ),
+              const SizedBox(height: 8),
+            ],
+            // Transparency and Density sliders
+            Row(
+              children: [
+                Expanded(child: _buildTransparencyControl()),
+                const SizedBox(width: 8),
+                Expanded(child: _buildDensityControl()),
+              ],
+            ),
           ],
         ),
       ),
@@ -5740,175 +5888,6 @@ class WatermarkPageState extends State<WatermarkPage>
           side: isDragging
               ? BorderSide(color: theme.colorScheme.primary, width: 2)
               : BorderSide.none,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildColorCard() {
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
-    const palette = <Color>[
-      Colors.red,
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.pink,
-      Colors.cyan,
-      Colors.yellow,
-      Colors.white,
-      Colors.purple,
-      Colors.black,
-    ];
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth >= 640;
-
-            Widget selectionControls;
-            if (_watermarkType == WatermarkType.text) {
-              selectionControls = Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SegmentedButton<bool>(
-                    segments: [
-                      ButtonSegment<bool>(
-                        value: true,
-                        label: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.shuffle, size: 18),
-                            const SizedBox(width: 6),
-                            Text(l10n.color),
-                          ],
-                        ),
-                      ),
-                      ButtonSegment<bool>(
-                        value: false,
-                        label: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 18,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                color: _selectedColor,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.grey.shade400,
-                                  width: 1,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(l10n.color),
-                          ],
-                        ),
-                      ),
-                    ],
-                    selected: <bool>{_useRandomColor},
-                    onSelectionChanged: _processing
-                        ? null
-                        : (selection) {
-                            _updateColorMode(selection.first);
-                          },
-                    expandedInsets: EdgeInsets.zero,
-                  ),
-                  if (!_useRandomColor) ...[
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: palette.map((color) {
-                        final isSelected =
-                            color.toARGB32() == _selectedColor.toARGB32();
-                        return InkWell(
-                          onTap: _processing ? null : () => _selectColor(color),
-                          borderRadius: BorderRadius.circular(999),
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isSelected
-                                    ? Colors.black
-                                    : Colors.grey.shade400,
-                                width: isSelected ? 3 : 1,
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                ],
-              );
-            } else {
-              selectionControls = Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(l10n.logoSizeLabel(_logoSize.round()),
-                      style: theme.textTheme.titleSmall),
-                  const SizedBox(height: 8),
-                  Slider(
-                    value: _logoSize,
-                    min: 30,
-                    max: 100,
-                    divisions: 70,
-                    label: '${_logoSize.round()}px',
-                    onChanged: _processing
-                        ? null
-                        : (value) {
-                            setState(() {
-                              _logoSize = value;
-                            });
-                          },
-                  ),
-                ],
-              );
-            }
-
-            final sliders = Row(
-              children: [
-                Expanded(child: _buildTransparencyControl()),
-                const SizedBox(width: 16),
-                Expanded(child: _buildDensityControl()),
-              ],
-            );
-
-            final statusIcons = _buildStatusIcons(l10n);
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (statusIcons != null) ...[
-                  statusIcons,
-                  const SizedBox(height: 12),
-                  const Divider(height: 1),
-                  const SizedBox(height: 16),
-                ],
-                if (isWide)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: selectionControls),
-                      const SizedBox(width: 20),
-                      SizedBox(width: 220, child: sliders),
-                    ],
-                  )
-                else ...[
-                  selectionControls,
-                  const SizedBox(height: 16),
-                  sliders,
-                ],
-              ],
-            );
-          },
         ),
       ),
     );
@@ -6025,11 +6004,16 @@ class WatermarkPageState extends State<WatermarkPage>
         subtitle: _hiddenFileBytes != null ? l10n.hideFileEnabledHint : null,
         onToggle: () {
           if (_useSteganography) {
-            setState(() {
-              _hideFileWithSteganography = !_hideFileWithSteganography;
-            });
-            _savePreference(
-                'hideFileWithSteganography', _hideFileWithSteganography);
+            // If no file is selected, open the steganography modal to select one
+            if (_hiddenFileBytes == null) {
+              _showSteganographyOptions();
+            } else {
+              setState(() {
+                _hideFileWithSteganography = !_hideFileWithSteganography;
+              });
+              _savePreference(
+                  'hideFileWithSteganography', _hideFileWithSteganography);
+            }
           }
         },
         onConfigure: _showSteganographyOptions,
@@ -6187,20 +6171,29 @@ class WatermarkPageState extends State<WatermarkPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l10n.transparencyValue(_transparency.round())),
-        Slider(
-          value: _transparency,
-          min: 0,
-          max: 100,
-          divisions: 80,
-          onChanged: _processing
-              ? null
-              : (value) {
-                  setState(() {
-                    _transparency = value;
-                  });
-                  _savePreference('transparency', value);
-                },
+        Padding(
+          padding: const EdgeInsets.only(left: 0),
+          child: Text(l10n.transparencyValue(_transparency.round())),
+        ),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 1.0,
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+          ),
+          child: Slider(
+            value: _transparency,
+            min: 0,
+            max: 100,
+            divisions: 80,
+            onChanged: _processing
+                ? null
+                : (value) {
+                    setState(() {
+                      _transparency = value;
+                    });
+                    _savePreference('transparency', value);
+                  },
+          ),
         ),
       ],
     );
@@ -6212,20 +6205,29 @@ class WatermarkPageState extends State<WatermarkPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l10n.densityValue(_density.round())),
-        Slider(
-          value: _density,
-          min: 10,
-          max: 90,
-          divisions: 16,
-          onChanged: _processing
-              ? null
-              : (value) {
-                  setState(() {
-                    _density = value;
-                  });
-                  _savePreference('density', value);
-                },
+        Padding(
+          padding: const EdgeInsets.only(left: 0),
+          child: Text(l10n.densityValue(_density.round())),
+        ),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 1.0,
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+          ),
+          child: Slider(
+            value: _density,
+            min: 10,
+            max: 90,
+            divisions: 16,
+            onChanged: _processing
+                ? null
+                : (value) {
+                    setState(() {
+                      _density = value;
+                    });
+                    _savePreference('density', value);
+                  },
+          ),
         ),
       ],
     );
@@ -6368,8 +6370,22 @@ class WatermarkPageState extends State<WatermarkPage>
   Future<void> _selectPaths(List<String> paths) async {
     final uniquePaths = paths.toSet().toList();
 
+    // Append new paths to existing ones instead of replacing
+    final allPaths = {..._selectedPaths, ...uniquePaths}.toList();
+
+    // If no output directory is set, use the directory from the last picked file
+    if (_outputDirectory == null && allPaths.isNotEmpty) {
+      final lastPath = allPaths.last;
+      final directory = p.dirname(lastPath);
+      setState(() {
+        _outputDirectory = directory;
+      });
+      _savePreference('outputDirectory', directory);
+      _addLog('Auto-set output directory to: $directory');
+    }
+
     setState(() {
-      _selectedPaths = uniquePaths;
+      _selectedPaths = allPaths;
       _processedFiles = <ProcessedFile>[];
       _previewIndex = 0;
       _rawImage = null;
@@ -6377,8 +6393,8 @@ class WatermarkPageState extends State<WatermarkPage>
     });
 
     try {
-      if (uniquePaths.isNotEmpty) {
-        final firstPath = uniquePaths.first;
+      if (allPaths.isNotEmpty) {
+        final firstPath = allPaths.first;
         final extension = p.extension(firstPath).toLowerCase();
         if (['.jpg', '.jpeg', '.png', '.webp'].contains(extension)) {
           final bytes = await File(firstPath).readAsBytes();

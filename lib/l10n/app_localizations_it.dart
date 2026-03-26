@@ -328,6 +328,9 @@ class AppLocalizationsIt extends AppLocalizations {
       'Questo ripristinerà tutte le impostazioni esperte e il prefisso del file ai valori predefiniti.';
 
   @override
+  String get fontConfigTitle => 'Configurazione Carattere';
+
+  @override
   String get fontStyleLabel => 'Stile carattere';
 
   @override
@@ -653,6 +656,13 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get antiAiEnabledHint => 'La protezione Anti-IA è abilitata';
+
+  @override
+  String get antiAiProtectionTitle => 'Protezione Anti-Rimozione IA';
+
+  @override
+  String get antiAiProtectionSubtitle =>
+      'Aggiunge rumore per rendere le filigrane più difficili da rimuovere con IA';
 
   @override
   String get aiCloakingTitle => 'Cloaking IA (Adversarial)';

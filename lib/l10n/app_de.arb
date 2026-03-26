@@ -431,6 +431,8 @@
   },
   "antiAiProtectionNote": "Hinweis: Ein höherer Schutz erhöht die Zeit zur Generierung des SecureMark-Bildes erheblich.",
   "antiAiEnabledHint": "Anti-KI-Schutz ist aktiviert",
+  "antiAiProtectionTitle": "Anti-KI-Entfernungsschutz",
+  "antiAiProtectionSubtitle": "Fügt Rauschen hinzu, um Wasserzeichen schwerer durch KI entfernbar zu machen",
   "aiCloakingTitle": "KI-Cloaking (Adversarial)",
   "aiCloakingSubtitle": "Injiziert unsichtbares Rauschen, um KI-Training und Style-Diebstahl zu stören.",
   "aiCloakingEnabledHint": "KI-Cloaking ist aktiv",
@@ -719,5 +721,6 @@
   "exportConfigDesc": "Dies erstellt eine passwortgeschützte ZIP-Datei mit all Ihren Einstellungen und digitalen Identitätsschlüsseln.",
   "exportConfigButton": "Exportieren",
   "importConfigButton": "Importieren",
-  "configExportSuccess": "Konfiguration erfolgreich exportiert nach: {path}"
+  "configExportSuccess": "Konfiguration erfolgreich exportiert nach: {path}",
+  "fontConfigTitle": "Schriftkonfiguration"
 }
