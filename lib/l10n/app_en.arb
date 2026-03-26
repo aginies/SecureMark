@@ -56,6 +56,7 @@
   },
   "applyWatermark": "Apply SecureMark",
   "saveAll": "Save All",
+  "delete": "Delete",
   "shareAll": "Share All",
   "reset": "Reset",
   "watermarkTypeText": "Text",
@@ -438,11 +439,25 @@
   "digitallySignSubtitle": "Sign document with device key to prove it hasn't been modified.",
   "digitallySignEnabledHint": "Digital signature will be applied",
   "myIdentityTitle": "My Device Identity",
+  "deviceNameLabel": "Device / Owner Name",
+  "identityNameLabel": "Name",
   "myPublicKeyLabel": "Public Key (Your Digital ID):",
   "copyPublicKey": "Copy Public Key",
+  "sharePublicKey": "Share Public Key",
+  "generateQrKey": "Generate QR Code",
+  "qrIdentityTitle": "Identity QR Code",
   "publicKeyCopied": "Public key copied to clipboard",
+  "bookmarkSaved": "Identity bookmarked successfully",
   "signatureVerified": "✅ Integrity Verified: Document is authentic",
   "tamperDetected": "❌ TAMPER DETECTED: Document has been modified",
+  "senderOwnerLabel": "Sender: {name}",
+  "@senderOwnerLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "qrContentType": "QR Content Type",
   "qrTypeMetadata": "Metadata (JSON)",
   "qrTypeUrl": "Website Redirect",
@@ -696,5 +711,20 @@
   "onboardingNext": "Next",
   "onboardingDone": "Got it",
   "onboardingSkip": "Skip",
-  "showGuide": "Show Guide"
+  "showGuide": "Show Guide",
+  "activeOptionsHelpTitle": "Active Security Options",
+  "identityBookmarksTitle": "Signature Identity Bookmarks",
+  "bookmarkNameLabel": "Identity Name",
+  "identityKeyLabel": "Signature (public key)",
+  "addIdentity": "Add Identity",
+  "addWithQrCode": "Add via QR Code",
+  "removeIdentityConfirm": "Remove this identity bookmark?",
+  "invalidQrCode": "Invalid identity QR code",
+  "scannerTitle": "Scan Public Key QR",
+  "exportConfigTitle": "Export Config & Keys",
+  "importConfigTitle": "Import Config & Keys",
+  "exportConfigDesc": "This will create a password-protected ZIP with all your settings and digital identity keys.",
+  "exportConfigButton": "Export",
+  "importConfigButton": "Import",
+  "configExportSuccess": "Configuration exported successfully to: {path}"
 }

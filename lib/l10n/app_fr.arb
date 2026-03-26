@@ -56,6 +56,7 @@
   },
   "applyWatermark": "Appliquer SecureMark",
   "saveAll": "Tout enregistrer",
+  "delete": "Supprimer",
   "shareAll": "Tout partager",
   "reset": "Réinitialiser",
   "watermarkTypeText": "Texte",
@@ -438,11 +439,25 @@
   "digitallySignSubtitle": "Signer le document avec la clé de l'appareil pour prouver qu'il n'a pas été modifié.",
   "digitallySignEnabledHint": "La signature numérique sera appliquée",
   "myIdentityTitle": "Mon identité d'appareil",
+  "deviceNameLabel": "Nom de l'appareil / Propriétaire",
+  "identityNameLabel": "Nom",
   "myPublicKeyLabel": "Clé publique (Votre ID numérique) :",
   "copyPublicKey": "Copier la clé publique",
+  "sharePublicKey": "Partager la clé publique",
+  "generateQrKey": "Générer un QR Code",
+  "qrIdentityTitle": "QR Code d'Identité",
   "publicKeyCopied": "Clé publique copiée dans le presse-papier",
+  "bookmarkSaved": "Identité ajoutée aux signets avec succès",
   "signatureVerified": "✅ Intégrité vérifiée : le document est authentique",
   "tamperDetected": "❌ ALTÉRATION DÉTECTÉE : le document a été modifié",
+  "senderOwnerLabel": "Expéditeur : {name}",
+  "@senderOwnerLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "qrContentType": "Type de contenu QR",
   "qrTypeMetadata": "Métadonnées (JSON)",
   "qrTypeUrl": "Redirection Site Web",
@@ -696,5 +711,20 @@
   "onboardingNext": "Suivant",
   "onboardingDone": "Compris",
   "onboardingSkip": "Passer",
-  "showGuide": "Voir le guide"
+  "showGuide": "Voir le guide",
+  "activeOptionsHelpTitle": "Options de sécurité actives",
+  "identityBookmarksTitle": "Signets d'identité de signature",
+  "bookmarkNameLabel": "Nom de l'identité",
+  "identityKeyLabel": "Signature (clé publique)",
+  "addIdentity": "Ajouter une identité",
+  "addWithQrCode": "Ajouter via QR Code",
+  "removeIdentityConfirm": "Supprimer ce signet d'identité ?",
+  "invalidQrCode": "QR code d'identité invalide",
+  "scannerTitle": "Scanner le QR de la clé publique",
+  "exportConfigTitle": "Exporter Config & Clés",
+  "importConfigTitle": "Importer Config & Clés",
+  "exportConfigDesc": "Ceci créera un ZIP protégé par mot de passe avec tous vos réglages et clés d'identité numérique.",
+  "exportConfigButton": "Exporter",
+  "importConfigButton": "Importer",
+  "configExportSuccess": "Configuration exportée avec succès vers : {path}"
 }

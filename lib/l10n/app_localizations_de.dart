@@ -95,6 +95,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get saveAll => 'Alle speichern';
 
   @override
+  String get delete => 'Löschen';
+
+  @override
   String get shareAll => 'Alle teilen';
 
   @override
@@ -679,14 +682,33 @@ class AppLocalizationsDe extends AppLocalizations {
   String get myIdentityTitle => 'Meine Geräte-Identität';
 
   @override
+  String get deviceNameLabel => 'Geräte- / Inhabername';
+
+  @override
+  String get identityNameLabel => 'Name';
+
+  @override
   String get myPublicKeyLabel => 'Öffentlicher Schlüssel (Ihre digitale ID):';
 
   @override
   String get copyPublicKey => 'Öffentlichen Schlüssel kopieren';
 
   @override
+  String get sharePublicKey => 'Öffentlichen Schlüssel teilen';
+
+  @override
+  String get generateQrKey => 'QR-Code generieren';
+
+  @override
+  String get qrIdentityTitle => 'Identitäts-QR-Code';
+
+  @override
   String get publicKeyCopied =>
       'Öffentlicher Schlüssel in die Zwischenablage kopiert';
+
+  @override
+  String get bookmarkSaved =>
+      'Identität erfolgreich als Lesezeichen gespeichert';
 
   @override
   String get signatureVerified =>
@@ -695,6 +717,11 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get tamperDetected =>
       '❌ MANIPULATION ERKANNT: Dokument wurde geändert';
+
+  @override
+  String senderOwnerLabel(String name) {
+    return 'Absender: $name';
+  }
 
   @override
   String get qrContentType => 'QR-Inhaltstyp';
@@ -1119,4 +1146,52 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get showGuide => 'Anleitung anzeigen';
+
+  @override
+  String get activeOptionsHelpTitle => 'Aktive Sicherheitsoptionen';
+
+  @override
+  String get identityBookmarksTitle => 'Lesezeichen für Signaturidentität';
+
+  @override
+  String get bookmarkNameLabel => 'Identitätsname';
+
+  @override
+  String get identityKeyLabel => 'Signatur (öffentlicher Schlüssel)';
+
+  @override
+  String get addIdentity => 'Identität hinzufügen';
+
+  @override
+  String get addWithQrCode => 'Über QR-Code hinzufügen';
+
+  @override
+  String get removeIdentityConfirm => 'Dieses Identitätslesezeichen entfernen?';
+
+  @override
+  String get invalidQrCode => 'Ungültiger Identitäts-QR-Code';
+
+  @override
+  String get scannerTitle => 'QR-Code für öffentlichen Schlüssel scannen';
+
+  @override
+  String get exportConfigTitle => 'Konfig & Schlüssel exportieren';
+
+  @override
+  String get importConfigTitle => 'Konfig & Schlüssel importieren';
+
+  @override
+  String get exportConfigDesc =>
+      'Dies erstellt eine passwortgeschützte ZIP-Datei mit all Ihren Einstellungen und digitalen Identitätsschlüsseln.';
+
+  @override
+  String get exportConfigButton => 'Exportieren';
+
+  @override
+  String get importConfigButton => 'Importieren';
+
+  @override
+  String configExportSuccess(Object path) {
+    return 'Konfiguration erfolgreich exportiert nach: $path';
+  }
 }

@@ -95,6 +95,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveAll => 'Save All';
 
   @override
+  String get delete => 'Delete';
+
+  @override
   String get shareAll => 'Share All';
 
   @override
@@ -671,19 +674,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myIdentityTitle => 'My Device Identity';
 
   @override
+  String get deviceNameLabel => 'Device / Owner Name';
+
+  @override
+  String get identityNameLabel => 'Name';
+
+  @override
   String get myPublicKeyLabel => 'Public Key (Your Digital ID):';
 
   @override
   String get copyPublicKey => 'Copy Public Key';
 
   @override
+  String get sharePublicKey => 'Share Public Key';
+
+  @override
+  String get generateQrKey => 'Generate QR Code';
+
+  @override
+  String get qrIdentityTitle => 'Identity QR Code';
+
+  @override
   String get publicKeyCopied => 'Public key copied to clipboard';
+
+  @override
+  String get bookmarkSaved => 'Identity bookmarked successfully';
 
   @override
   String get signatureVerified => '✅ Integrity Verified: Document is authentic';
 
   @override
   String get tamperDetected => '❌ TAMPER DETECTED: Document has been modified';
+
+  @override
+  String senderOwnerLabel(String name) {
+    return 'Sender: $name';
+  }
 
   @override
   String get qrContentType => 'QR Content Type';
@@ -1099,4 +1125,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get showGuide => 'Show Guide';
+
+  @override
+  String get activeOptionsHelpTitle => 'Active Security Options';
+
+  @override
+  String get identityBookmarksTitle => 'Signature Identity Bookmarks';
+
+  @override
+  String get bookmarkNameLabel => 'Identity Name';
+
+  @override
+  String get identityKeyLabel => 'Signature (public key)';
+
+  @override
+  String get addIdentity => 'Add Identity';
+
+  @override
+  String get addWithQrCode => 'Add via QR Code';
+
+  @override
+  String get removeIdentityConfirm => 'Remove this identity bookmark?';
+
+  @override
+  String get invalidQrCode => 'Invalid identity QR code';
+
+  @override
+  String get scannerTitle => 'Scan Public Key QR';
+
+  @override
+  String get exportConfigTitle => 'Export Config & Keys';
+
+  @override
+  String get importConfigTitle => 'Import Config & Keys';
+
+  @override
+  String get exportConfigDesc =>
+      'This will create a password-protected ZIP with all your settings and digital identity keys.';
+
+  @override
+  String get exportConfigButton => 'Export';
+
+  @override
+  String get importConfigButton => 'Import';
+
+  @override
+  String configExportSuccess(Object path) {
+    return 'Configuration exported successfully to: $path';
+  }
 }

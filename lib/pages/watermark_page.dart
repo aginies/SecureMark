@@ -19,6 +19,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:printing/printing.dart';
@@ -29,6 +31,7 @@ import '../font_manager.dart';
 import '../qr_config.dart';
 import '../models/processed_file.dart';
 import '../models/settings_profile.dart';
+import '../models/identity_bookmark.dart';
 import '../widgets/watermark_shader_painter.dart';
 import '../widgets/profile_chip.dart';
 import '../main.dart';
@@ -63,6 +66,7 @@ class WatermarkPageState extends State<WatermarkPage>
       TextEditingController();
   final TextEditingController _extractionPasswordController =
       TextEditingController();
+  final TextEditingController _deviceNameController = TextEditingController();
   final TextEditingController _pdfUserPasswordController =
       TextEditingController();
   final TextEditingController _pdfOwnerPasswordController =
@@ -112,6 +116,7 @@ class WatermarkPageState extends State<WatermarkPage>
   String _appVersion = '';
   String? _outputDirectory;
   String? _logoDirectory;
+  List<IdentityBookmark> _identityBookmarks = [];
   ui.Image? _rawImage;
   final List<String> _logs = <String>[];
   final List<String> _tempFiles = <String>[];
@@ -125,6 +130,8 @@ class WatermarkPageState extends State<WatermarkPage>
   String? _hiddenFileName;
   String _hidingPassword = '';
   String _extractionPassword = '';
+  String _deviceName = '';
+  String? _devicePublicKey;
   bool _zipOutputs = false;
   bool _useSecureZip = false;
   WatermarkType _watermarkType = WatermarkType.text;
@@ -237,6 +244,30 @@ class WatermarkPageState extends State<WatermarkPage>
   Timer? _shareCheckTimer1;
   Timer? _shareCheckTimer2;
 
+  Future<void> _loadBookmarks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? bookmarksJson = prefs.getString('identity_bookmarks');
+    if (bookmarksJson != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(bookmarksJson);
+        setState(() {
+          _identityBookmarks = decoded
+              .map((item) => IdentityBookmark.fromJson(item))
+              .toList();
+        });
+      } catch (e) {
+        _addLog('Error loading bookmarks: $e');
+      }
+    }
+  }
+
+  Future<void> _saveBookmarks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String encoded =
+        jsonEncode(_identityBookmarks.map((b) => b.toJson()).toList());
+    await prefs.setString('identity_bookmarks', encoded);
+  }
+
   Future<void> _loadPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -268,6 +299,8 @@ class WatermarkPageState extends State<WatermarkPage>
           _antiAiLevel = prefs.getDouble('antiAiLevel') ?? 50.0;
           _useAiCloaking = prefs.getBool('useAiCloaking') ?? false;
           _digitallySign = prefs.getBool('digitallySign') ?? false;
+          _deviceName = prefs.getString('deviceName') ?? '';
+          _deviceNameController.text = _deviceName;
           _useSteganography = prefs.getBool('useSteganography') ?? false;
           _useRobustSteganography =
               prefs.getBool('useRobustSteganography') ?? false;
@@ -767,6 +800,7 @@ class WatermarkPageState extends State<WatermarkPage>
     _savePreference('useRobustSteganography', _useRobustSteganography);
     _savePreference('digitallySign', _digitallySign);
     _savePreference('useAiCloaking', _useAiCloaking);
+    _savePreference('deviceName', _deviceNameController.text);
     _savePreference('hideFileWithSteganography', _hideFileWithSteganography);
     _savePreference('useRandomColor', _useRandomColor);
     _savePreference('selectedColor', _selectedColor.toARGB32());
@@ -913,11 +947,15 @@ class WatermarkPageState extends State<WatermarkPage>
     WidgetsBinding.instance.addObserver(this);
     _setupPlatformCallHandler();
     _loadPreferences();
+    _loadBookmarks();
     _loadShader();
     _initPackageInfo();
     _initOutputDirectory();
     IdentityManager.onLog = _addLog;
-    IdentityManager.getIdentityKeyPair(); // Pre-generate key if needed
+    IdentityManager.getIdentityKeyPair().then((_) async {
+      final pk = await IdentityManager.getDevicePublicKey();
+      if (mounted) setState(() => _devicePublicKey = pk);
+    });
 
     // Check for shared content multiple times to handle race conditions
     _handleSharedContent();
@@ -1797,6 +1835,15 @@ class WatermarkPageState extends State<WatermarkPage>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _showIdentityBookmarksDialog(),
+                    icon: const Icon(Icons.bookmarks_outlined),
+                    label: Text(l10n.identityBookmarksTitle),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   TextField(
                     obscureText: _obscureExtractionPassword,
                     decoration: InputDecoration(
@@ -2020,25 +2067,142 @@ class WatermarkPageState extends State<WatermarkPage>
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       Expanded(
-                                        child: Text(
-                                          'Sender ID: ${_senderPublicKey!.substring(0, 8)}...${_senderPublicKey!.substring(_senderPublicKey!.length - 8)}',
-                                          style: theme.textTheme.labelSmall,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              _senderPublicKey ==
+                                                      _devicePublicKey
+                                                  ? l10n.senderOwnerLabel(
+                                                      'Me (${_deviceName.isNotEmpty ? _deviceName : 'This Device'})')
+                                                  : _identityBookmarks.any(
+                                                          (b) =>
+                                                              b.publicKey ==
+                                                              _senderPublicKey)
+                                                      ? l10n.senderOwnerLabel(
+                                                          _identityBookmarks
+                                                              .firstWhere((b) =>
+                                                                  b.publicKey ==
+                                                                  _senderPublicKey)
+                                                              .name)
+                                                      : 'Sender ID: ${_senderPublicKey!.substring(0, 8)}...${_senderPublicKey!.substring(_senderPublicKey!.length - 8)}',
+                                              style: theme.textTheme.labelSmall
+                                                  ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: _senderPublicKey ==
+                                                            _devicePublicKey ||
+                                                        _identityBookmarks.any(
+                                                            (b) =>
+                                                                b.publicKey ==
+                                                                _senderPublicKey)
+                                                    ? Colors.blue
+                                                    : null,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                       const SizedBox(width: 8),
-                                      IconButton(
-                                        icon: const Icon(Icons.copy, size: 18),
-                                        tooltip: l10n.copyPublicKey,
-                                        onPressed: () {
-                                          Clipboard.setData(ClipboardData(
-                                              text: _senderPublicKey!));
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                                content:
-                                                    Text(l10n.publicKeyCopied)),
-                                          );
-                                        },
+                                      Row(
+                                        children: [
+                                          IconButton(
+                                            icon: Icon(
+                                              _identityBookmarks.any((b) =>
+                                                      b.publicKey ==
+                                                      _senderPublicKey)
+                                                  ? Icons.bookmark
+                                                  : Icons.bookmark_add_outlined,
+                                              size: 18,
+                                              color: _identityBookmarks.any(
+                                                      (b) =>
+                                                          b.publicKey ==
+                                                          _senderPublicKey)
+                                                  ? Colors.blue
+                                                  : null,
+                                            ),
+                                            tooltip: 'Bookmark this identity',
+                                            onPressed: () async {
+                                              if (!_identityBookmarks.any((b) =>
+                                                  b.publicKey ==
+                                                  _senderPublicKey)) {
+                                                final messenger =
+                                                    ScaffoldMessenger.of(
+                                                        context);
+                                                final nameController =
+                                                    TextEditingController();
+                                                final save =
+                                                    await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (context) =>
+                                                      AlertDialog(
+                                                    title: const Text(
+                                                        'Bookmark Identity'),
+                                                    content: TextField(
+                                                      controller:
+                                                          nameController,
+                                                      decoration:
+                                                          const InputDecoration(
+                                                        labelText: 'Name',
+                                                        hintText:
+                                                            'e.g. John Doe',
+                                                      ),
+                                                      autofocus: true,
+                                                    ),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                                context, false),
+                                                        child:
+                                                            const Text('Cancel'),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                                context, true),
+                                                        child: const Text('Save'),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+
+                                                if (save == true &&
+                                                    nameController
+                                                        .text.isNotEmpty) {
+                                                  setDialogState(() {
+                                                    _identityBookmarks.add(
+                                                        IdentityBookmark(
+                                                            name: nameController
+                                                                .text,
+                                                            publicKey:
+                                                                _senderPublicKey!));
+                                                  });
+                                                  _saveBookmarks();
+                                                  messenger.showSnackBar(
+                                                    SnackBar(
+                                                        content: Text(
+                                                            l10n.bookmarkSaved)),
+                                                  );
+                                                }
+                                              }
+                                            },
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.copy, size: 18),
+                                            tooltip: l10n.copyPublicKey,
+                                            onPressed: () {
+                                              Clipboard.setData(ClipboardData(
+                                                  text: _senderPublicKey!));
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                    content: Text(
+                                                        l10n.publicKeyCopied)),
+                                              );
+                                            },
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
@@ -2191,6 +2355,229 @@ class WatermarkPageState extends State<WatermarkPage>
         _analysisResult = l10n.analysisError(e.toString());
       });
     }
+  }
+
+  void _showIdentityBookmarksDialog() {
+    final l10n = AppLocalizations.of(context)!;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Row(
+                children: [
+                  const Icon(Icons.bookmarks_outlined, color: Colors.blue),
+                  const SizedBox(width: 12),
+                  Text(l10n.identityBookmarksTitle),
+                ],
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              setDialogState(() {
+                                _identityBookmarks.add(
+                                    IdentityBookmark(name: '', publicKey: ''));
+                              });
+                              _saveBookmarks();
+                            },
+                            icon: const Icon(Icons.add),
+                            label: Text(l10n.addIdentity),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () =>
+                                _showIdentityQrScanner(setDialogState),
+                            icon: const Icon(Icons.qr_code_scanner),
+                            label: Text(l10n.addWithQrCode),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+                    if (_identityBookmarks.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Text("No bookmarks yet."),
+                      )
+                    else
+                      Flexible(
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: _identityBookmarks.length,
+                          itemBuilder: (context, index) {
+                            final bookmark = _identityBookmarks[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: TextField(
+                                      decoration: InputDecoration(
+                                        labelText: l10n.identityNameLabel,
+                                        isDense: true,
+                                      ),
+                                      onChanged: (val) {
+                                        _identityBookmarks[index] =
+                                            IdentityBookmark(
+                                                name: val,
+                                                publicKey: bookmark.publicKey);
+                                        _saveBookmarks();
+                                      },
+                                      controller: TextEditingController(
+                                          text: bookmark.name)
+                                        ..selection =
+                                            TextSelection.fromPosition(
+                                                TextPosition(
+                                                    offset:
+                                                        bookmark.name.length)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    flex: 3,
+                                    child: TextField(
+                                      decoration: InputDecoration(
+                                        labelText: l10n.identityKeyLabel,
+                                        isDense: true,
+                                      ),
+                                      onChanged: (val) {
+                                        _identityBookmarks[index] =
+                                            IdentityBookmark(
+                                                name: bookmark.name,
+                                                publicKey: val);
+                                        _saveBookmarks();
+                                      },
+                                      controller: TextEditingController(
+                                          text: bookmark.publicKey)
+                                        ..selection =
+                                            TextSelection.fromPosition(
+                                                TextPosition(
+                                                    offset: bookmark
+                                                        .publicKey.length)),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.remove_circle_outline,
+                                        color: Colors.red),
+                                    onPressed: () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: Text(l10n.delete),
+                                          content: Text(
+                                              l10n.removeIdentityConfirm),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, false),
+                                              child: Text(l10n.cancel),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, true),
+                                              child: Text(l10n.delete,
+                                                  style: const TextStyle(
+                                                      color: Colors.red)),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      if (confirm == true) {
+                                        setDialogState(() {
+                                          _identityBookmarks.removeAt(index);
+                                        });
+                                        _saveBookmarks();
+                                      }
+                                    },
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(l10n.close),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showIdentityQrScanner(StateSetter setParentDialogState) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.scannerTitle),
+        content: SizedBox(
+          width: 300,
+          height: 300,
+          child: MobileScanner(
+            onDetect: (capture) {
+              final List<Barcode> barcodes = capture.barcodes;
+              if (barcodes.isNotEmpty) {
+                final String? code = barcodes.first.rawValue;
+                if (code != null) {
+                  String name = 'New Identity';
+                  String pubKey = code;
+
+                  // Try to parse as JSON first (for name + key combo)
+                  try {
+                    final data = jsonDecode(code);
+                    if (data is Map) {
+                      name = data['name'] ?? 'New Identity';
+                      pubKey = data['publicKey'] ?? code;
+                    }
+                  } catch (_) {
+                    // Not JSON, assume raw public key
+                  }
+
+                  if (pubKey.length > 20) {
+                    Navigator.pop(context);
+                    setParentDialogState(() {
+                      _identityBookmarks
+                          .add(IdentityBookmark(name: name, publicKey: pubKey));
+                    });
+                    _saveBookmarks();
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.invalidQrCode)),
+                    );
+                  }
+                }
+              }
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _performFileAnalysis(
@@ -3644,6 +4031,39 @@ class WatermarkPageState extends State<WatermarkPage>
                         minimumSize: const Size(double.infinity, 44),
                       ),
                     ),
+                    const Divider(height: 32),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _exportConfiguration();
+                            },
+                            icon: const Icon(Icons.upload_file),
+                            label: Text(l10n.exportConfigButton),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 44),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _importConfiguration();
+                            },
+                            icon: const Icon(Icons.download),
+                            label: Text(l10n.importConfigButton),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 44),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
@@ -4765,6 +5185,13 @@ class WatermarkPageState extends State<WatermarkPage>
       alignment: WrapAlignment.start,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
+        GestureDetector(
+          onTap: () => _showActiveOptionsHelp(l10n),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8.0),
+            child: Icon(Icons.help_outline, color: Colors.blueGrey, size: 20),
+          ),
+        ),
         if (_digitallySign)
           GestureDetector(
             onTap: () => showTooltip(digitallySignKey),
@@ -4941,6 +5368,96 @@ class WatermarkPageState extends State<WatermarkPage>
             ),
           ),
       ],
+    );
+  }
+
+  void _showActiveOptionsHelp(AppLocalizations l10n) {
+    final activeOptions = <(IconData, Color, String)>[];
+
+    if (_digitallySign) {
+      activeOptions
+          .add((Icons.fingerprint, Colors.blueAccent, l10n.digitallySignTitle));
+    }
+    if (_useSteganography && !_steganographyVerificationFailed) {
+      activeOptions.add(
+          (Icons.verified_user_outlined, Colors.green, l10n.steganographyTitle));
+    }
+    if (_useRobustSteganography) {
+      activeOptions.add(
+          (Icons.shield_outlined, Colors.indigo, l10n.robustSteganographyTitle));
+    }
+    if (_targetSize != null) {
+      activeOptions.add((
+        Icons.photo_size_select_large,
+        Colors.orange,
+        l10n.imageResizingLabel(l10n.pixelUnit(_targetSize!))
+      ));
+    }
+    if (_steganographyVerificationFailed) {
+      activeOptions.add(
+          (Icons.warning_outlined, Colors.red, l10n.steganographyVerificationFailed));
+    }
+    if (_qrVisible) {
+      activeOptions.add((
+        Icons.qr_code_2,
+        Colors.blue,
+        l10n.qrWatermarkTitle +
+            (_qrType != QrType.metadata ? ' (${_qrType.name.toUpperCase()})' : '')
+      ));
+    }
+    if (_hideFileWithSteganography && _hiddenFileBytes != null) {
+      activeOptions
+          .add((Icons.attachment, Colors.brown, l10n.hideFileEnabledHint));
+    }
+    if (_zipOutputs) {
+      activeOptions.add((Icons.folder_zip, Colors.amber, l10n.zipEnabledHint));
+    }
+    if (_antiAiLevel > 0) {
+      activeOptions.add((
+        Icons.auto_awesome,
+        Colors.purple,
+        l10n.antiAiProtectionValue(_antiAiLevel.round())
+      ));
+    }
+    if (_useAiCloaking) {
+      activeOptions.add(
+          (Icons.visibility_off_outlined, Colors.teal, l10n.aiCloakingEnabledHint));
+    }
+    if (_rasterizePdf) {
+      activeOptions
+          .add((Icons.picture_as_pdf, Colors.redAccent, l10n.rasterizePdfTitle));
+    }
+    if (_preserveMetadata) {
+      activeOptions.add((
+        Icons.info_outline,
+        Colors.lightBlue,
+        l10n.preserveMetadataEnabledHint
+      ));
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.activeOptionsHelpTitle),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: activeOptions.map((opt) {
+              return ListTile(
+                leading: Icon(opt.$1, color: opt.$2),
+                title: Text(opt.$3, style: const TextStyle(fontSize: 13)),
+                dense: true,
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.close),
+          ),
+        ],
+      ),
     );
   }
 
@@ -6272,6 +6789,236 @@ class WatermarkPageState extends State<WatermarkPage>
     );
   }
 
+  Future<void> _exportConfiguration() async {
+    final l10n = AppLocalizations.of(context)!;
+    final passwordController = TextEditingController();
+    final messenger = ScaffoldMessenger.of(context);
+
+    final bool? proceed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.exportConfigTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(l10n.exportConfigDesc),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Encryption Password',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.lock_outline),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.exportConfigButton),
+          ),
+        ],
+      ),
+    );
+
+    if (proceed != true || passwordController.text.isEmpty) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final allKeys = prefs.getKeys();
+      final Map<String, dynamic> configData = {};
+
+      for (final key in allKeys) {
+        // Only export SecureMark related keys
+        if (key.startsWith('profile_') ||
+            key.startsWith('device_') ||
+            [
+              'transparency',
+              'density',
+              'fontSize',
+              'jpegQuality',
+              'targetSize',
+              'includeTimestamp',
+              'preserveMetadata',
+              'rasterizePdf',
+              'antiAiLevel',
+              'useSteganography',
+              'useRobustSteganography',
+              'useAiCloaking',
+              'digitallySign',
+              'deviceName',
+              'filePrefix',
+              'selectedProfile',
+              'selectedFont',
+              'qrVisible',
+              'qrType',
+              'qrAuthor',
+              'qrUrl',
+              'identity_bookmarks'
+            ].contains(key)) {
+          configData[key] = prefs.get(key);
+        }
+      }
+
+      final jsonConfig = jsonEncode(configData);
+      final jsonBytes = utf8.encode(jsonConfig);
+      _addLog('Exporting configuration with ${configData.length} keys...');
+
+      final tempDir = await getTemporaryDirectory();
+      final now = DateTime.now();
+      final timestamp =
+          "${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}";
+      final String versionSuffix = _appVersion.isNotEmpty ? "_v$_appVersion" : "";
+      final zipPath = p.join(tempDir.path, 'SecureMark_Backup${versionSuffix}_$timestamp.zip');
+
+      final encoder = ZipFileEncoder(password: passwordController.text);
+      encoder.create(zipPath);
+      encoder.addArchiveFile(ArchiveFile(
+        'securemark_config.json',
+        jsonBytes.length,
+        jsonBytes,
+      ));
+      encoder.close();
+
+      final bool isMobile = !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+
+      if (isMobile) {
+        // Share the file on mobile
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(zipPath, mimeType: 'application/zip')],
+            subject: l10n.exportConfigTitle,
+          ),
+        );
+        _tempFiles.add(zipPath);
+      } else {
+        // Manual save on Desktop/Web
+        final savePath = await FilePicker.platform.saveFile(
+          dialogTitle: l10n.exportConfigTitle,
+          fileName: p.basename(zipPath),
+          type: FileType.custom,
+          allowedExtensions: ['zip'],
+        );
+
+        if (savePath != null) {
+          final bytes = await File(zipPath).readAsBytes();
+          await File(savePath).writeAsBytes(bytes);
+          messenger.showSnackBar(
+            SnackBar(content: Text(l10n.configExportSuccess(savePath))),
+          );
+        }
+        // Clean up temporary zip
+        await File(zipPath).delete();
+      }
+    } catch (e) {
+      _addLog('Error exporting configuration: $e');
+    }
+  }
+
+  Future<void> _importConfiguration() async {
+    final l10n = AppLocalizations.of(context)!;
+    final passwordController = TextEditingController();
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['zip'],
+      );
+
+      if (result == null || result.files.single.path == null) return;
+
+      if (!mounted) return;
+
+      final bool? proceed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.importConfigTitle),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Enter the password used to encrypt this backup."),
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Decryption Password',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.lock_outline),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.importConfigButton),
+            ),
+          ],
+        ),
+      );
+
+      if (proceed != true) return;
+
+      final zipFile = File(result.files.single.path!);
+      final bytes = await zipFile.readAsBytes();
+      final archive = ZipDecoder().decodeBytes(bytes, password: passwordController.text);
+
+      for (final file in archive) {
+        if (file.name == 'securemark_config.json') {
+          final content = utf8.decode(file.content as List<int>);
+          final Map<String, dynamic> configData = jsonDecode(content);
+          final prefs = await SharedPreferences.getInstance();
+
+          for (final entry in configData.entries) {
+            final key = entry.key;
+            final value = entry.value;
+
+            if (value is bool) {
+              await prefs.setBool(key, value);
+            } else if (value is int) {
+              await prefs.setInt(key, value);
+            } else if (value is double) {
+              await prefs.setDouble(key, value);
+            } else if (value is String) {
+              await prefs.setString(key, value);
+            } else if (value is List) {
+              // identity_bookmarks is stored as JSON string usually, but let's check
+              if (key == 'identity_bookmarks') {
+                await prefs.setString(key, jsonEncode(value));
+              }
+            }
+          }
+
+          // Reload all settings
+          await _loadPreferences();
+          await _loadBookmarks();
+          
+          messenger.showSnackBar(
+            const SnackBar(content: Text("Configuration imported successfully. Restarting UI...")),
+          );
+          break;
+        }
+      }
+    } catch (e) {
+      _addLog('Error importing configuration: $e');
+      messenger.showSnackBar(
+        SnackBar(content: Text("Import failed: check password or file format.")),
+      );
+    }
+  }
+
   void _showIdentityDialog() {
     final l10n = AppLocalizations.of(context)!;
 
@@ -6322,41 +7069,138 @@ class WatermarkPageState extends State<WatermarkPage>
                 Text(l10n.myIdentityTitle),
               ],
             ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${l10n.myPublicKeyLabel} $fingerprint',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 12),
-                Text('Full key will be copied to clipboard',
-                    style: Theme.of(context).textTheme.bodySmall),
-              ],
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: _deviceNameController,
+                    decoration: InputDecoration(
+                      labelText: l10n.deviceNameLabel,
+                      hintText: "e.g. My Secure Phone",
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.badge_outlined),
+                    ),
+                    onChanged: (value) {
+                      _savePreference('deviceName', value);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Text(l10n.myPublicKeyLabel,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: TextEditingController(text: publicKey),
+                    readOnly: true,
+                    maxLines: 2,
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.all(8),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text('Fingerprint: $fingerprint',
+                      style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ),
             ),
             actions: [
-              TextButton.icon(
-                onPressed: () {
-                  _addLog('Copying public key: $publicKey');
-                  if (publicKey.isEmpty) {
-                    _addLog('WARNING: Public key is empty!');
-                  }
-                  Clipboard.setData(ClipboardData(text: publicKey));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(l10n.publicKeyCopied)),
-                  );
-                },
-                icon: const Icon(Icons.copy),
-                label: Text(l10n.copyPublicKey),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(l10n.close),
+              Wrap(
+                alignment: WrapAlignment.end,
+                children: [
+                  TextButton.icon(
+                    onPressed: () {
+                      final messenger = ScaffoldMessenger.of(context);
+                      _addLog('Copying public key: $publicKey');
+                      if (publicKey.isEmpty) {
+                        _addLog('WARNING: Public key is empty!');
+                      }
+                      Clipboard.setData(ClipboardData(text: publicKey));
+                      messenger.showSnackBar(
+                        SnackBar(content: Text(l10n.publicKeyCopied)),
+                      );
+                    },
+                    icon: const Icon(Icons.copy, size: 18),
+                    label: Text(l10n.copyPublicKey),
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      final shareData = jsonEncode({
+                        'name': _deviceNameController.text,
+                        'publicKey': publicKey,
+                      });
+                      SharePlus.instance.share(
+                        ShareParams(
+                          text: shareData,
+                          subject: l10n.myIdentityTitle,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.share, size: 18),
+                    label: Text(l10n.sharePublicKey),
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      final qrData = jsonEncode({
+                        'name': _deviceNameController.text,
+                        'publicKey': publicKey,
+                      });
+                      _showQrIdentityDialog(qrData);
+                    },
+                    icon: const Icon(Icons.qr_code, size: 18),
+                    label: Text(l10n.generateQrKey),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(l10n.close),
+                  ),
+                ],
               ),
             ],
           );
         },
+      ),
+    );
+  }
+
+  void _showQrIdentityDialog(String data) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.qrIdentityTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              color: Colors.white,
+              width: 232, // explicit width (200 size + 32 padding)
+              height: 232, // explicit height
+              child: QrImageView(
+                data: data,
+                version: QrVersions.auto,
+                size: 200.0,
+                gapless: false,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              "Recipients can scan this to verify your documents.",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.close),
+          ),
+        ],
       ),
     );
   }

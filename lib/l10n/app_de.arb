@@ -56,6 +56,7 @@
   },
   "applyWatermark": "SecureMark anwenden",
   "saveAll": "Alle speichern",
+  "delete": "Löschen",
   "shareAll": "Alle teilen",
   "reset": "Zurücksetzen",
   "watermarkTypeText": "Text",
@@ -438,11 +439,25 @@
   "digitallySignSubtitle": "Dokument mit Geräteschlüssel signieren, um zu beweisen, dass es nicht geändert wurde.",
   "digitallySignEnabledHint": "Digitale Signatur wird angewendet",
   "myIdentityTitle": "Meine Geräte-Identität",
+  "deviceNameLabel": "Geräte- / Inhabername",
+  "identityNameLabel": "Name",
   "myPublicKeyLabel": "Öffentlicher Schlüssel (Ihre digitale ID):",
   "copyPublicKey": "Öffentlichen Schlüssel kopieren",
+  "sharePublicKey": "Öffentlichen Schlüssel teilen",
+  "generateQrKey": "QR-Code generieren",
+  "qrIdentityTitle": "Identitäts-QR-Code",
   "publicKeyCopied": "Öffentlicher Schlüssel in die Zwischenablage kopiert",
+  "bookmarkSaved": "Identität erfolgreich als Lesezeichen gespeichert",
   "signatureVerified": "✅ Integrität verifiziert: Dokument ist authentisch",
   "tamperDetected": "❌ MANIPULATION ERKANNT: Dokument wurde geändert",
+  "senderOwnerLabel": "Absender: {name}",
+  "@senderOwnerLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "qrContentType": "QR-Inhaltstyp",
   "qrTypeMetadata": "Metadaten (JSON)",
   "qrTypeUrl": "Webseiten-Weiterleitung",
@@ -696,5 +711,20 @@
   "onboardingNext": "Weiter",
   "onboardingDone": "Verstanden",
   "onboardingSkip": "Überspringen",
-  "showGuide": "Anleitung anzeigen"
+  "showGuide": "Anleitung anzeigen",
+  "activeOptionsHelpTitle": "Aktive Sicherheitsoptionen",
+  "identityBookmarksTitle": "Lesezeichen für Signaturidentität",
+  "bookmarkNameLabel": "Identitätsname",
+  "identityKeyLabel": "Signatur (öffentlicher Schlüssel)",
+  "addIdentity": "Identität hinzufügen",
+  "addWithQrCode": "Über QR-Code hinzufügen",
+  "removeIdentityConfirm": "Dieses Identitätslesezeichen entfernen?",
+  "invalidQrCode": "Ungültiger Identitäts-QR-Code",
+  "scannerTitle": "QR-Code für öffentlichen Schlüssel scannen",
+  "exportConfigTitle": "Konfig & Schlüssel exportieren",
+  "importConfigTitle": "Konfig & Schlüssel importieren",
+  "exportConfigDesc": "Dies erstellt eine passwortgeschützte ZIP-Datei mit all Ihren Einstellungen und digitalen Identitätsschlüsseln.",
+  "exportConfigButton": "Exportieren",
+  "importConfigButton": "Importieren",
+  "configExportSuccess": "Konfiguration erfolgreich exportiert nach: {path}"
 }

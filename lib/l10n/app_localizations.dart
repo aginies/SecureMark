@@ -254,6 +254,12 @@ abstract class AppLocalizations {
   /// **'Save All'**
   String get saveAll;
 
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
   /// No description provided for @shareAll.
   ///
   /// In en, this message translates to:
@@ -1190,6 +1196,18 @@ abstract class AppLocalizations {
   /// **'My Device Identity'**
   String get myIdentityTitle;
 
+  /// No description provided for @deviceNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Device / Owner Name'**
+  String get deviceNameLabel;
+
+  /// No description provided for @identityNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get identityNameLabel;
+
   /// No description provided for @myPublicKeyLabel.
   ///
   /// In en, this message translates to:
@@ -1202,11 +1220,35 @@ abstract class AppLocalizations {
   /// **'Copy Public Key'**
   String get copyPublicKey;
 
+  /// No description provided for @sharePublicKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Public Key'**
+  String get sharePublicKey;
+
+  /// No description provided for @generateQrKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate QR Code'**
+  String get generateQrKey;
+
+  /// No description provided for @qrIdentityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Identity QR Code'**
+  String get qrIdentityTitle;
+
   /// No description provided for @publicKeyCopied.
   ///
   /// In en, this message translates to:
   /// **'Public key copied to clipboard'**
   String get publicKeyCopied;
+
+  /// No description provided for @bookmarkSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Identity bookmarked successfully'**
+  String get bookmarkSaved;
 
   /// No description provided for @signatureVerified.
   ///
@@ -1219,6 +1261,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'❌ TAMPER DETECTED: Document has been modified'**
   String get tamperDetected;
+
+  /// No description provided for @senderOwnerLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sender: {name}'**
+  String senderOwnerLabel(String name);
 
   /// No description provided for @qrContentType.
   ///
@@ -1934,6 +1982,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show Guide'**
   String get showGuide;
+
+  /// No description provided for @activeOptionsHelpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Security Options'**
+  String get activeOptionsHelpTitle;
+
+  /// No description provided for @identityBookmarksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Signature Identity Bookmarks'**
+  String get identityBookmarksTitle;
+
+  /// No description provided for @bookmarkNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Identity Name'**
+  String get bookmarkNameLabel;
+
+  /// No description provided for @identityKeyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Signature (public key)'**
+  String get identityKeyLabel;
+
+  /// No description provided for @addIdentity.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Identity'**
+  String get addIdentity;
+
+  /// No description provided for @addWithQrCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Add via QR Code'**
+  String get addWithQrCode;
+
+  /// No description provided for @removeIdentityConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this identity bookmark?'**
+  String get removeIdentityConfirm;
+
+  /// No description provided for @invalidQrCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid identity QR code'**
+  String get invalidQrCode;
+
+  /// No description provided for @scannerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan Public Key QR'**
+  String get scannerTitle;
+
+  /// No description provided for @exportConfigTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Config & Keys'**
+  String get exportConfigTitle;
+
+  /// No description provided for @importConfigTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Config & Keys'**
+  String get importConfigTitle;
+
+  /// No description provided for @exportConfigDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'This will create a password-protected ZIP with all your settings and digital identity keys.'**
+  String get exportConfigDesc;
+
+  /// No description provided for @exportConfigButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get exportConfigButton;
+
+  /// No description provided for @importConfigButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get importConfigButton;
+
+  /// No description provided for @configExportSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Configuration exported successfully to: {path}'**
+  String configExportSuccess(Object path);
 }
 
 class _AppLocalizationsDelegate

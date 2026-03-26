@@ -56,6 +56,7 @@
   },
   "applyWatermark": "Aplicar SecureMark",
   "saveAll": "Guardar todo",
+  "delete": "Eliminar",
   "shareAll": "Compartir todo",
   "reset": "Reiniciar",
   "watermarkTypeText": "Texto",
@@ -438,11 +439,25 @@
   "digitallySignSubtitle": "Firmar documento con clave de dispositivo para demostrar que no ha sido modificado.",
   "digitallySignEnabledHint": "Se aplicará la firma digital",
   "myIdentityTitle": "Identidad de mi dispositivo",
+  "deviceNameLabel": "Nombre del dispositivo / Propietario",
+  "identityNameLabel": "Nombre",
   "myPublicKeyLabel": "Clave pública (Su ID digital):",
   "copyPublicKey": "Copiar clave pública",
+  "sharePublicKey": "Compartir clave pública",
+  "generateQrKey": "Generar código QR",
+  "qrIdentityTitle": "Código QR de identidad",
   "publicKeyCopied": "Clave pública copiada al portapapeles",
-  "signatureVerified": "✅ Integridad verificada: El documento es auténtico",
+  "bookmarkSaved": "Identidad guardada en marcadores con éxito",
+  "signatureVerified": "✅ Integrität verificada: El documento es auténtico",
   "tamperDetected": "❌ MANIPULACIÓN DETECTADA: El documento ha sido modificado",
+  "senderOwnerLabel": "Remitente: {name}",
+  "@senderOwnerLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "qrContentType": "Tipo de contenido QR",
   "qrTypeMetadata": "Metadatos (JSON)",
   "qrTypeUrl": "Redirección de sitio web",
@@ -696,5 +711,20 @@
   "onboardingNext": "Siguiente",
   "onboardingDone": "Entendido",
   "onboardingSkip": "Omitir",
-  "showGuide": "Ver guía"
+  "showGuide": "Ver guía",
+  "activeOptionsHelpTitle": "Opciones de seguridad activas",
+  "identityBookmarksTitle": "Marcadores de identidad de firma",
+  "bookmarkNameLabel": "Nombre de identidad",
+  "identityKeyLabel": "Firma (clave pública)",
+  "addIdentity": "Añadir identidad",
+  "addWithQrCode": "Añadir mediante código QR",
+  "removeIdentityConfirm": "¿Eliminar este marcador de identidad?",
+  "invalidQrCode": "Código QR de identidad no válido",
+  "scannerTitle": "Escanear QR de clave pública",
+  "exportConfigTitle": "Exportar Config y Claves",
+  "importConfigTitle": "Importar Config y Claves",
+  "exportConfigDesc": "Esto creará un archivo ZIP protegido por contraseña con todos sus ajustes y claves de identidad digital.",
+  "exportConfigButton": "Exportar",
+  "importConfigButton": "Importar",
+  "configExportSuccess": "Configuración exportada con éxito a: {path}"
 }
