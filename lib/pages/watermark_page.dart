@@ -6533,7 +6533,7 @@ class WatermarkPageState extends State<WatermarkPage>
             child: FilledButton(
               onPressed: _processing ? null : _pickFile,
               style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 backgroundColor: isDragging
                     ? theme.colorScheme.primary.withValues(alpha: 0.8)
                     : null,
@@ -6573,7 +6573,7 @@ class WatermarkPageState extends State<WatermarkPage>
                   child: FilledButton(
                     onPressed: _processing ? null : _pickFile,
                     style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       backgroundColor: isDragging
                           ? theme.colorScheme.primary.withValues(alpha: 0.8)
                           : null,
@@ -6611,7 +6611,7 @@ class WatermarkPageState extends State<WatermarkPage>
                   child: FilledButton(
                     onPressed: _processing ? null : _takePhoto,
                     style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       backgroundColor: theme.colorScheme.secondary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -6644,7 +6644,7 @@ class WatermarkPageState extends State<WatermarkPage>
               child: FilledButton.icon(
                 onPressed: _processing ? null : _scanDocument,
                 style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
                   backgroundColor: theme.colorScheme.tertiary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -6697,53 +6697,56 @@ class WatermarkPageState extends State<WatermarkPage>
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (_supportsDesktopDrop)
-          DropTarget(
-            onDragEntered: (_) => setState(() => _dragging = true),
-            onDragExited: (_) => setState(() => _dragging = false),
-            onDragDone: (detail) async {
-              setState(() => _dragging = false);
-              if (detail.files.isEmpty) return;
-              final paths = detail.files
-                  .map((file) => file.path)
-                  .whereType<String>()
-                  .toSet()
-                  .toList();
-              if (paths.isNotEmpty) {
-                setState(() => _loadingFiles = true);
-                await _selectPaths(paths);
-              }
-            },
-            child: buildButton(_dragging),
-          )
-        else
-          buildButton(false),
-        if (selectedCount > 0) ...[
-          const SizedBox(height: 12),
-          InkWell(
-            onTap: _showSelectedFilesModal,
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              child: Text(
-                selectedCount == 1
-                    ? l10n.selectedFile(
-                        File(_selectedPaths.first).uri.pathSegments.last)
-                    : l10n.selectedFiles(selectedCount),
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  decoration: TextDecoration.underline,
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_supportsDesktopDrop)
+            DropTarget(
+              onDragEntered: (_) => setState(() => _dragging = true),
+              onDragExited: (_) => setState(() => _dragging = false),
+              onDragDone: (detail) async {
+                setState(() => _dragging = false);
+                if (detail.files.isEmpty) return;
+                final paths = detail.files
+                    .map((file) => file.path)
+                    .whereType<String>()
+                    .toSet()
+                    .toList();
+                if (paths.isNotEmpty) {
+                  setState(() => _loadingFiles = true);
+                  await _selectPaths(paths);
+                }
+              },
+              child: buildButton(_dragging),
+            )
+          else
+            buildButton(false),
+          if (selectedCount > 0) ...[
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: _showSelectedFilesModal,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Text(
+                  selectedCount == 1
+                      ? l10n.selectedFile(
+                          File(_selectedPaths.first).uri.pathSegments.last)
+                      : l10n.selectedFiles(selectedCount),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    decoration: TextDecoration.underline,
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -6879,94 +6882,99 @@ class WatermarkPageState extends State<WatermarkPage>
             const SizedBox(height: 16),
             // Unified Color Selection
             if (_watermarkType == WatermarkType.text) ...[
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  // Random Color Square
-                  InkWell(
-                    onTap: _processing ? null : () => _updateColorMode(true),
-                    borderRadius: BorderRadius.circular(4),
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 200),
-                      opacity: _useRandomColor ? 1.0 : 0.4,
-                      child: Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: _useRandomColor
-                                ? theme.colorScheme.primary
-                                : Colors.grey.shade400,
-                            width: _useRandomColor ? 1.5 : 1,
+              Center(
+                child: Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    // Random Color Square
+                    InkWell(
+                      onTap: _processing ? null : () => _updateColorMode(true),
+                      borderRadius: BorderRadius.circular(4),
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: _useRandomColor ? 1.0 : 0.4,
+                        child: Container(
+                          width: 37,
+                          height: 37,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: _useRandomColor
+                                  ? theme.colorScheme.primary
+                                  : Colors.grey.shade400,
+                              width: _useRandomColor ? 1.5 : 1,
+                            ),
                           ),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Expanded(child: Container(color: Colors.red)),
-                                  Expanded(
-                                      child: Container(color: Colors.blue)),
-                                  Expanded(
-                                      child: Container(color: Colors.green)),
-                                ],
+                          clipBehavior: Clip.antiAlias,
+                          child: Column(
+                            children: [
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                        child: Container(color: Colors.red)),
+                                    Expanded(
+                                        child: Container(color: Colors.blue)),
+                                    Expanded(
+                                        child: Container(color: Colors.green)),
+                                  ],
+                                ),
                               ),
-                            ),
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                      child: Container(color: Colors.orange)),
-                                  Expanded(
-                                      child: Container(color: Colors.purple)),
-                                  Expanded(
-                                      child: Container(color: Colors.cyan)),
-                                ],
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                        child:
+                                            Container(color: Colors.orange)),
+                                    Expanded(
+                                        child:
+                                            Container(color: Colors.purple)),
+                                    Expanded(
+                                        child: Container(color: Colors.cyan)),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  // Palette Circles
-                  ...palette.map((color) {
-                    final isSelected = !_useRandomColor &&
-                        color.toARGB32() == _selectedColor.toARGB32();
-                    return InkWell(
-                      onTap: _processing
-                          ? null
-                          : () {
-                              _updateColorMode(false);
-                              _selectColor(color);
-                            },
-                      borderRadius: BorderRadius.circular(999),
-                      child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 200),
-                        opacity: isSelected ? 1.0 : 0.4,
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isSelected
-                                  ? theme.colorScheme.primary
-                                  : Colors.grey.shade400,
-                              width: isSelected ? 1.5 : 1,
+                    // Palette Circles
+                    ...palette.map((color) {
+                      final isSelected = !_useRandomColor &&
+                          color.toARGB32() == _selectedColor.toARGB32();
+                      return InkWell(
+                        onTap: _processing
+                            ? null
+                            : () {
+                                _updateColorMode(false);
+                                _selectColor(color);
+                              },
+                        borderRadius: BorderRadius.circular(999),
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 200),
+                          opacity: isSelected ? 1.0 : 0.4,
+                          child: Container(
+                            width: 37,
+                            height: 37,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected
+                                    ? theme.colorScheme.primary
+                                    : Colors.grey.shade400,
+                                width: isSelected ? 1.5 : 1,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  }),
-                ],
+                      );
+                    }),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
             ] else ...[
@@ -6989,36 +6997,27 @@ class WatermarkPageState extends State<WatermarkPage>
               ),
               const SizedBox(height: 8),
             ],
-            // Graphical Visual Dashboard (Transparency & Density)
+            // Graphical Visual Dashboard (XY Pad)
             const SizedBox(height: 16),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Left Side: Two Adjustment Dials
-                Column(
-                  children: [
-                    _buildCircularDial(
-                      value: _transparency / 100,
-                      onChanged: (val) {
-                        setState(() => _transparency = val * 100);
-                        _savePreference('transparency', _transparency);
-                      },
-                      icon: Icons.opacity,
-                    ),
-                    const SizedBox(height: 20),
-                    _buildCircularDial(
-                      value: (_density - 10) / 80,
-                      onChanged: (val) {
-                        setState(() => _density = 10 + (val * 80));
-                        _savePreference('density', _density);
-                      },
-                      icon: Icons.grid_view_rounded,
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 24),
-                // Right Side: Combined Preview
+                // XY Pad for Transparency & Density
                 Expanded(
-                  child: _buildCombinedVisualPreview(),
+                  flex: 3,
+                  child: AspectRatio(
+                    aspectRatio: 1.0,
+                    child: _buildXYPad(),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Combined Preview
+                Expanded(
+                  flex: 4,
+                  child: AspectRatio(
+                    aspectRatio: 1.0,
+                    child: _buildCombinedVisualPreview(),
+                  ),
                 ),
               ],
             ),
@@ -7028,55 +7027,113 @@ class WatermarkPageState extends State<WatermarkPage>
     );
   }
 
-  Widget _buildCircularDial({
-    required double value,
-    required ValueChanged<double> onChanged,
-    required IconData icon,
-  }) {
+  Widget _buildXYPad() {
     final theme = Theme.of(context);
-    return GestureDetector(
-      onPanUpdate: (details) {
-        // Vertical drag to change value
-        double newValue = (value - details.delta.dy / 100).clamp(0.0, 1.0);
-        onChanged(newValue);
-      },
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          SizedBox(
-            width: 50,
-            height: 50,
-            child: CustomPaint(
-              painter: _DialPainter(
-                progress: value,
-                color: theme.colorScheme.primary,
-                backgroundColor: theme.colorScheme.outlineVariant,
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = constraints.maxWidth;
+        // Map current values to 0.0-1.0 range for the UI dot position
+        final x = _transparency / 100;
+        final y = 1.0 - ((_density - 10) / 80); // Invert Y because 0 is top in UI
+
+        return GestureDetector(
+          onPanUpdate: (details) {
+            if (_processing) return;
+            final RenderBox box = context.findRenderObject() as RenderBox;
+            final offset = box.globalToLocal(details.globalPosition);
+
+            // Calculate new normalized values (0.0 to 1.0)
+            final newX = (offset.dx / box.size.width).clamp(0.0, 1.0);
+            final newY = (offset.dy / box.size.height).clamp(0.0, 1.0);
+
+            setState(() {
+              _transparency = newX * 100;
+              _density = 10 + ((1.0 - newY) * 80);
+            });
+            _savePreference('transparency', _transparency);
+            _savePreference('density', _density);
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest
+                  .withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: theme.colorScheme.outlineVariant),
+            ),
+            child: Stack(
+              children: [
+                // Labels for the axes
+                Positioned(
+                  bottom: 4,
+                  right: 4,
+                  child: Text('TRSP →',
+                      style: theme.textTheme.labelSmall
+                          ?.copyWith(fontSize: 8, color: theme.hintColor)),
+                ),
+                Positioned(
+                  top: 4,
+                  left: 4,
+                  child: Text('↓ DNST',
+                      style: theme.textTheme.labelSmall
+                          ?.copyWith(fontSize: 8, color: theme.hintColor)),
+                ),
+                // Cross-hair lines
+                Center(
+                  child: CustomPaint(
+                    size: Size(size, size),
+                    painter: _XYPadPainter(
+                        x: x,
+                        y: y,
+                        color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+                  ),
+                ),
+                // The draggable dot
+                Positioned(
+                  left: (x * size) - 10,
+                  top: (y * size) - 10,
+                  child: Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 4,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          Icon(icon, size: 18, color: theme.colorScheme.primary),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildCombinedVisualPreview() {
     final theme = Theme.of(context);
+
+    // Calculate high-contrast background color
+    final baseColor = _useRandomColor ? Colors.red : _selectedColor;
+    final backgroundColor =
+        baseColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+
     return Container(
-      height: 120,
+      // Remove hardcoded height to allow CrossAxisAlignment.stretch to work
       decoration: BoxDecoration(
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.colorScheme.outline),
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          // Checkerboard background
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _CheckerboardPainter(),
-            ),
-          ),
           // Unified Preview (Watermark + Density)
           Positioned.fill(
             child: Opacity(
@@ -7084,7 +7141,7 @@ class WatermarkPageState extends State<WatermarkPage>
               child: CustomPaint(
                 painter: _DensityPainter(
                   density: _density,
-                  color: _useRandomColor ? Colors.red : _selectedColor,
+                  color: baseColor,
                   isPreview: true,
                 ),
               ),
@@ -9244,48 +9301,26 @@ class _DensityPainter extends CustomPainter {
   }
 }
 
-class _DialPainter extends CustomPainter {
-  final double progress;
+class _XYPadPainter extends CustomPainter {
+  final double x;
+  final double y;
   final Color color;
-  final Color backgroundColor;
 
-  _DialPainter({
-    required this.progress,
-    required this.color,
-    required this.backgroundColor,
-  });
+  _XYPadPainter({required this.x, required this.y, required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = min(size.width, size.height) / 2;
-    const strokeWidth = 4.0;
-
-    // Background circle
-    final bgPaint = Paint()
-      ..color = backgroundColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-    canvas.drawCircle(center, radius - strokeWidth / 2, bgPaint);
-
-    // Progress arc
-    final progressPaint = Paint()
+    final paint = Paint()
       ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
+      ..strokeWidth = 1.0;
 
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
-      -pi / 2,
-      2 * pi * progress,
-      false,
-      progressPaint,
-    );
+    // Vertical line
+    canvas.drawLine(Offset(x * size.width, 0), Offset(x * size.width, size.height), paint);
+    // Horizontal line
+    canvas.drawLine(Offset(0, y * size.height), Offset(size.width, y * size.height), paint);
   }
 
   @override
-  bool shouldRepaint(covariant _DialPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.color != color;
-  }
+  bool shouldRepaint(covariant _XYPadPainter oldDelegate) => 
+    oldDelegate.x != x || oldDelegate.y != y || oldDelegate.color != color;
 }
