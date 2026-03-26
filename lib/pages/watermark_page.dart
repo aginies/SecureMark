@@ -452,6 +452,7 @@ class WatermarkPageState extends State<WatermarkPage>
         // Preserve output directory and file prefix
         final preservedOutputDir = _outputDirectory;
         final preservedFilePrefix = _filePrefix;
+        final preservedZipOutputs = _zipOutputs;
 
         // Reset all settings to defaults
         _transparency = 75;
@@ -481,6 +482,7 @@ class WatermarkPageState extends State<WatermarkPage>
         _qrVisible = false;
         _filePrefix = 'securemark-';
         _filePrefixController.text = _filePrefix;
+        _zipOutputs = false;
 
         // Restore preserved values
         _qrAuthor = preservedQrAuthor;
@@ -505,6 +507,7 @@ class WatermarkPageState extends State<WatermarkPage>
 
         _outputDirectory = preservedOutputDir;
         _filePrefix = preservedFilePrefix;
+        _zipOutputs = preservedZipOutputs;
       }
 
       // Apply profile-specific settings
@@ -634,6 +637,9 @@ class WatermarkPageState extends State<WatermarkPage>
             prefs.getString('${pKey}secureZipPassword')!;
       } else {
         _secureZipPasswordController.clear();
+      }
+      if (prefs.containsKey('${pKey}zipOutputs')) {
+        _zipOutputs = prefs.getBool('${pKey}zipOutputs')!;
       }
       if (prefs.containsKey('${pKey}outputDirectory')) {
         _outputDirectory = prefs.getString('${pKey}outputDirectory');
@@ -817,6 +823,7 @@ class WatermarkPageState extends State<WatermarkPage>
     _savePreference('pdfOwnerPassword', _pdfOwnerPasswordController.text);
     _savePreference('useSecureZip', _useSecureZip);
     _savePreference('secureZipPassword', _secureZipPasswordController.text);
+    _savePreference('zipOutputs', _zipOutputs);
   }
 
   Future<void> _saveCurrentConfigToProfile(SettingsProfile profile) async {
