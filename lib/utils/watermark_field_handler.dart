@@ -5,7 +5,10 @@ import 'package:image/image.dart' as img;
 
 import '../font_manager.dart';
 import '../qr_config.dart';
+import '../steganography/lsb_handler.dart';
+import '../steganography/forensic_utils.dart';
 import 'color_utils.dart';
+import 'identity_manager.dart';
 import 'watermark_utils.dart';
 
 // Constants for watermark placement
@@ -48,7 +51,7 @@ class _ResolvedColor {
 }
 
 class WatermarkFieldHandler {
-  static void applyWatermarkField(
+  static Future<String?> applyWatermarkField(
     img.Image image,
     String text,
     double transparency,
@@ -60,10 +63,11 @@ class WatermarkFieldHandler {
     Map<String, Uint8List>? stamps, {
     double antiAiLevel = 0.0,
     QrWatermarkConfig? qrConfig,
+    bool digitallySign = false,
     WatermarkType watermarkType = WatermarkType.text,
     Uint8List? watermarkImageBytes,
     void Function(double, String)? onProgress,
-  }) {
+  }) async {
     final width = image.width;
     final height = image.height;
     final alpha = _alphaFromTransparency(transparency);
@@ -216,23 +220,49 @@ class WatermarkFieldHandler {
       }
     }
 
+    // Digital Signing (Integrity)
+    String? integrityText;
+    String? signature;
+    String? publicKey;
+    if (digitallySign) {
+      onProgress?.call(0.99, 'Digitally signing document...');
+      // Use forensic hash excluding ALL LSBs so visual integrity is independent of steganography
+      final hash =
+          ForensicUtils.calculateForensicHashBytes(image, excludeAllLSB: true);
+      signature = await IdentityManager.signData(hash.bytes);
+      publicKey = await IdentityManager.getDevicePublicKey();
+      IdentityManager.onLog?.call('Digital signature generated for image.');
+
+      // Always embed in Red LSB channel so analyzer can find it without QR scanning
+      // (Red is used for Integrity/Forensic, Blue for normal LSB text, Green for files)
+      integrityText = 'SecureMarkIntegrity:$signature SecureMarkKey:$publicKey';
+      LsbHandler.embedLSB(image, integrityText, channel: 'r');
+    }
+
     // Add QR code if enabled
     if (qrConfig != null && qrConfig.visibleQr) {
+      // Update config with integrity info if available
+      final finalConfig = signature != null
+          ? qrConfig.copyWith(integrity: signature, publicKey: publicKey)
+          : qrConfig;
+
       final qrImg = WatermarkUtils.generateQrCodeImage(
-          data: qrConfig.toQrString(), size: qrConfig.size.round());
+          data: finalConfig.toQrString(), size: finalConfig.size.round());
       final (qrX, qrY) = WatermarkUtils.calculateQrPosition(
           imageWidth: width,
           imageHeight: height,
-          qrSize: qrConfig.size.round(),
-          position: qrConfig.position);
+          qrSize: finalConfig.size.round(),
+          position: finalConfig.position);
 
       // Apply opacity to QR
       for (final p in qrImg) {
-        p.a = (p.a * qrConfig.opacity).round();
+        p.a = (p.a * finalConfig.opacity).round();
       }
 
       img.compositeImage(image, qrImg, dstX: qrX, dstY: qrY);
     }
+
+    return integrityText;
   }
 
   static int _watermarkCount(int w, int h, double d) =>

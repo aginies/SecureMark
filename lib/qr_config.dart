@@ -39,10 +39,16 @@ class QrWatermarkConfig {
     this.size = 100.0,
     this.opacity = 0.8,
     this.visibleQr = true,
+    this.integrity,
+    this.publicKey,
   });
 
   final QrType type;
   final DateTime timestamp;
+
+  // Integrity/Digital Signature
+  final String? integrity; // Base64 signature
+  final String? publicKey; // Base64 public key
 
   // For Metadata type
   final String? author;
@@ -102,6 +108,12 @@ class QrWatermarkConfig {
         if (includeTimestamp) {
           data['timestamp'] = timestamp.toIso8601String();
         }
+        if (integrity != null) {
+          data['integrity'] = integrity;
+        }
+        if (publicKey != null) {
+          data['publicKey'] = publicKey;
+        }
         data['app'] = 'SecureMark';
         data['version'] = '1.0';
         return jsonEncode(data);
@@ -126,6 +138,8 @@ class QrWatermarkConfig {
     double? size,
     double? opacity,
     bool? visibleQr,
+    String? integrity,
+    String? publicKey,
   }) {
     return QrWatermarkConfig(
       type: type ?? this.type,
@@ -144,6 +158,8 @@ class QrWatermarkConfig {
       size: size ?? this.size,
       opacity: opacity ?? this.opacity,
       visibleQr: visibleQr ?? this.visibleQr,
+      integrity: integrity ?? this.integrity,
+      publicKey: publicKey ?? this.publicKey,
     );
   }
 }

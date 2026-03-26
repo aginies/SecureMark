@@ -9,6 +9,14 @@ class ForensicUtils {
   /// used for steganography.
   static String calculateForensicHash(img.Image image,
       {bool excludeAllLSB = false, bool excludeRedLSB = false}) {
+    return calculateForensicHashBytes(image,
+            excludeAllLSB: excludeAllLSB, excludeRedLSB: excludeRedLSB)
+        .toString();
+  }
+
+  /// Calculates a stable hash of the image pixels, returning raw bytes.
+  static Digest calculateForensicHashBytes(img.Image image,
+      {bool excludeAllLSB = false, bool excludeRedLSB = false}) {
     final int width = image.width;
     final int height = image.height;
     final buffer = Uint8List(width * height * 3); // R, G, B
@@ -36,7 +44,7 @@ class ForensicUtils {
       }
       break; // Only hash the first frame
     }
-    return sha256.convert(buffer).toString();
+    return sha256.convert(buffer);
   }
 
   static String generateVerificationLink(

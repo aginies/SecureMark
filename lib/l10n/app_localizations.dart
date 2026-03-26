@@ -1166,6 +1166,60 @@ abstract class AppLocalizations {
   /// **'AI Cloaking is active'**
   String get aiCloakingEnabledHint;
 
+  /// No description provided for @digitallySignTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Digital Integrity Signature'**
+  String get digitallySignTitle;
+
+  /// No description provided for @digitallySignSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign document with device key to prove it hasn\'t been modified.'**
+  String get digitallySignSubtitle;
+
+  /// No description provided for @digitallySignEnabledHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Digital signature will be applied'**
+  String get digitallySignEnabledHint;
+
+  /// No description provided for @myIdentityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Device Identity'**
+  String get myIdentityTitle;
+
+  /// No description provided for @myPublicKeyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Public Key (Your Digital ID):'**
+  String get myPublicKeyLabel;
+
+  /// No description provided for @copyPublicKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Public Key'**
+  String get copyPublicKey;
+
+  /// No description provided for @publicKeyCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Public key copied to clipboard'**
+  String get publicKeyCopied;
+
+  /// No description provided for @signatureVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'✅ Integrity Verified: Document is authentic'**
+  String get signatureVerified;
+
+  /// No description provided for @tamperDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'❌ TAMPER DETECTED: Document has been modified'**
+  String get tamperDetected;
+
   /// No description provided for @qrContentType.
   ///
   /// In en, this message translates to:
@@ -1502,6 +1556,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Finalizing PDF...'**
   String get progressFinalizingPdf;
+
+  /// No description provided for @progressSigningPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Digitally signing PDF...'**
+  String get progressSigningPdf;
 
   /// No description provided for @progressParsingPdf.
   ///

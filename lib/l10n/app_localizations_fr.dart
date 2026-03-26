@@ -668,6 +668,37 @@ class AppLocalizationsFr extends AppLocalizations {
   String get aiCloakingEnabledHint => 'Le Cloaking IA est actif';
 
   @override
+  String get digitallySignTitle => 'Signature d\'intégrité numérique';
+
+  @override
+  String get digitallySignSubtitle =>
+      'Signer le document avec la clé de l\'appareil pour prouver qu\'il n\'a pas été modifié.';
+
+  @override
+  String get digitallySignEnabledHint =>
+      'La signature numérique sera appliquée';
+
+  @override
+  String get myIdentityTitle => 'Mon identité d\'appareil';
+
+  @override
+  String get myPublicKeyLabel => 'Clé publique (Votre ID numérique) :';
+
+  @override
+  String get copyPublicKey => 'Copier la clé publique';
+
+  @override
+  String get publicKeyCopied => 'Clé publique copiée dans le presse-papier';
+
+  @override
+  String get signatureVerified =>
+      '✅ Intégrité vérifiée : le document est authentique';
+
+  @override
+  String get tamperDetected =>
+      '❌ ALTÉRATION DÉTECTÉE : le document a été modifié';
+
+  @override
   String get qrContentType => 'Type de contenu QR';
 
   @override
@@ -875,6 +906,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get progressFinalizingPdf => 'Finalisation du PDF...';
+
+  @override
+  String get progressSigningPdf => 'Signature numérique du PDF...';
 
   @override
   String get progressParsingPdf => 'Analyse du document PDF...';

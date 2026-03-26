@@ -137,12 +137,30 @@ class LsbHandler {
 
   static String? extractTextFromImage(
       img.Image image, bool isEncrypted, String? password,
-      {String channel = 'b'}) {
+      {String channel = 'b', bool checkHeader = true}) {
     try {
       final int width = image.width;
       final int totalPixels = width * image.height;
       final List<int> bytes = <int>[];
       var currentByte = 0;
+
+      // 1. Extract Header (first 16 bits = 2 bytes)
+      for (var i = 0; i < 16; i++) {
+        final pixel = _getPixelAtIndex(image, i, width);
+        currentByte = (currentByte << 1) | _getChannelBit(pixel, channel);
+        if ((i + 1) % 8 == 0) {
+          bytes.add(currentByte);
+          currentByte = 0;
+        }
+      }
+
+      final header = utf8.decode(bytes);
+      if (checkHeader && header != 'SM' && header != 'SX') {
+        return null;
+      }
+
+      // 2. Extract Length (next 32 bits = 4 bytes)
+      bytes.clear();
       for (var i = 16; i < 48; i++) {
         final pixel = _getPixelAtIndex(image, i, width);
         currentByte = (currentByte << 1) | _getChannelBit(pixel, channel);
@@ -151,16 +169,20 @@ class LsbHandler {
           currentByte = 0;
         }
       }
+
       final int payloadLength =
           (bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
       if (payloadLength <= 0 || payloadLength > 1024 * 1024) {
         return null;
       }
-      final int totalDataBytes = payloadLength + 2;
+
+      final int totalDataBytes = payloadLength + 2; // +2 for CRC
       final int remainingPixels = totalPixels - 48;
       if (totalDataBytes * 8 > remainingPixels) {
         return null;
       }
+
+      // 3. Extract Payload
       final int stride = _calculateStride(remainingPixels, totalDataBytes * 8);
       currentByte = 0;
       bytes.clear();
@@ -173,11 +195,15 @@ class LsbHandler {
           currentByte = 0;
         }
       }
+
       Uint8List payloadBytes =
           Uint8List.fromList(bytes.sublist(0, payloadLength));
       final extractedCrc =
           (bytes[payloadLength] << 8) | bytes[payloadLength + 1];
-      if (isEncrypted) {
+
+      bool encryptedFound = header == 'SX';
+
+      if (encryptedFound) {
         if (password == null || password.isEmpty) {
           return '[ENCRYPTED] (Password required)';
         }
@@ -187,9 +213,11 @@ class LsbHandler {
         }
         payloadBytes = decrypted;
       }
+
       if (EncryptionUtils.crc16(payloadBytes) != extractedCrc) {
-        return isEncrypted ? '[ENCRYPTED] (Wrong password)' : null;
+        return encryptedFound ? '[ENCRYPTED] (Wrong password)' : null;
       }
+
       return utf8.decode(payloadBytes, allowMalformed: true);
     } catch (_) {
       return null;

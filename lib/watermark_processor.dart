@@ -25,9 +25,11 @@ import 'steganography/dct_handler.dart';
 import 'steganography/forensic_utils.dart';
 import 'steganography/encryption_utils.dart';
 import 'utils/color_utils.dart';
+import 'utils/identity_manager.dart';
 import 'utils/watermark_utils.dart';
 import 'utils/image_utils.dart';
 import 'utils/watermark_field_handler.dart';
+import 'package:crypto/crypto.dart';
 
 class WatermarkProcessor {
   static final Map<String, ProcessResult> _resultCache = {};
@@ -74,6 +76,7 @@ class WatermarkProcessor {
     bool? pdfAllowPrinting,
     bool? pdfAllowCopying,
     bool? pdfAllowEditing,
+    bool? digitallySign,
   }) {
     // Compute hash of all parameters for efficient cache key
     final hash = Object.hashAll([
@@ -95,6 +98,7 @@ class WatermarkProcessor {
       useSteganography,
       useRobustSteganography,
       useAiCloaking,
+      digitallySign,
       watermarkType,
       watermarkImageLength,
       steganographyPassword,
@@ -134,6 +138,7 @@ class WatermarkProcessor {
     bool useSteganography = false,
     bool useRobustSteganography = false,
     bool useAiCloaking = false,
+    bool digitallySign = false,
     WatermarkType watermarkType = WatermarkType.text,
     Uint8List? watermarkImageBytes,
     String? steganographyPassword,
@@ -141,6 +146,8 @@ class WatermarkProcessor {
     String? hiddenFileName,
     Uint8List? hiddenFileBytes,
     QrWatermarkConfig? qrConfig,
+    Uint8List? signingPrivateKey,
+    Uint8List? signingPublicKey,
     bool enablePdfSecurity = false,
     String? pdfUserPassword,
     String? pdfOwnerPassword,
@@ -229,6 +236,14 @@ class WatermarkProcessor {
 
     final resolvedText = WatermarkUtils.resolvedWatermarkText(watermarkText);
     ProcessResult result;
+
+    Uint8List? signingPrivateKey;
+    Uint8List? signingPublicKey;
+    if (digitallySign) {
+      signingPrivateKey = await IdentityManager.getDevicePrivateKey();
+      signingPublicKey = await IdentityManager.getDevicePublicKeyBytes();
+    }
+
     if (type == '.pdf') {
       result = await _processPdf(
           file: file,
@@ -248,6 +263,9 @@ class WatermarkProcessor {
           useSteganography: useSteganography,
           useRobustSteganography: useRobustSteganography,
           useAiCloaking: useAiCloaking,
+          digitallySign: digitallySign,
+          signingPrivateKey: signingPrivateKey,
+          signingPublicKey: signingPublicKey,
           watermarkType: watermarkType,
           watermarkImageBytes: watermarkImageBytes,
           steganographyPassword: steganographyPassword,
@@ -255,6 +273,12 @@ class WatermarkProcessor {
           hiddenFileName: hiddenFileName,
           hiddenFileBytes: hiddenFileBytes,
           qrConfig: qrConfig,
+          enablePdfSecurity: enablePdfSecurity,
+          pdfUserPassword: pdfUserPassword,
+          pdfOwnerPassword: pdfOwnerPassword,
+          pdfAllowPrinting: pdfAllowPrinting,
+          pdfAllowCopying: pdfAllowCopying,
+          pdfAllowEditing: pdfAllowEditing,
           onProgress: (p, m) => onProgress?.call(0.1 + (p * 0.8), m),
           cancellationToken: cancellationToken);
     } else {
@@ -276,6 +300,9 @@ class WatermarkProcessor {
           useSteganography: useSteganography,
           useRobustSteganography: useRobustSteganography,
           useAiCloaking: useAiCloaking,
+          digitallySign: digitallySign,
+          signingPrivateKey: signingPrivateKey,
+          signingPublicKey: signingPublicKey,
           watermarkType: watermarkType,
           watermarkImageBytes: watermarkImageBytes,
           steganographyPassword: steganographyPassword,
@@ -315,6 +342,7 @@ class WatermarkProcessor {
     bool useSteganography = false,
     bool useRobustSteganography = false,
     bool useAiCloaking = false,
+    bool digitallySign = false,
     WatermarkType watermarkType = WatermarkType.text,
     Uint8List? watermarkImageBytes,
     String? steganographyPassword,
@@ -322,6 +350,8 @@ class WatermarkProcessor {
     String? hiddenFileName,
     Uint8List? hiddenFileBytes,
     QrWatermarkConfig? qrConfig,
+    Uint8List? signingPrivateKey,
+    Uint8List? signingPublicKey,
     bool enablePdfSecurity = false,
     String? pdfUserPassword,
     String? pdfOwnerPassword,
@@ -361,7 +391,10 @@ class WatermarkProcessor {
       // Listen to messages from isolate
       receivePort.listen((message) {
         if (message is Map) {
-          if (message.containsKey('progress') &&
+          if (message.containsKey('log')) {
+            // Forward log from isolate
+            onProgress?.call(-1.0, message['log'] as String);
+          } else if (message.containsKey('progress') &&
               message.containsKey('message')) {
             // Progress update
             onProgress?.call(
@@ -405,6 +438,7 @@ class WatermarkProcessor {
           'useSteganography': useSteganography,
           'useRobustSteganography': useRobustSteganography,
           'useAiCloaking': useAiCloaking,
+          'digitallySign': digitallySign,
           'watermarkType': watermarkType,
           'watermarkImageBytes': watermarkImageBytes != null
               ? TransferableTypedData.fromList([watermarkImageBytes])
@@ -416,6 +450,10 @@ class WatermarkProcessor {
               ? TransferableTypedData.fromList([hiddenFileBytes])
               : null,
           'qrConfig': qrConfig,
+          'signingPrivateKey': signingPrivateKey != null
+              ? TransferableTypedData.fromList([signingPrivateKey])
+              : null,
+          'signingPublicKey': signingPublicKey,
           'preRenderedStamps': preRenderedStamps?.map((key, value) =>
               MapEntry(key, TransferableTypedData.fromList([value]))),
           'enablePdfSecurity': enablePdfSecurity,
@@ -429,8 +467,11 @@ class WatermarkProcessor {
 
       final res = await completer.future;
 
-      final outExt =
+      final bool forcePng = digitallySign;
+      String outExt =
           (extension == '.heic' || extension == '.heif') ? '.jpg' : extension;
+      if (forcePng) outExt = '.png';
+
       final outPath = WatermarkUtils.outputPath(
           file.path, outExt, includeTimestamp, filePrefix);
 
@@ -439,21 +480,23 @@ class WatermarkProcessor {
       bool robustVerified = false;
       if (useSteganography ||
           useRobustSteganography ||
+          digitallySign ||
           hiddenFileName != null) {
         onProgress?.call(0.9, 'progressVerifyingStegano');
 
-        final analysis =
-            analyzeImage(res['output']!, password: steganographyPassword);
+        final analysis = await analyzeImage(res['output']!,
+            password: steganographyPassword);
         final expected = (steganographyText?.isNotEmpty == true)
             ? steganographyText!
             : watermarkText;
 
-        if (useSteganography || hiddenFileName != null) {
+        if (useSteganography || hiddenFileName != null || digitallySign) {
           verified = (hiddenFileName == null ||
                   (analysis.file != null &&
                       analysis.file!.fileName == hiddenFileName)) &&
               (!useSteganography ||
-                  (analysis.signature?.startsWith(expected) ?? false));
+                  (analysis.signature?.startsWith(expected) ?? false)) &&
+              (!digitallySign || analysis.integrityVerified);
         }
 
         if (useRobustSteganography) {
@@ -491,8 +534,9 @@ class WatermarkProcessor {
   }
 
   // Isolate entry point for image processing with progress reporting
-  static void _imageIsolateEntry(Map<String, dynamic> params) {
+  static void _imageIsolateEntry(Map<String, dynamic> params) async {
     final sendPort = params['sendPort'] as SendPort;
+    IdentityManager.onLog = (msg) => sendPort.send({'log': msg});
 
     try {
       // Unwrap TransferableTypedData
@@ -515,7 +559,18 @@ class WatermarkProcessor {
                   (value as TransferableTypedData).materialize().asUint8List()))
           : null;
 
-      final result = _renderWatermarkedImageBytes(
+      final signingPrivateKey = params['signingPrivateKey'] != null
+          ? (params['signingPrivateKey'] as TransferableTypedData)
+              .materialize()
+              .asUint8List()
+          : null;
+      final signingPublicKey = params['signingPublicKey'] as Uint8List?;
+
+      if (signingPrivateKey != null && signingPublicKey != null) {
+        IdentityManager.initFromKeys(signingPrivateKey, signingPublicKey);
+      }
+
+      final result = await _renderWatermarkedImageBytes(
         inputBytes: inputBytes,
         transparency: params['transparency'] as double,
         density: params['density'] as double,
@@ -533,6 +588,7 @@ class WatermarkProcessor {
         useSteganography: params['useSteganography'] as bool,
         useRobustSteganography: params['useRobustSteganography'] as bool,
         useAiCloaking: params['useAiCloaking'] as bool,
+        digitallySign: params['digitallySign'] as bool,
         watermarkType: params['watermarkType'] as WatermarkType,
         watermarkImageBytes: watermarkImageBytes,
         steganographyPassword: params['steganographyPassword'] as String?,
@@ -553,7 +609,7 @@ class WatermarkProcessor {
     }
   }
 
-  static Map<String, Uint8List> _renderWatermarkedImageBytes({
+  static Future<Map<String, Uint8List>> _renderWatermarkedImageBytes({
     required Uint8List inputBytes,
     required double transparency,
     required double density,
@@ -571,6 +627,7 @@ class WatermarkProcessor {
     bool useSteganography = false,
     bool useRobustSteganography = false,
     bool useAiCloaking = false,
+    bool digitallySign = false,
     WatermarkType watermarkType = WatermarkType.text,
     Uint8List? watermarkImageBytes,
     String? steganographyPassword,
@@ -580,7 +637,7 @@ class WatermarkProcessor {
     QrWatermarkConfig? qrConfig,
     Map<String, Uint8List>? preRenderedStamps,
     SendPort? progressPort,
-  }) {
+  }) async {
     progressPort?.send({'progress': 0.05, 'message': 'progressDecodingImage'});
 
     // Check if image resolution exceeds limits BEFORE attempting to decode
@@ -743,7 +800,8 @@ class WatermarkProcessor {
 
     progressPort
         ?.send({'progress': 0.35, 'message': 'progressApplyingWatermark'});
-    WatermarkFieldHandler.applyWatermarkField(
+
+    final String? integrityText = await WatermarkFieldHandler.applyWatermarkField(
         output,
         watermarkText,
         transparency,
@@ -755,6 +813,7 @@ class WatermarkProcessor {
         preRenderedStamps,
         antiAiLevel: antiAiLevel,
         qrConfig: qrConfig,
+        digitallySign: digitallySign,
         watermarkType: watermarkType,
         watermarkImageBytes: watermarkImageBytes,
         onProgress: (progress, message) {
@@ -787,17 +846,22 @@ class WatermarkProcessor {
           ForensicUtils.calculateForensicHash(output, excludeRedLSB: true);
       final sHash =
           ForensicUtils.calculateForensicHash(output, excludeAllLSB: true);
-      output = LsbHandler.embedLSB(output,
-          ForensicUtils.generateVerificationLink(expected, cHash, sHash),
+
+      String forensicLink =
+          ForensicUtils.generateVerificationLink(expected, cHash, sHash);
+
+      // Combine with existing integrity signature if it exists
+      if (integrityText != null) {
+        forensicLink = '$integrityText | $forensicLink';
+      }
+
+      output = LsbHandler.embedLSB(output, forensicLink,
           password: steganographyPassword, channel: 'r');
     }
 
     progressPort?.send({'progress': 0.90, 'message': 'progressEncodingImage'});
     final outBytes = WatermarkUtils.encodeImageInOriginalFormat(
-        output,
-        originalExtension,
-        jpegQuality,
-        useSteganography || useRobustSteganography);
+        output, originalExtension, jpegQuality, digitallySign);
     final result = {'output': outBytes};
     if (useSteganography || useAiCloaking || antiAiLevel > 0) {
       if (baseline != null) {
@@ -829,6 +893,7 @@ class WatermarkProcessor {
     bool useSteganography = false,
     bool useRobustSteganography = false,
     bool useAiCloaking = false,
+    bool digitallySign = false,
     WatermarkType watermarkType = WatermarkType.text,
     Uint8List? watermarkImageBytes,
     String? steganographyPassword,
@@ -836,6 +901,8 @@ class WatermarkProcessor {
     String? hiddenFileName,
     Uint8List? hiddenFileBytes,
     QrWatermarkConfig? qrConfig,
+    Uint8List? signingPrivateKey,
+    Uint8List? signingPublicKey,
     bool enablePdfSecurity = false,
     String? pdfUserPassword,
     String? pdfOwnerPassword,
@@ -891,7 +958,11 @@ class WatermarkProcessor {
     // Listen to messages from isolate
     receivePort.listen((message) {
       if (message is Map) {
-        if (message.containsKey('progress') && message.containsKey('message')) {
+        if (message.containsKey('log')) {
+          // Forward log from isolate
+          onProgress?.call(-1.0, message['log'] as String);
+        } else if (message.containsKey('progress') &&
+            message.containsKey('message')) {
           // Progress update
           onProgress?.call(
               message['progress'] as double, message['message'] as String);
@@ -927,7 +998,12 @@ class WatermarkProcessor {
           'watermarkType': watermarkType,
           'watermarkImageBytes': watermarkImageBytes,
           'qrConfig': qrConfig,
+          'signingPrivateKey': signingPrivateKey != null
+              ? TransferableTypedData.fromList([signingPrivateKey])
+              : null,
+          'signingPublicKey': signingPublicKey,
           'useAiCloaking': useAiCloaking,
+          'digitallySign': digitallySign,
           'steganographyPassword': steganographyPassword,
           'useSteganography': useSteganography,
           'useRobustSteganography': useRobustSteganography,
@@ -968,6 +1044,9 @@ class WatermarkProcessor {
           useSteganography: useSteganography,
           useRobustSteganography: useRobustSteganography,
           useAiCloaking: useAiCloaking,
+          digitallySign: digitallySign,
+          signingPrivateKey: signingPrivateKey,
+          signingPublicKey: signingPublicKey,
           watermarkType: watermarkType,
           watermarkImageBytes: watermarkImageBytes,
           steganographyPassword: steganographyPassword,
@@ -1027,11 +1106,23 @@ class WatermarkProcessor {
   }
 
   // Isolate entry point for PDF processing with progress reporting
-  static void _pdfIsolateEntry(Map<String, dynamic> params) {
+  static void _pdfIsolateEntry(Map<String, dynamic> params) async {
     final sendPort = params['sendPort'] as SendPort;
+    IdentityManager.onLog = (msg) => sendPort.send({'log': msg});
 
     try {
-      final result = _renderWatermarkedPdfBytes(
+      final signingPrivateKey = params['signingPrivateKey'] != null
+          ? (params['signingPrivateKey'] as TransferableTypedData)
+              .materialize()
+              .asUint8List()
+          : null;
+      final signingPublicKey = params['signingPublicKey'] as Uint8List?;
+
+      if (signingPrivateKey != null && signingPublicKey != null) {
+        IdentityManager.initFromKeys(signingPrivateKey, signingPublicKey);
+      }
+
+      final result = await _renderWatermarkedPdfBytes(
         inputBytes: params['inputBytes'] as Uint8List,
         transparency: params['transparency'] as double,
         density: params['density'] as double,
@@ -1045,6 +1136,7 @@ class WatermarkProcessor {
         watermarkImageBytes: params['watermarkImageBytes'] as Uint8List?,
         qrConfig: params['qrConfig'] as QrWatermarkConfig?,
         useAiCloaking: params['useAiCloaking'] as bool,
+        digitallySign: params['digitallySign'] as bool,
         steganographyPassword: params['steganographyPassword'] as String?,
         useSteganography: params['useSteganography'] as bool,
         useRobustSteganography: params['useRobustSteganography'] as bool,
@@ -1085,6 +1177,7 @@ class WatermarkProcessor {
     bool useSteganography = false,
     bool useRobustSteganography = false,
     bool useAiCloaking = false,
+    bool digitallySign = false,
     WatermarkType watermarkType = WatermarkType.text,
     Uint8List? watermarkImageBytes,
     String? steganographyPassword,
@@ -1092,6 +1185,8 @@ class WatermarkProcessor {
     String? hiddenFileName,
     Uint8List? hiddenFileBytes,
     QrWatermarkConfig? qrConfig,
+    Uint8List? signingPrivateKey,
+    Uint8List? signingPublicKey,
     bool enablePdfSecurity = false,
     String? pdfUserPassword,
     String? pdfOwnerPassword,
@@ -1278,7 +1373,8 @@ class WatermarkProcessor {
               useRobustSteganography ||
               hiddenFileName != null) &&
           preview != null) {
-        final analysis = analyzeImage(preview, password: steganographyPassword);
+        final analysis =
+            await analyzeImage(preview, password: steganographyPassword);
         final expectedText = (steganographyText?.isNotEmpty == true)
             ? steganographyText!
             : watermarkText;
@@ -1322,7 +1418,7 @@ class WatermarkProcessor {
     }
   }
 
-  static Uint8List _renderWatermarkedPdfBytes({
+  static Future<Uint8List> _renderWatermarkedPdfBytes({
     required Uint8List inputBytes,
     required double transparency,
     required double density,
@@ -1336,6 +1432,7 @@ class WatermarkProcessor {
     Uint8List? watermarkImageBytes,
     QrWatermarkConfig? qrConfig,
     bool useAiCloaking = false,
+    bool digitallySign = false,
     String? steganographyPassword,
     bool useSteganography = false,
     bool useRobustSteganography = false,
@@ -1349,7 +1446,7 @@ class WatermarkProcessor {
     bool pdfAllowCopying = false,
     bool pdfAllowEditing = false,
     SendPort? progressPort,
-  }) {
+  }) async {
     sync.PdfDocument document;
     try {
       progressPort?.send({'progress': 0.1, 'message': 'progressParsingPdf'});
@@ -1546,9 +1643,28 @@ class WatermarkProcessor {
     }
 
     progressPort?.send({'progress': 0.9, 'message': 'progressFinalizingPdf'});
-    final bytes = document.saveSync();
+    Uint8List bytes = Uint8List.fromList(document.saveSync());
+
+    if (digitallySign) {
+      progressPort?.send({'progress': 0.99, 'message': 'progressSigningPdf'});
+      final hash = sha256.convert(bytes);
+      final signature = await IdentityManager.signData(hash.bytes);
+      final publicKey = await IdentityManager.getDevicePublicKey();
+      IdentityManager.onLog?.call('Digital signature generated for PDF.');
+
+      // Update keywords with integrity info - format must match analyzer exactly
+      final currentKeywords = document.documentInformation.keywords;
+      final integrityInfo = 'SecureMarkIntegrity:$signature SecureMarkKey:$publicKey';
+      document.documentInformation.keywords = currentKeywords.isEmpty
+          ? integrityInfo
+          : '$currentKeywords $integrityInfo';
+
+      // Final save with updated metadata
+      bytes = Uint8List.fromList(document.saveSync());
+    }
+
     document.dispose();
-    return Uint8List.fromList(bytes);
+    return bytes;
   }
 
   // Helper function for watermark count calculation
@@ -1786,29 +1902,25 @@ class WatermarkProcessor {
       {String? password}) async {
     if (p.extension(fileName).toLowerCase() == '.pdf') {
       final res = await _analyzePdfVector(bytes, password: password);
-      if (res.signature != null || res.file != null) {
+      if (res.signature != null ||
+          res.file != null ||
+          res.integrityVerified) {
         return res;
       }
       return const AnalysisResult();
     }
-    return Isolate.run(() => analyzeImage(bytes, password: password));
+    return await analyzeImage(bytes, password: password);
   }
 
   static Future<AnalysisResult> analyzeImageAsync(Uint8List bytes,
       {String? password}) async {
-    return await Isolate.run(() => analyzeImage(bytes, password: password));
+    return await analyzeImage(bytes, password: password);
   }
 
   /// Convenience method to extract a hidden file from an image
   static Future<ExtractedFileResult?> extractFileAsync(Uint8List imageBytes,
       {String? password}) async {
-    return await Isolate.run(() => extractFile(imageBytes, password: password));
-  }
-
-  /// Extracts a hidden file from an image (synchronous)
-  static ExtractedFileResult? extractFile(Uint8List imageBytes,
-      {String? password}) {
-    final analysis = analyzeImage(imageBytes, password: password);
+    final analysis = await analyzeImage(imageBytes, password: password);
     return analysis.file;
   }
 
@@ -1819,6 +1931,9 @@ class WatermarkProcessor {
       final kw = doc.documentInformation.keywords;
       String? sig;
       ExtractedFileResult? file;
+      String? integritySig;
+      String? publicKey;
+
       for (final part in kw.split(' ')) {
         if (part.startsWith('SecureMarkHidden:')) {
           final encoded = part.substring(17);
@@ -1838,15 +1953,43 @@ class WatermarkProcessor {
             // Silently fail or ignore error
           }
         }
+        if (part.startsWith('SecureMarkIntegrity:')) {
+          integritySig = part.substring(20);
+        }
+        if (part.startsWith('SecureMarkKey:')) {
+          publicKey = part.substring(14);
+        }
       }
+
+      bool integrityVerified = false;
+      if (integritySig != null && publicKey != null) {
+        // To verify, we must hash the document WITHOUT the integrity keywords,
+        // because that's what was hashed during the signing phase.
+        final integrityInfo = 'SecureMarkIntegrity:$integritySig SecureMarkKey:$publicKey';
+        final originalKeywords = kw.replaceFirst(integrityInfo, '').trim();
+        doc.documentInformation.keywords = originalKeywords;
+        
+        final cleanBytes = Uint8List.fromList(doc.saveSync());
+        final hash = sha256.convert(cleanBytes);
+        
+        integrityVerified = await IdentityManager.verifySignature(
+            hash.bytes, integritySig, publicKey);
+      }
+
       doc.dispose();
-      return AnalysisResult(signature: sig, file: file);
+      return AnalysisResult(
+        signature: sig,
+        file: file,
+        integrityVerified: integrityVerified,
+        senderPublicKey: publicKey,
+      );
     } catch (e) {
       return const AnalysisResult();
     }
   }
 
-  static AnalysisResult analyzeImage(Uint8List bytes, {String? password}) {
+  static Future<AnalysisResult> analyzeImage(Uint8List bytes,
+      {String? password}) async {
     final image = img.decodeImage(bytes);
     if (image == null) {
       return const AnalysisResult();
@@ -1854,6 +1997,8 @@ class WatermarkProcessor {
     String? sig;
     ExtractedFileResult? file;
     VerificationResult? verif;
+    String? integritySig;
+    String? publicKey;
 
     final cHash =
         ForensicUtils.calculateForensicHash(image, excludeRedLSB: true);
@@ -1861,28 +2006,97 @@ class WatermarkProcessor {
         ForensicUtils.calculateForensicHash(image, excludeAllLSB: true);
 
     for (final chan in ['b', 'g', 'r']) {
+      IdentityManager.onLog?.call('Analyzing channel: $chan');
+      // 1. Try to extract a hidden file (always Green channel)
       if (chan == 'g') {
-        file = LsbHandler.extractFileFromImage(
-            image, password != null, password,
+        file = LsbHandler.extractFileFromImage(image, password != null, password,
             channel: 'g');
-      } else {
-        final text = LsbHandler.extractTextFromImage(
-            image, password != null, password,
-            channel: chan);
-        if (text != null) {
-          if (text.startsWith('securemark://verify')) {
-            verif = ForensicUtils.verifyDeepLink(text, cHash, sHash);
-          } else {
-            sig = text;
+        if (file != null) {
+          IdentityManager.onLog
+              ?.call('Found hidden file in Green channel: ${file.fileName}');
+        }
+      }
+
+      // 2. Try to extract text with password (for normal LSB signatures)
+      final textWithPassword = LsbHandler.extractTextFromImage(
+          image, password != null, password,
+          channel: chan);
+      if (textWithPassword != null) {
+        IdentityManager.onLog?.call(
+            'Found text with password in $chan: ${textWithPassword.substring(0, min(textWithPassword.length, 30))}...');
+      }
+
+      // 3. Try to extract text WITHOUT password (for forensic links and integrity info)
+      final textPlain =
+          LsbHandler.extractTextFromImage(image, false, null, channel: chan);
+      if (textPlain != null) {
+        IdentityManager.onLog?.call(
+            'Found plain text in $chan: ${textPlain.substring(0, min(textPlain.length, 30))}...');
+      }
+
+      // Process findings from either pass
+      for (final rawText in [textWithPassword, textPlain]) {
+        if (rawText == null) continue;
+
+        // Split by | in case we combined multiple system messages (e.g. Signature | Forensic Link)
+        final parts = rawText.split(' | ');
+        if (parts.length > 1) {
+          IdentityManager.onLog
+              ?.call('Split combined text into ${parts.length} parts');
+        }
+
+        for (final text in parts) {
+          final trimmedText = text.trim();
+          if (trimmedText.startsWith('securemark://verify')) {
+            IdentityManager.onLog?.call('Processing forensic verification link');
+            verif ??= ForensicUtils.verifyDeepLink(trimmedText, cHash, sHash);
+          } else if (trimmedText.startsWith('SecureMarkIntegrity:')) {
+            IdentityManager.onLog?.call('Processing digital integrity signature');
+            if (integritySig == null) {
+              final infoParts = trimmedText.split(' ');
+              for (final part in infoParts) {
+                if (part.startsWith('SecureMarkIntegrity:')) {
+                  integritySig = part.substring(20);
+                } else if (part.startsWith('SecureMarkKey:')) {
+                  publicKey = part.substring(14);
+                }
+              }
+              IdentityManager.onLog?.call(
+                  'Extracted Integrity Sig (len: ${integritySig?.length}) and Public Key (len: ${publicKey?.length})');
+            }
+          } else if (!trimmedText.contains('[ENCRYPTED]')) {
+            sig ??= trimmedText;
           }
         }
       }
     }
+
+    bool integrityVerified = false;
+    if (integritySig != null && publicKey != null) {
+      IdentityManager.onLog?.call('Verifying digital signature with public key...');
+      // Use forensic hash excluding ALL LSBs (where signatures live)
+      final hash = ForensicUtils.calculateForensicHashBytes(image,
+          excludeAllLSB: true);
+      integrityVerified = await IdentityManager.verifySignature(
+          hash.bytes, integritySig, publicKey);
+      IdentityManager.onLog?.call('Signature verification result: $integrityVerified');
+    } else {
+      if (integritySig == null) {
+        IdentityManager.onLog?.call('No integrity signature found in any channel.');
+      }
+      if (publicKey == null) {
+        IdentityManager.onLog?.call('No public key found in image metadata.');
+      }
+    }
+
     return AnalysisResult(
-        signature: sig,
-        robustSignature: DctHandler.extractRobustSignature(image),
-        file: file,
-        verification: verif);
+      signature: sig,
+      robustSignature: DctHandler.extractRobustSignature(image),
+      file: file,
+      verification: verif,
+      integrityVerified: integrityVerified,
+      senderPublicKey: publicKey,
+    );
   }
 
   static String? _parseSignatureFromPayload(Uint8List p, String? pw) {

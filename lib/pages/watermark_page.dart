@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:file_picker/file_picker.dart';
@@ -33,6 +34,7 @@ import '../widgets/profile_chip.dart';
 import '../main.dart';
 import '../watermark_error.dart';
 import '../models/processor_models.dart';
+import '../utils/identity_manager.dart';
 import 'onboarding_page.dart';
 
 class WatermarkPage extends StatefulWidget {
@@ -91,6 +93,7 @@ class WatermarkPageState extends State<WatermarkPage>
   bool _useSteganography = false;
   bool _useRobustSteganography = false;
   bool _useAiCloaking = false;
+  bool _digitallySign = false;
   bool _steganographyVerificationFailed = false;
   bool _useRandomColor = true;
   Color _selectedColor = Colors.red;
@@ -185,7 +188,14 @@ class WatermarkPageState extends State<WatermarkPage>
     }
 
     if (mounted) {
-      setState(() {});
+      if (SchedulerBinding.instance.schedulerPhase ==
+          SchedulerPhase.persistentCallbacks) {
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() {});
+        });
+      } else {
+        setState(() {});
+      }
     }
   }
 
@@ -257,6 +267,7 @@ class WatermarkPageState extends State<WatermarkPage>
           _filePrefix = prefs.getString('filePrefix') ?? 'securemark-';
           _antiAiLevel = prefs.getDouble('antiAiLevel') ?? 50.0;
           _useAiCloaking = prefs.getBool('useAiCloaking') ?? false;
+          _digitallySign = prefs.getBool('digitallySign') ?? false;
           _useSteganography = prefs.getBool('useSteganography') ?? false;
           _useRobustSteganography =
               prefs.getBool('useRobustSteganography') ?? false;
@@ -402,6 +413,7 @@ class WatermarkPageState extends State<WatermarkPage>
         final preservedPdfAllowPrinting = _pdfAllowPrinting;
         final preservedPdfAllowCopying = _pdfAllowCopying;
         final preservedPdfAllowEditing = _pdfAllowEditing;
+        final preservedDigitallySign = _digitallySign;
 
         // Preserve output directory and file prefix
         final preservedOutputDir = _outputDirectory;
@@ -423,6 +435,7 @@ class WatermarkPageState extends State<WatermarkPage>
         _pdfAllowEditing = false;
         _pdfUserPasswordController.clear();
         _pdfOwnerPasswordController.clear();
+        _digitallySign = false;
         _antiAiLevel = 50.0;
         _useSteganography = false;
         _useRobustSteganography = false;
@@ -454,6 +467,7 @@ class WatermarkPageState extends State<WatermarkPage>
         _pdfAllowPrinting = preservedPdfAllowPrinting;
         _pdfAllowCopying = preservedPdfAllowCopying;
         _pdfAllowEditing = preservedPdfAllowEditing;
+        _digitallySign = preservedDigitallySign;
 
         _outputDirectory = preservedOutputDir;
         _filePrefix = preservedFilePrefix;
@@ -494,6 +508,11 @@ class WatermarkPageState extends State<WatermarkPage>
       }
       if (prefs.containsKey('${pKey}useAiCloaking')) {
         _useAiCloaking = prefs.getBool('${pKey}useAiCloaking')!;
+      }
+      if (prefs.containsKey('${pKey}digitallySign')) {
+        _digitallySign = prefs.getBool('${pKey}digitallySign')!;
+      } else {
+        _digitallySign = false;
       }
       if (prefs.containsKey('${pKey}useSteganography')) {
         _useSteganography = prefs.getBool('${pKey}useSteganography')!;
@@ -624,6 +643,7 @@ class WatermarkPageState extends State<WatermarkPage>
           if (!prefs.containsKey('${pKey}jpegQuality')) _jpegQuality = 75;
           if (!prefs.containsKey('${pKey}antiAiLevel')) _antiAiLevel = 100;
           if (!prefs.containsKey('${pKey}useAiCloaking')) _useAiCloaking = true;
+          if (!prefs.containsKey('${pKey}digitallySign')) _digitallySign = true;
           if (!prefs.containsKey('${pKey}watermarkType')) {
             _watermarkType = WatermarkType.text;
           }
@@ -745,6 +765,7 @@ class WatermarkPageState extends State<WatermarkPage>
     _savePreference('antiAiLevel', _antiAiLevel);
     _savePreference('useSteganography', _useSteganography);
     _savePreference('useRobustSteganography', _useRobustSteganography);
+    _savePreference('digitallySign', _digitallySign);
     _savePreference('useAiCloaking', _useAiCloaking);
     _savePreference('hideFileWithSteganography', _hideFileWithSteganography);
     _savePreference('useRandomColor', _useRandomColor);
@@ -783,6 +804,7 @@ class WatermarkPageState extends State<WatermarkPage>
     await prefs.setBool('${pKey}useSteganography', _useSteganography);
     await prefs.setBool(
         '${pKey}useRobustSteganography', _useRobustSteganography);
+    await prefs.setBool('${pKey}digitallySign', _digitallySign);
     await prefs.setBool(
         '${pKey}hideFileWithSteganography', _hideFileWithSteganography);
     await prefs.setBool('${pKey}preserveMetadata', _preserveMetadata);
@@ -894,6 +916,8 @@ class WatermarkPageState extends State<WatermarkPage>
     _loadShader();
     _initPackageInfo();
     _initOutputDirectory();
+    IdentityManager.onLog = _addLog;
+    IdentityManager.getIdentityKeyPair(); // Pre-generate key if needed
 
     // Check for shared content multiple times to handle race conditions
     _handleSharedContent();
@@ -1167,6 +1191,11 @@ class WatermarkPageState extends State<WatermarkPage>
             icon: const Icon(Icons.settings_suggest_outlined),
             onPressed: _showExpertOptions,
             tooltip: l10n.expertOptions,
+          ),
+          IconButton(
+            icon: const Icon(Icons.person_pin_outlined),
+            onPressed: _showIdentityDialog,
+            tooltip: l10n.myIdentityTitle,
           ),
           const SizedBox(width: 8),
         ],
@@ -1938,6 +1967,85 @@ class WatermarkPageState extends State<WatermarkPage>
                               ),
                             ),
                           ],
+                          if (_senderPublicKey != null) ...[
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: _integrityVerified
+                                    ? Colors.blue.withValues(alpha: 0.1)
+                                    : Colors.orange.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _integrityVerified
+                                      ? Colors.blue
+                                      : Colors.orange,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        _integrityVerified
+                                            ? Icons.verified
+                                            : Icons.report_problem_outlined,
+                                        color: _integrityVerified
+                                            ? Colors.blue
+                                            : Colors.orange,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _integrityVerified
+                                              ? l10n.signatureVerified
+                                              : l10n.tamperDetected,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: _integrityVerified
+                                                ? Colors.blue
+                                                : Colors.orange,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Sender ID: ${_senderPublicKey!.substring(0, 8)}...${_senderPublicKey!.substring(_senderPublicKey!.length - 8)}',
+                                          style: theme.textTheme.labelSmall,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        icon: const Icon(Icons.copy, size: 18),
+                                        tooltip: l10n.copyPublicKey,
+                                        onPressed: () {
+                                          Clipboard.setData(ClipboardData(
+                                              text: _senderPublicKey!));
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                                content:
+                                                    Text(l10n.publicKeyCopied)),
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           Text(_analysisResult!),
                           if (_extractedFile != null &&
                               (!_extractedFile!.isEncrypted ||
@@ -2056,6 +2164,8 @@ class WatermarkPageState extends State<WatermarkPage>
   String? _analysisResult;
   String? _extractedSignature;
   VerificationResult? _verificationResult;
+  bool _integrityVerified = false;
+  String? _senderPublicKey;
   ExtractedFileResult? _extractedFile;
 
   Future<void> _pickAndAnalyze(StateSetter setDialogState) async {
@@ -2105,6 +2215,8 @@ class WatermarkPageState extends State<WatermarkPage>
 
       final results = <String>[];
       _verificationResult = analysis.verification;
+      _integrityVerified = analysis.integrityVerified;
+      _senderPublicKey = analysis.senderPublicKey;
 
       if (analysis.file != null) {
         final fileResult = analysis.file!;
@@ -3090,6 +3202,22 @@ class WatermarkPageState extends State<WatermarkPage>
                           _rasterizePdf = value ?? false;
                         });
                         _savePreference('rasterizePdf', value ?? false);
+                      },
+                    ),
+                    CheckboxListTile(
+                      title: Text(l10n.digitallySignTitle),
+                      subtitle: Text(l10n.digitallySignSubtitle),
+                      value: _digitallySign,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (value) {
+                        final bool enabled = value ?? false;
+                        setDialogState(() {
+                          _digitallySign = enabled;
+                        });
+                        setState(() {
+                          _digitallySign = enabled;
+                        });
+                        _savePreference('digitallySign', enabled);
                       },
                     ),
                     const Divider(),
@@ -4602,6 +4730,7 @@ class WatermarkPageState extends State<WatermarkPage>
         _antiAiLevel > 0 ||
         _useAiCloaking ||
         _rasterizePdf ||
+        _digitallySign ||
         _enablePdfSecurity ||
         _preserveMetadata ||
         (_hideFileWithSteganography && _hiddenFileBytes != null))) {
@@ -4622,6 +4751,7 @@ class WatermarkPageState extends State<WatermarkPage>
     final antiAiKey = GlobalKey<TooltipState>();
     final cloakingKey = GlobalKey<TooltipState>();
     final rasterKey = GlobalKey<TooltipState>();
+    final digitallySignKey = GlobalKey<TooltipState>();
     // final pdfSecurityKey = GlobalKey<TooltipState>();
     final preserveKey = GlobalKey<TooltipState>();
 
@@ -4635,6 +4765,19 @@ class WatermarkPageState extends State<WatermarkPage>
       alignment: WrapAlignment.start,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
+        if (_digitallySign)
+          GestureDetector(
+            onTap: () => showTooltip(digitallySignKey),
+            onDoubleTap: _showExpertOptions,
+            child: Tooltip(
+              key: digitallySignKey,
+              message: l10n.digitallySignEnabledHint,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: Icon(Icons.fingerprint, color: Colors.blueAccent),
+              ),
+            ),
+          ),
         /*
         if (_enablePdfSecurity)
           GestureDetector(
@@ -5273,7 +5416,7 @@ class WatermarkPageState extends State<WatermarkPage>
             (_hideFileWithSteganography && _hiddenFileBytes != null);
 
         _addLog(
-            'Processing with: useSteganography=$shouldApplyStegano, hideFile=$_hideFileWithSteganography, hiddenFile=$_hiddenFileName (${_hiddenFileBytes?.length ?? 0} bytes)');
+            'Processing with: useSteganography=$shouldApplyStegano, hideFile=$_hideFileWithSteganography, hiddenFile=$_hiddenFileName (${_hiddenFileBytes?.length ?? 0} bytes), digitallySign=$_digitallySign');
 
         try {
           final result = await WatermarkProcessor.processFile(
@@ -5296,6 +5439,7 @@ class WatermarkPageState extends State<WatermarkPage>
             useSteganography: shouldApplyStegano,
             useRobustSteganography: _useRobustSteganography,
             useAiCloaking: _useAiCloaking,
+            digitallySign: _digitallySign,
             watermarkType: _watermarkType,
             watermarkImageBytes: _watermarkImageBytes,
             steganographyPassword: _hidingPassword,
@@ -5312,6 +5456,10 @@ class WatermarkPageState extends State<WatermarkPage>
             pdfAllowEditing: _pdfAllowEditing,
             onProgress: (progress, message) {
               if (mounted) {
+                if (progress < 0) {
+                  _addLog(message);
+                  return;
+                }
                 setState(() {
                   final fileProgress = i / paths.length;
                   _progress = fileProgress + (progress / paths.length);
@@ -6121,6 +6269,95 @@ class WatermarkPageState extends State<WatermarkPage>
           ],
         );
       },
+    );
+  }
+
+  void _showIdentityDialog() {
+    final l10n = AppLocalizations.of(context)!;
+
+    showDialog(
+      context: context,
+      builder: (context) => FutureBuilder<List<String>>(
+        future: Future.wait([
+          IdentityManager.getDevicePublicKey(),
+          IdentityManager.getDeviceFingerprint(),
+        ]),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const AlertDialog(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text("Loading Identity..."),
+                ],
+              ),
+            );
+          }
+
+          if (snapshot.hasError || !snapshot.hasData) {
+            _addLog('ERROR in Identity dialog: ${snapshot.error}');
+            return AlertDialog(
+              title: Text(l10n.myIdentityTitle),
+              content: Text("Error loading identity keys: ${snapshot.error}"),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(l10n.close),
+                ),
+              ],
+            );
+          }
+
+          final publicKey = snapshot.data![0];
+          final fingerprint = snapshot.data![1];
+          _addLog('Identity dialog loaded: fingerprint=$fingerprint');
+
+          return AlertDialog(
+            title: Row(
+              children: [
+                const Icon(Icons.person_pin_outlined, color: Colors.blue),
+                const SizedBox(width: 12),
+                Text(l10n.myIdentityTitle),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${l10n.myPublicKeyLabel} $fingerprint',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 12),
+                Text('Full key will be copied to clipboard',
+                    style: Theme.of(context).textTheme.bodySmall),
+              ],
+            ),
+            actions: [
+              TextButton.icon(
+                onPressed: () {
+                  _addLog('Copying public key: $publicKey');
+                  if (publicKey.isEmpty) {
+                    _addLog('WARNING: Public key is empty!');
+                  }
+                  Clipboard.setData(ClipboardData(text: publicKey));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.publicKeyCopied)),
+                  );
+                },
+                icon: const Icon(Icons.copy),
+                label: Text(l10n.copyPublicKey),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(l10n.close),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

@@ -58,12 +58,16 @@ class AnalysisResult {
     this.robustSignature,
     this.file,
     this.verification,
+    this.integrityVerified = false,
+    this.senderPublicKey,
   });
 
   final String? signature;
   final String? robustSignature;
   final ExtractedFileResult? file;
   final VerificationResult? verification;
+  final bool integrityVerified;
+  final String? senderPublicKey;
 }
 
 /// Progress callback for reporting processing progress
