@@ -2211,6 +2211,18 @@ abstract class AppLocalizations {
   /// **'Send All as ZIP'**
   String get sendAllZip;
 
+  /// No description provided for @randomColorSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Random color selected'**
+  String get randomColorSelected;
+
+  /// No description provided for @uniqueColorSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Unique color selected'**
+  String get uniqueColorSelected;
+
   /// No description provided for @generatingKey.
   ///
   /// In en, this message translates to:

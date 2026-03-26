@@ -1251,6 +1251,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sendAllZip => 'Send All as ZIP';
 
   @override
+  String get randomColorSelected => 'Random color selected';
+
+  @override
+  String get uniqueColorSelected => 'Unique color selected';
+
+  @override
   String get generatingKey => 'Generating encryption key...';
 
   @override

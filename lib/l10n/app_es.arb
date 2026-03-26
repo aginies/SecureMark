@@ -750,6 +750,8 @@
   "saveToWhere": "Guardar archivo en...",
   "localShareInstructions": "El receptor debe estar en la misma red. Escanea el código QR para descargar.",
   "sendAllZip": "Enviar todo (ZIP)",
+  "randomColorSelected": "Color aleatorio seleccionado",
+  "uniqueColorSelected": "Color único seleccionado",
   "generatingKey": "Generando clave de cifrado...",
   "encryptingPayload": "Cifrando datos (AES-256)...",
   "startingServer": "Iniciando servidor HTTP local...",

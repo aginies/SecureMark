@@ -750,6 +750,8 @@
   "saveToWhere": "Save file to...",
   "localShareInstructions": "The receiver must be on the same network. Scan the QR code to download.",
   "sendAllZip": "Send All as ZIP",
+  "randomColorSelected": "Random color selected",
+  "uniqueColorSelected": "Unique color selected",
   "generatingKey": "Generating encryption key...",
   "encryptingPayload": "Encrypting payload (AES-256)...",
   "startingServer": "Starting local HTTP server...",

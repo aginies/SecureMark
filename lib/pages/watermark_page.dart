@@ -6811,7 +6811,6 @@ class WatermarkPageState extends State<WatermarkPage>
       Colors.green,
       Colors.orange,
       Colors.white,
-      Colors.purple,
       Colors.black,
     ];
 
@@ -6871,83 +6870,98 @@ class WatermarkPageState extends State<WatermarkPage>
             else
               _buildLogoButton(l10n, false),
             const SizedBox(height: 16),
-            // Color selection OR Logo size
+            // Unified Color Selection
             if (_watermarkType == WatermarkType.text) ...[
-              SegmentedButton<bool>(
-                segments: [
-                  ButtonSegment<bool>(
-                    value: true,
-                    label: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.shuffle, size: 18),
-                        const SizedBox(width: 6),
-                        Text(l10n.color),
-                      ],
-                    ),
-                  ),
-                  ButtonSegment<bool>(
-                    value: false,
-                    label: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 18,
-                          height: 18,
-                          decoration: BoxDecoration(
-                            color: _selectedColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.grey.shade400,
-                              width: 1,
-                            ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  // Random Color Square
+                  InkWell(
+                    onTap: _processing ? null : () => _updateColorMode(true),
+                    borderRadius: BorderRadius.circular(4),
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 200),
+                      opacity: _useRandomColor ? 1.0 : 0.4,
+                      child: Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: _useRandomColor
+                                ? theme.colorScheme.primary
+                                : Colors.grey.shade400,
+                            width: _useRandomColor ? 1.5 : 1,
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        Text(l10n.color),
-                      ],
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Expanded(child: Container(color: Colors.red)),
+                                  Expanded(
+                                      child: Container(color: Colors.blue)),
+                                  Expanded(
+                                      child: Container(color: Colors.green)),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                      child: Container(color: Colors.orange)),
+                                  Expanded(
+                                      child: Container(color: Colors.purple)),
+                                  Expanded(
+                                      child: Container(color: Colors.cyan)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ],
-                selected: <bool>{_useRandomColor},
-                onSelectionChanged: _processing
-                    ? null
-                    : (selection) {
-                        _updateColorMode(selection.first);
-                      },
-                expandedInsets: EdgeInsets.zero,
-              ),
-              if (!_useRandomColor) ...[
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: palette.map((color) {
-                    final isSelected =
+                  // Palette Circles
+                  ...palette.map((color) {
+                    final isSelected = !_useRandomColor &&
                         color.toARGB32() == _selectedColor.toARGB32();
                     return InkWell(
-                      onTap: _processing ? null : () => _selectColor(color),
+                      onTap: _processing
+                          ? null
+                          : () {
+                              _updateColorMode(false);
+                              _selectColor(color);
+                            },
                       borderRadius: BorderRadius.circular(999),
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected
-                                ? Colors.black
-                                : Colors.grey.shade400,
-                            width: isSelected ? 3 : 1,
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: isSelected ? 1.0 : 0.4,
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected
+                                  ? theme.colorScheme.primary
+                                  : Colors.grey.shade400,
+                              width: isSelected ? 1.5 : 1,
+                            ),
                           ),
                         ),
                       ),
                     );
-                  }).toList(),
-                ),
-                const SizedBox(height: 16),
-              ] else
-                const SizedBox(height: 16),
+                  }),
+                ],
+              ),
+              const SizedBox(height: 16),
             ] else ...[
               Text(l10n.logoSizeLabel(_logoSize.round()),
                   style: theme.textTheme.titleSmall),
@@ -7670,7 +7684,9 @@ class WatermarkPageState extends State<WatermarkPage>
         return StatefulBuilder(
           builder: (context, setDialogState) {
             _progressListener = () {
-              if (mounted) setDialogState(() {});
+              if (context.mounted) {
+                setDialogState(() {});
+              }
             };
 
             final message = _progressMessage.isEmpty
@@ -8549,13 +8565,33 @@ class WatermarkPageState extends State<WatermarkPage>
       _useRandomColor = useRandomColor;
     });
     _savePreference('useRandomColor', useRandomColor);
+
+    if (useRandomColor) {
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.randomColorSelected),
+          duration: const Duration(milliseconds: 1500),
+        ),
+      );
+    }
   }
 
   void _selectColor(Color color) {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _selectedColor = color;
     });
     _savePreference('selectedColor', color.toARGB32());
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.uniqueColorSelected),
+        duration: const Duration(milliseconds: 1500),
+      ),
+    );
   }
 
   List<DropdownMenuItem<WatermarkFont>> _buildFontDropdownItems() {

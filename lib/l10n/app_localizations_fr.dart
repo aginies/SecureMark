@@ -1273,6 +1273,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get sendAllZip => 'Tout envoyer (ZIP)';
 
   @override
+  String get randomColorSelected => 'Couleur aléatoire sélectionnée';
+
+  @override
+  String get uniqueColorSelected => 'Couleur unique sélectionnée';
+
+  @override
   String get generatingKey => 'Génération de la clé de chiffrement...';
 
   @override

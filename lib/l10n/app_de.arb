@@ -750,6 +750,8 @@
   "saveToWhere": "Datei speichern unter...",
   "localShareInstructions": "Der Empfänger muss sich im selben Netzwerk befinden. Scannen Sie den QR-Code zum Herunterladen.",
   "sendAllZip": "Alles als ZIP senden",
+  "randomColorSelected": "Zufällige Farbe ausgewählt",
+  "uniqueColorSelected": "Einheitliche Farbe ausgewählt",
   "generatingKey": "Verschlüsselungsschlüssel wird generiert...",
   "encryptingPayload": "Daten werden verschlüsselt (AES-256)...",
   "startingServer": "Lokaler HTTP-Server wird gestartet...",
