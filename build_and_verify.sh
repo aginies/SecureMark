@@ -96,13 +96,25 @@ function increment_version() {
 }
 
 function build_apk() {
-    echo "[INFO] Building Release APK..."
-    $FLUTTER_PATH build apk --release
+    VERSION_LINE=$(grep "version: " pubspec.yaml)
+    VERSION_NAME=$(echo $VERSION_LINE | cut -d' ' -f2 | cut -d'+' -f1)
+    BUILD_NUMBER=$(echo $VERSION_LINE | cut -d'+' -f2)
+    VERSION_PKG=$(echo $VERSION_NAME | tr '.' '_')
+    TARGET_PKG="org.ginies.secure_mark.v$VERSION_PKG"
+    echo "[INFO] Building Release APK v$VERSION_NAME+$BUILD_NUMBER (Package: $TARGET_PKG)..."
+    $FLUTTER_PATH build apk --release --build-name=$VERSION_NAME --build-number=$BUILD_NUMBER \
+        --dart-define=TARGET_PACKAGE=$TARGET_PKG
 }
 
 function build_aab() {
-    echo "[INFO] Building Release App Bundle (AAB)..."
-    $FLUTTER_PATH build appbundle --release
+    VERSION_LINE=$(grep "version: " pubspec.yaml)
+    VERSION_NAME=$(echo $VERSION_LINE | cut -d' ' -f2 | cut -d'+' -f1)
+    BUILD_NUMBER=$(echo $VERSION_LINE | cut -d'+' -f2)
+    VERSION_PKG=$(echo $VERSION_NAME | tr '.' '_')
+    TARGET_PKG="org.ginies.secure_mark.v$VERSION_PKG"
+    echo "[INFO] Building Release App Bundle (AAB) v$VERSION_NAME+$BUILD_NUMBER (Package: $TARGET_PKG)..."
+    $FLUTTER_PATH build appbundle --release --build-name=$VERSION_NAME --build-number=$BUILD_NUMBER \
+        --dart-define=TARGET_PACKAGE=$TARGET_PKG
 }
 
 function build_ios() {
@@ -110,8 +122,11 @@ function build_ios() {
         echo "[SKIP] iOS build requires macOS."
         return
     fi
-    echo "[INFO] Building Release iOS (No Codesign)..."
-    $FLUTTER_PATH build ios --release --no-codesign
+    VERSION_LINE=$(grep "version: " pubspec.yaml)
+    VERSION_NAME=$(echo $VERSION_LINE | cut -d' ' -f2 | cut -d'+' -f1)
+    BUILD_NUMBER=$(echo $VERSION_LINE | cut -d'+' -f2)
+    echo "[INFO] Building Release iOS (No Codesign) v$VERSION_NAME+$BUILD_NUMBER..."
+    $FLUTTER_PATH build ios --release --no-codesign --build-name=$VERSION_NAME --build-number=$BUILD_NUMBER
     
     if [ -d "build/ios/iphoneos/Runner.app" ]; then
         echo "[INFO] Packaging iOS Runner.app into ZIP..."
@@ -127,8 +142,11 @@ function build_macos() {
         echo "[SKIP] macOS build requires macOS."
         return
     fi
-    echo "[INFO] Building Release macOS..."
-    $FLUTTER_PATH build macos --release
+    VERSION_LINE=$(grep "version: " pubspec.yaml)
+    VERSION_NAME=$(echo $VERSION_LINE | cut -d' ' -f2 | cut -d'+' -f1)
+    BUILD_NUMBER=$(echo $VERSION_LINE | cut -d'+' -f2)
+    echo "[INFO] Building Release macOS v$VERSION_NAME+$BUILD_NUMBER..."
+    $FLUTTER_PATH build macos --release --build-name=$VERSION_NAME --build-number=$BUILD_NUMBER
     
     if [ -d "build/macos/Build/Products/Release/SecureMark.app" ]; then
         echo "[INFO] Packaging macOS SecureMark.app into ZIP..."
@@ -144,8 +162,11 @@ function build_windows() {
         echo "[SKIP] Windows build requires Windows environment."
         return
     fi
-    echo "[INFO] Building Release Windows..."
-    $FLUTTER_PATH build windows --release
+    VERSION_LINE=$(grep "version: " pubspec.yaml)
+    VERSION_NAME=$(echo $VERSION_LINE | cut -d' ' -f2 | cut -d'+' -f1)
+    BUILD_NUMBER=$(echo $VERSION_LINE | cut -d'+' -f2)
+    echo "[INFO] Building Release Windows v$VERSION_NAME+$BUILD_NUMBER..."
+    $FLUTTER_PATH build windows --release --build-name=$VERSION_NAME --build-number=$BUILD_NUMBER
     
     if [ -d "build/windows/x64/runner/Release" ]; then
         echo "[INFO] Packaging Windows build into ZIP..."
