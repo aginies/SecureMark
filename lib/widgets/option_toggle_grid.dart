@@ -100,9 +100,12 @@ class _OptionTileState extends State<_OptionTile>
       if (widget.option.subtitle != null) {
         parts.add(widget.option.subtitle!);
       }
-      parts.add(
-          widget.option.isEnabled ? 'Status: Enabled' : 'Status: Disabled');
-      parts.add('Double-tap to toggle');
+      // Only show status if it's toggleable
+      if (widget.option.onToggle != null) {
+        parts.add(
+            widget.option.isEnabled ? 'Status: Enabled' : 'Status: Disabled');
+        parts.add('Double-tap to toggle');
+      }
       if (widget.option.onConfigure != null) {
         parts.add('Long-press to configure');
       }
@@ -132,11 +135,18 @@ class _OptionTileState extends State<_OptionTile>
       return;
     }
 
+    // Only toggle if onToggle is available
+    if (widget.option.onToggle == null) {
+      // If not toggleable, just show info
+      _handleTap();
+      return;
+    }
+
     // Toggle with haptic feedback
     HapticFeedback.lightImpact();
     _scaleController.forward().then((_) => _scaleController.reverse());
 
-    widget.option.onToggle?.call();
+    widget.option.onToggle!.call();
 
     // Show confirmation snackbar
     final message = widget.option.isEnabled
@@ -251,8 +261,8 @@ class _OptionTileState extends State<_OptionTile>
                       ),
                     ),
                   ),
-                // Checkmark for enabled
-                if (isEnabled && isAvailable)
+                // Checkmark for enabled (only if toggleable)
+                if (isEnabled && isAvailable && widget.option.onToggle != null)
                   Positioned(
                     top: 4,
                     right: 4,
@@ -264,6 +274,24 @@ class _OptionTileState extends State<_OptionTile>
                       ),
                       child: const Icon(
                         Icons.check,
+                        size: 12,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                // Info badge for info-only options
+                if (isEnabled && isAvailable && widget.option.onToggle == null)
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: widget.option.enabledColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.info_outline,
                         size: 12,
                         color: Colors.white,
                       ),
@@ -286,7 +314,12 @@ class _OptionTileState extends State<_OptionTile>
       if (widget.option.subtitle != null) {
         parts.add(widget.option.subtitle!);
       }
-      parts.add('Tap: info • Double-tap: toggle');
+      // Only mention toggle if it's available
+      if (widget.option.onToggle != null) {
+        parts.add('Tap: info • Double-tap: toggle');
+      } else {
+        parts.add('Tap: info');
+      }
       if (widget.option.onConfigure != null) {
         parts.add('Long-press: configure');
       }

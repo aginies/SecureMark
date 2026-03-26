@@ -6111,6 +6111,18 @@ class WatermarkPageState extends State<WatermarkPage>
         },
         onConfigure: _showExpertOptions,
       ),
+
+      // File Prefix (Info only)
+      WatermarkOption(
+        id: 'file_prefix',
+        label: 'File Prefix',
+        icon: Icons.label_outline,
+        enabledColor: Colors.blueGrey,
+        isEnabled: true,
+        subtitle: _filePrefix,
+        onToggle: null, // No toggle - info only
+        onConfigure: null, // No configure - info only
+      ),
     ];
   }
 
