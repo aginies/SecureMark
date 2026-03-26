@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:desktop_drop/desktop_drop.dart';
@@ -1206,6 +1207,18 @@ class WatermarkPageState extends State<WatermarkPage>
       appBar: AppBar(
         title: Row(
           children: [
+            IconButton(
+              icon: const Icon(Icons.auto_fix_high),
+              onPressed: _processing ||
+                      _selectedPaths.isEmpty ||
+                      (_watermarkType == WatermarkType.image &&
+                          _watermarkImageBytes == null)
+                  ? null
+                  : _applyWatermark,
+              tooltip: l10n.applyWatermark,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
             IconButton(
               icon: const Icon(Icons.search_rounded),
               onPressed: _showFileAnalyzer,
@@ -6684,59 +6697,53 @@ class WatermarkPageState extends State<WatermarkPage>
       );
     }
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_supportsDesktopDrop)
-              DropTarget(
-                onDragEntered: (_) => setState(() => _dragging = true),
-                onDragExited: (_) => setState(() => _dragging = false),
-                onDragDone: (detail) async {
-                  setState(() => _dragging = false);
-                  if (detail.files.isEmpty) return;
-                  final paths = detail.files
-                      .map((file) => file.path)
-                      .whereType<String>()
-                      .toSet()
-                      .toList();
-                  if (paths.isNotEmpty) {
-                    setState(() => _loadingFiles = true);
-                    await _selectPaths(paths);
-                  }
-                },
-                child: buildButton(_dragging),
-              )
-            else
-              buildButton(false),
-            if (selectedCount > 0) ...[
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: _showSelectedFilesModal,
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Text(
-                    selectedCount == 1
-                        ? l10n.selectedFile(
-                            File(_selectedPaths.first).uri.pathSegments.last)
-                        : l10n.selectedFiles(selectedCount),
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      decoration: TextDecoration.underline,
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_supportsDesktopDrop)
+          DropTarget(
+            onDragEntered: (_) => setState(() => _dragging = true),
+            onDragExited: (_) => setState(() => _dragging = false),
+            onDragDone: (detail) async {
+              setState(() => _dragging = false);
+              if (detail.files.isEmpty) return;
+              final paths = detail.files
+                  .map((file) => file.path)
+                  .whereType<String>()
+                  .toSet()
+                  .toList();
+              if (paths.isNotEmpty) {
+                setState(() => _loadingFiles = true);
+                await _selectPaths(paths);
+              }
+            },
+            child: buildButton(_dragging),
+          )
+        else
+          buildButton(false),
+        if (selectedCount > 0) ...[
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: _showSelectedFilesModal,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Text(
+                selectedCount == 1
+                    ? l10n.selectedFile(
+                        File(_selectedPaths.first).uri.pathSegments.last)
+                    : l10n.selectedFiles(selectedCount),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  decoration: TextDecoration.underline,
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ],
-          ],
-        ),
-      ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -6982,16 +6989,108 @@ class WatermarkPageState extends State<WatermarkPage>
               ),
               const SizedBox(height: 8),
             ],
-            // Transparency and Density sliders
+            // Graphical Visual Dashboard (Transparency & Density)
+            const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _buildTransparencyControl()),
-                const SizedBox(width: 8),
-                Expanded(child: _buildDensityControl()),
+                // Left Side: Two Adjustment Dials
+                Column(
+                  children: [
+                    _buildCircularDial(
+                      value: _transparency / 100,
+                      onChanged: (val) {
+                        setState(() => _transparency = val * 100);
+                        _savePreference('transparency', _transparency);
+                      },
+                      icon: Icons.opacity,
+                    ),
+                    const SizedBox(height: 20),
+                    _buildCircularDial(
+                      value: (_density - 10) / 80,
+                      onChanged: (val) {
+                        setState(() => _density = 10 + (val * 80));
+                        _savePreference('density', _density);
+                      },
+                      icon: Icons.grid_view_rounded,
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 24),
+                // Right Side: Combined Preview
+                Expanded(
+                  child: _buildCombinedVisualPreview(),
+                ),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildCircularDial({
+    required double value,
+    required ValueChanged<double> onChanged,
+    required IconData icon,
+  }) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onPanUpdate: (details) {
+        // Vertical drag to change value
+        double newValue = (value - details.delta.dy / 100).clamp(0.0, 1.0);
+        onChanged(newValue);
+      },
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox(
+            width: 50,
+            height: 50,
+            child: CustomPaint(
+              painter: _DialPainter(
+                progress: value,
+                color: theme.colorScheme.primary,
+                backgroundColor: theme.colorScheme.outlineVariant,
+              ),
+            ),
+          ),
+          Icon(icon, size: 18, color: theme.colorScheme.primary),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCombinedVisualPreview() {
+    final theme = Theme.of(context);
+    return Container(
+      height: 120,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outline),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          // Checkerboard background
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _CheckerboardPainter(),
+            ),
+          ),
+          // Unified Preview (Watermark + Density)
+          Positioned.fill(
+            child: Opacity(
+              opacity: _transparency / 100,
+              child: CustomPaint(
+                painter: _DensityPainter(
+                  density: _density,
+                  color: _useRandomColor ? Colors.red : _selectedColor,
+                  isPreview: true,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -7312,74 +7411,6 @@ class WatermarkPageState extends State<WatermarkPage>
               ],
             ),
           ),
-      ],
-    );
-  }
-
-  Widget _buildTransparencyControl() {
-    final l10n = AppLocalizations.of(context)!;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 0),
-          child: Text(l10n.transparencyValue(_transparency.round())),
-        ),
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            trackHeight: 1.0,
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-          ),
-          child: Slider(
-            value: _transparency,
-            min: 0,
-            max: 100,
-            divisions: 80,
-            onChanged: _processing
-                ? null
-                : (value) {
-                    setState(() {
-                      _transparency = value;
-                    });
-                    _savePreference('transparency', value);
-                  },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDensityControl() {
-    final l10n = AppLocalizations.of(context)!;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 0),
-          child: Text(l10n.densityValue(_density.round())),
-        ),
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            trackHeight: 1.0,
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-          ),
-          child: Slider(
-            value: _density,
-            min: 10,
-            max: 90,
-            divisions: 16,
-            onChanged: _processing
-                ? null
-                : (value) {
-                    setState(() {
-                      _density = value;
-                    });
-                    _savePreference('density', value);
-                  },
-          ),
-        ),
       ],
     );
   }
@@ -9136,5 +9167,125 @@ class WatermarkPageState extends State<WatermarkPage>
         ],
       ),
     );
+  }
+}
+
+class _CheckerboardPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.grey.shade300;
+    const squareSize = 4.0;
+
+    for (double i = 0; i < size.width; i += squareSize) {
+      for (double j = 0; j < size.height; j += squareSize) {
+        if ((i / squareSize).floor() % 2 == (j / squareSize).floor() % 2) {
+          canvas.drawRect(Rect.fromLTWH(i, j, squareSize, squareSize), paint);
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _DensityPainter extends CustomPainter {
+  final double density;
+  final Color color;
+  final bool isPreview;
+
+  _DensityPainter(
+      {required this.density, required this.color, this.isPreview = false});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.6)
+      ..style = PaintingStyle.fill;
+
+    // Map density (10-90) to grid count (2-8)
+    final count = ((density / 100) * 7 + 2).round();
+    final stepX = size.width / (count + 1);
+    final stepY = size.height / (count + 1);
+
+    for (int i = 1; i <= count; i++) {
+      for (int j = 1; j <= count; j++) {
+        canvas.drawCircle(Offset(i * stepX, j * stepY), 3.0, paint);
+      }
+    }
+
+    if (isPreview) {
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: 'SecureMark',
+          style: TextStyle(
+            color: color,
+            fontSize: 21,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 4,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      textPainter.paint(
+        canvas,
+        Offset((size.width - textPainter.width) / 2,
+            (size.height - textPainter.height) / 2),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DensityPainter oldDelegate) {
+    return oldDelegate.density != density ||
+        oldDelegate.color != color ||
+        oldDelegate.isPreview != isPreview;
+  }
+}
+
+class _DialPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+  final Color backgroundColor;
+
+  _DialPainter({
+    required this.progress,
+    required this.color,
+    required this.backgroundColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = min(size.width, size.height) / 2;
+    const strokeWidth = 4.0;
+
+    // Background circle
+    final bgPaint = Paint()
+      ..color = backgroundColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    canvas.drawCircle(center, radius - strokeWidth / 2, bgPaint);
+
+    // Progress arc
+    final progressPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
+      -pi / 2,
+      2 * pi * progress,
+      false,
+      progressPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _DialPainter oldDelegate) {
+    return oldDelegate.progress != progress || oldDelegate.color != color;
   }
 }
