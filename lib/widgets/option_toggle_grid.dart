@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -69,9 +70,10 @@ class _OptionTile extends StatefulWidget {
 }
 
 class _OptionTileState extends State<_OptionTile>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _scaleController;
   late Animation<double> _scaleAnimation;
+  late AnimationController _burstController;
 
   @override
   void initState() {
@@ -83,12 +85,25 @@ class _OptionTileState extends State<_OptionTile>
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.92).animate(
       CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
     );
+    _burstController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
   }
 
   @override
   void dispose() {
     _scaleController.dispose();
+    _burstController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(_OptionTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.option.isEnabled && widget.option.isEnabled) {
+      _burstController.forward(from: 0.0);
+    }
   }
 
   void _handleTap() {
@@ -162,7 +177,6 @@ class _OptionTileState extends State<_OptionTile>
   }
 
   void _handleDoubleTap() {
-    final l10n = AppLocalizations.of(context)!;
     if (!widget.option.isAvailable) {
       // Show unavailable reason
       if (widget.option.unavailableReason != null) {
@@ -190,18 +204,7 @@ class _OptionTileState extends State<_OptionTile>
 
     widget.option.onToggle!.call();
 
-    // Show confirmation snackbar
-    final status = widget.option.isEnabled ? l10n.enabled : l10n.disabled;
-    final message = '${widget.option.label} $status';
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(milliseconds: 1200),
-        behavior: SnackBarBehavior.floating,
-        width: 250,
-      ),
-    );
+    // Removed confirmation snackbar as per user request
   }
 
   void _handleLongPress() {
@@ -283,6 +286,15 @@ class _OptionTileState extends State<_OptionTile>
                   child: Icon(
                     widget.option.icon,
                     color: iconColor,
+                    size: widget.iconSize * 0.9,
+                  ),
+                ),
+                // Burst effect
+                IgnorePointer(
+                  child: _IconBurst(
+                    controller: _burstController,
+                    icon: widget.option.icon,
+                    color: widget.option.enabledColor,
                     size: widget.iconSize * 0.9,
                   ),
                 ),
@@ -371,5 +383,89 @@ class _OptionTileState extends State<_OptionTile>
     }
 
     return parts.join('\n');
+  }
+}
+
+class _IconBurst extends StatelessWidget {
+  final AnimationController controller;
+  final IconData icon;
+  final Color color;
+  final double size;
+
+  const _IconBurst({
+    required this.controller,
+    required this.icon,
+    required this.color,
+    required this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, child) {
+        if (controller.value == 0.0 || controller.value == 1.0) {
+          return const SizedBox.shrink();
+        }
+
+        return Stack(
+          alignment: Alignment.center,
+          children: List.generate(12, (index) {
+            return _BurstParticle(
+              progress: controller.value,
+              index: index,
+              count: 12,
+              icon: icon,
+              color: color,
+              baseSize: size,
+            );
+          }),
+        );
+      },
+    );
+  }
+}
+
+class _BurstParticle extends StatelessWidget {
+  final double progress;
+  final int index;
+  final int count;
+  final IconData icon;
+  final Color color;
+  final double baseSize;
+
+  const _BurstParticle({
+    required this.progress,
+    required this.index,
+    required this.count,
+    required this.icon,
+    required this.color,
+    required this.baseSize,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double angle = (index * (360 / count)) * (math.pi / 180);
+    final double distance = 100 * progress;
+    final double opacity = 1.0 - progress;
+    final double scale = 0.4 + (0.5 * progress);
+
+    return Transform.translate(
+      offset: Offset(
+        math.cos(angle) * distance,
+        math.sin(angle) * distance,
+      ),
+      child: Transform.scale(
+        scale: scale,
+        child: Opacity(
+          opacity: opacity,
+          child: Icon(
+            icon,
+            color: color.withValues(alpha: 0.9),
+            size: baseSize * 0.7,
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -83,19 +83,44 @@ class _ProfileChipState extends State<ProfileChip>
       scale: _pulseAnimation,
       child: ScaleTransition(
         scale: _tapAnimation,
-        child: Padding(
-          padding: const EdgeInsets.only(right: 8.0, bottom: 4.0),
-          child: GestureDetector(
-            onTap: () => _handleSelected(true),
-            onLongPress: _handleLongPress,
+        child: GestureDetector(
+          onTap: () => _handleSelected(true),
+          onLongPress: _handleLongPress,
+          child: Container(
+            margin: const EdgeInsets.only(right: 8.0, bottom: 6.0),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: widget.isSelected
+                      ? theme.colorScheme.primary.withValues(alpha: 0.25)
+                      : theme.colorScheme.shadow.withValues(alpha: 0.1),
+                  blurRadius: widget.isSelected ? 8 : 4,
+                  offset: Offset(0, widget.isSelected ? 4 : 2),
+                ),
+              ],
+            ),
             child: RawChip(
               label: Text(widget.label),
-              avatar: Icon(
-                widget.icon,
-                size: 20,
-                color: widget.isSelected
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onSurfaceVariant,
+              avatar: ShaderMask(
+                shaderCallback: (bounds) => LinearGradient(
+                  colors: widget.isSelected
+                      ? [
+                          theme.colorScheme.primary,
+                          theme.colorScheme.secondary,
+                        ]
+                      : [
+                          theme.colorScheme.onSurfaceVariant,
+                          theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ).createShader(bounds),
+                child: Icon(
+                  widget.icon,
+                  size: 24,
+                  color: Colors.white,
+                ),
               ),
               selected: widget.isSelected,
               showCheckmark: false,
