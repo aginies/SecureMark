@@ -2936,23 +2936,43 @@ class WatermarkPageState extends State<WatermarkPage>
               border: Border.all(
                   color: Colors.blue.withValues(alpha: 0.5), width: 2),
             ),
-            child: MobileScanner(
-              onDetect: (capture) {
-                final List<Barcode> barcodes = capture.barcodes;
-                if (barcodes.isNotEmpty) {
-                  final String? code = barcodes.first.rawValue;
-                  if (code != null) {
-                    if (code.startsWith('http') && code.contains('/download')) {
-                      Navigator.pop(context);
-                      _downloadFromLocalUrl(code);
-                    } else if (code.startsWith('securemark://receive')) {
-                      Navigator.pop(context);
-                      _handleReversePush(code);
-                    }
-                  }
-                }
-              },
-            ),
+            child: !kIsWeb && (Platform.isLinux || Platform.isWindows)
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.qr_code_scanner,
+                            size: 48, color: theme.colorScheme.primary),
+                        const SizedBox(height: 16),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Text(
+                            "QR Scanning not yet supported on ${Platform.isLinux ? 'Linux' : 'Windows'}.\nPlease use 'Show QR to receive' on the other device.",
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : MobileScanner(
+                    onDetect: (capture) {
+                      final List<Barcode> barcodes = capture.barcodes;
+                      if (barcodes.isNotEmpty) {
+                        final String? code = barcodes.first.rawValue;
+                        if (code != null) {
+                          if (code.startsWith('http') &&
+                              code.contains('/download')) {
+                            Navigator.pop(context);
+                            _downloadFromLocalUrl(code);
+                          } else if (code.startsWith('securemark://receive')) {
+                            Navigator.pop(context);
+                            _handleReversePush(code);
+                          }
+                        }
+                      }
+                    },
+                  ),
           ),
         ),
         const SizedBox(height: 16),
@@ -3492,42 +3512,59 @@ class WatermarkPageState extends State<WatermarkPage>
         content: SizedBox(
           width: 300,
           height: 300,
-          child: MobileScanner(
-            onDetect: (capture) {
-              final List<Barcode> barcodes = capture.barcodes;
-              if (barcodes.isNotEmpty) {
-                final String? code = barcodes.first.rawValue;
-                if (code != null) {
-                  String name = 'New Identity';
-                  String pubKey = code;
+          child: !kIsWeb && (Platform.isLinux || Platform.isWindows)
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.qr_code_scanner,
+                          size: 48,
+                          color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(height: 16),
+                      Text(
+                        "QR Scanning not yet supported on ${Platform.isLinux ? 'Linux' : 'Windows'}.",
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ],
+                  ),
+                )
+              : MobileScanner(
+                  onDetect: (capture) {
+                    final List<Barcode> barcodes = capture.barcodes;
+                    if (barcodes.isNotEmpty) {
+                      final String? code = barcodes.first.rawValue;
+                      if (code != null) {
+                        String name = 'New Identity';
+                        String pubKey = code;
 
-                  // Try to parse as JSON first (for name + key combo)
-                  try {
-                    final data = jsonDecode(code);
-                    if (data is Map) {
-                      name = data['name'] ?? 'New Identity';
-                      pubKey = data['publicKey'] ?? code;
+                        // Try to parse as JSON first (for name + key combo)
+                        try {
+                          final data = jsonDecode(code);
+                          if (data is Map) {
+                            name = data['name'] ?? 'New Identity';
+                            pubKey = data['publicKey'] ?? code;
+                          }
+                        } catch (_) {
+                          // Not JSON, assume raw public key
+                        }
+
+                        if (pubKey.length > 20) {
+                          Navigator.pop(context);
+                          setParentDialogState(() {
+                            _identityBookmarks.add(IdentityBookmark(
+                                name: name, publicKey: pubKey));
+                          });
+                          _saveBookmarks();
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.invalidQrCode)),
+                          );
+                        }
+                      }
                     }
-                  } catch (_) {
-                    // Not JSON, assume raw public key
-                  }
-
-                  if (pubKey.length > 20) {
-                    Navigator.pop(context);
-                    setParentDialogState(() {
-                      _identityBookmarks
-                          .add(IdentityBookmark(name: name, publicKey: pubKey));
-                    });
-                    _saveBookmarks();
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.invalidQrCode)),
-                    );
-                  }
-                }
-              }
-            },
-          ),
+                  },
+                ),
         ),
         actions: [
           TextButton(

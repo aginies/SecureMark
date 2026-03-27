@@ -118,7 +118,7 @@ class _ProfileChipState extends State<ProfileChip>
                 ).createShader(bounds),
                 child: Icon(
                   widget.icon,
-                  size: 24,
+                  size: 25,
                   color: Colors.white,
                 ),
               ),

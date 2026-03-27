@@ -78,9 +78,44 @@ class SecureMarkAppState extends State<SecureMarkApp> {
       }
     } else if (Platform.isIOS) {
       _hasCamera = true; // Most iOS devices have cameras
+    } else if (Platform.isMacOS) {
+      try {
+        // macOS: Check system_profiler for camera data
+        final result =
+            await Process.run('system_profiler', ['SPCameraDataType']);
+        _hasCamera = result.stdout.toString().contains('Model ID:');
+      } catch (e) {
+        _hasCamera = false;
+      }
+    } else if (Platform.isWindows) {
+      try {
+        // Windows: Use PowerShell to check for OK status cameras
+        final result = await Process.run('powershell', [
+          '-Command',
+          'Get-PnpDevice -Status OK -Class Camera,Image | Measure-Object | Select-Object -ExpandProperty Count'
+        ]);
+        final count = int.tryParse(result.stdout.toString().trim()) ?? 0;
+        _hasCamera = count > 0;
+      } catch (e) {
+        _hasCamera = false;
+      }
+    } else if (Platform.isLinux) {
+      try {
+        // Linux: Check for video device nodes
+        final dir = Directory('/dev');
+        if (dir.existsSync()) {
+          final devices = dir.listSync().where((entity) =>
+              entity.path.startsWith('/dev/video') &&
+              !entity.path.endsWith('video-index'));
+          _hasCamera = devices.isNotEmpty;
+        } else {
+          _hasCamera = false;
+        }
+      } catch (e) {
+        _hasCamera = false;
+      }
     } else {
-      _hasCamera =
-          false; // Desktop usually doesn't have a direct camera API here
+      _hasCamera = false;
     }
   }
 
