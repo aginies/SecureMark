@@ -167,6 +167,7 @@ class WatermarkPageState extends State<WatermarkPage>
   String? _localEncryptionKey;
   bool _useLocalEncryption = true;
   bool _showReceiveQr = false;
+  bool _hasPromptedForMobileDir = false;
 
   Future<void> _loadShader() async {
     try {
@@ -2836,17 +2837,6 @@ class WatermarkPageState extends State<WatermarkPage>
               ),
             ),
             const SizedBox(height: 16),
-            Text(l10n.manualUrlLabel, style: const TextStyle(fontSize: 11)),
-            SelectableText(
-              'http://${_localIps[_selectedLocalIpIndex]}:$_servingPort/${LocalServerManager.token}/download${_localEncryptionKey != null ? "?key=$_localEncryptionKey" : ""}',
-              style: TextStyle(
-                  fontSize: 12,
-                  fontFamily: 'monospace',
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () {
                 LocalServerManager.stopServer();
@@ -2870,6 +2860,16 @@ class WatermarkPageState extends State<WatermarkPage>
   Widget _buildReceiveTab(StateSetter setDialogState) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final isMobile = !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+
+    // Auto-prompt for writable directory on mobile if not set
+    if (isMobile && _outputDirectory == null && !_hasPromptedForMobileDir) {
+      _hasPromptedForMobileDir = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _pickOutputDirectory();
+        if (mounted) setDialogState(() {});
+      });
+    }
 
     if (_showReceiveQr) {
       return Column(
@@ -3033,7 +3033,7 @@ class WatermarkPageState extends State<WatermarkPage>
             final port = await LocalServerManager.startReceiveServer(
                 (bytes, name, addr) {
               _addLog('Received file $name from $addr');
-              _saveDownloadedFile(bytes, name);
+              _saveDownloadedFile(bytes, name, l10n: l10n);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(l10n.fileReceived(addr))),
@@ -3446,7 +3446,7 @@ class WatermarkPageState extends State<WatermarkPage>
         _progressListener = null;
         if (mounted) Navigator.of(context, rootNavigator: true).pop();
 
-        await _saveDownloadedFile(finalBytes, fileName);
+        await _saveDownloadedFile(finalBytes, fileName, l10n: l10n);
       } else {
         throw Exception('Server returned ${response.statusCode}');
       }
@@ -3466,8 +3466,9 @@ class WatermarkPageState extends State<WatermarkPage>
     }
   }
 
-  Future<void> _saveDownloadedFile(Uint8List bytes, String fileName) async {
-    final l10n = AppLocalizations.of(context)!;
+  Future<void> _saveDownloadedFile(Uint8List bytes, String fileName,
+      {AppLocalizations? l10n}) async {
+    final effectiveL10n = l10n ?? AppLocalizations.of(context)!;
 
     // Create a temporary file to use our existing saving logic
     final tempDir = await getTemporaryDirectory();
@@ -3477,13 +3478,14 @@ class WatermarkPageState extends State<WatermarkPage>
 
     _tempFiles.add(tempPath);
 
-    if (_outputDirectory != null) {
-      final outputPath = p.join(_outputDirectory!, fileName);
+    final String? outDir = _outputDirectory;
+    if (outDir != null) {
+      final outputPath = p.join(outDir, fileName);
       await File(outputPath).writeAsBytes(bytes);
       _addLog('Saved downloaded file to: $outputPath');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.fileSaved(fileName))),
+          SnackBar(content: Text(effectiveL10n.fileSaved(fileName))),
         );
       }
     } else {
@@ -3496,7 +3498,7 @@ class WatermarkPageState extends State<WatermarkPage>
         _addLog('Saved downloaded file to: $result');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.fileSaved(fileName))),
+            SnackBar(content: Text(effectiveL10n.fileSaved(fileName))),
           );
         }
       }
