@@ -6840,30 +6840,31 @@ class WatermarkPageState extends State<WatermarkPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Text | Image/Logo toggle
-            SegmentedButton<WatermarkType>(
-              segments: [
-                ButtonSegment<WatermarkType>(
-                  value: WatermarkType.text,
-                  label: Text(l10n.watermarkTypeText),
-                  icon: const Icon(Icons.text_fields),
+            // Text | Image/Logo Picker
+            Row(
+              children: [
+                Expanded(
+                  child: _buildWatermarkTypeCard(
+                    context: context,
+                    type: WatermarkType.text,
+                    title: l10n.watermarkTypeText,
+                    icon: Icons.text_fields_rounded,
+                    isSelected: _watermarkType == WatermarkType.text,
+                  ),
                 ),
-                ButtonSegment<WatermarkType>(
-                  value: WatermarkType.image,
-                  label: Text(l10n.watermarkTypeImage),
-                  icon: const Icon(Icons.image_outlined),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildWatermarkTypeCard(
+                    context: context,
+                    type: WatermarkType.image,
+                    title: l10n.watermarkTypeImage,
+                    icon: Icons.image_rounded,
+                    isSelected: _watermarkType == WatermarkType.image,
+                  ),
                 ),
               ],
-              selected: {_watermarkType},
-              onSelectionChanged: _processing
-                  ? null
-                  : (newSelection) {
-                      setState(() {
-                        _watermarkType = newSelection.first;
-                      });
-                    },
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             // Text input OR Logo button
             if (_watermarkType == WatermarkType.text)
               TextField(
@@ -7142,6 +7143,80 @@ class WatermarkPageState extends State<WatermarkPage>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWatermarkTypeCard({
+    required BuildContext context,
+    required WatermarkType type,
+    required String title,
+    required IconData icon,
+    required bool isSelected,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        color: isSelected
+            ? colorScheme.primaryContainer.withValues(alpha: 0.7)
+            : colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSelected ? colorScheme.primary : colorScheme.outlineVariant,
+          width: isSelected ? 2 : 1,
+        ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: colorScheme.primary.withValues(alpha: 0.15),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ]
+            : [],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _processing
+              ? null
+              : () {
+                  setState(() {
+                    _watermarkType = type;
+                  });
+                },
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 28,
+                  color: isSelected
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    color: isSelected
+                        ? colorScheme.primary
+                        : colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

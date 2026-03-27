@@ -92,7 +92,7 @@ class _ProfileChipState extends State<ProfileChip>
               label: Text(widget.label),
               avatar: Icon(
                 widget.icon,
-                size: 16,
+                size: 20,
                 color: widget.isSelected
                     ? theme.colorScheme.primary
                     : theme.colorScheme.onSurfaceVariant,
