@@ -1205,6 +1205,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get requiresSteganography => 'Richiede steganografia';
 
   @override
+  String get unavailableRasterPdf => 'Incompatibile con rasterizzazione PDF';
+
+  @override
   String get preserveMetadata => 'Preserva metadati';
 
   @override

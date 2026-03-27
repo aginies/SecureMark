@@ -732,6 +732,7 @@
   "statusDisabled": "Stato: Disabilitato",
   "doubleTapToToggle": "Tocca due volte per cambiare",
   "requiresSteganography": "Richiede steganografia",
+  "unavailableRasterPdf": "Incompatibile con rasterizzazione PDF",
   "preserveMetadata": "Preserva metadati",
   "tapInfo": "Tocca: info",
   "doubleTapToggle": "Tocca due volte: cambia",

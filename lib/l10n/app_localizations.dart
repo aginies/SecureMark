@@ -2103,6 +2103,12 @@ abstract class AppLocalizations {
   /// **'Requires steganography'**
   String get requiresSteganography;
 
+  /// No description provided for @unavailableRasterPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Not compatible with PDF Rasterization'**
+  String get unavailableRasterPdf;
+
   /// No description provided for @preserveMetadata.
   ///
   /// In en, this message translates to:

@@ -1211,7 +1211,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get requiresSteganography => 'Erfordert Steganographie';
 
   @override
-  String get preserveMetadata => 'Metadaten beibehalten';
+  String get unavailableRasterPdf => 'Nicht kompatibel mit PDF-Rasterisierung';
+
+  @override
+  String get preserveMetadata => 'Metadaten erhalten';
 
   @override
   String get tapInfo => 'Tippen: Info';

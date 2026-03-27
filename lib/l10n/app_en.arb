@@ -732,6 +732,7 @@
   "statusDisabled": "Status: Disabled",
   "doubleTapToToggle": "Double-tap to toggle",
   "requiresSteganography": "Requires steganography",
+  "unavailableRasterPdf": "Not compatible with PDF Rasterization",
   "preserveMetadata": "Preserve Metadata",
   "tapInfo": "Tap: info",
   "doubleTapToggle": "Double-tap: toggle",

@@ -1208,7 +1208,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get doubleTapToToggle => 'Appuyez deux fois pour basculer';
 
   @override
-  String get requiresSteganography => 'Nécessite la stéganographie';
+  String get requiresSteganography => 'Requiert la stéganographie';
+
+  @override
+  String get unavailableRasterPdf => 'Incompatible avec la rastérisation PDF';
 
   @override
   String get preserveMetadata => 'Préserver les métadonnées';

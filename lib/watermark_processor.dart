@@ -1136,6 +1136,15 @@ class WatermarkProcessor {
 
     final analysis = await analyzeFileAsync(outputBytes, outPath,
         password: steganographyPassword);
+    final expected = (steganographyText?.isNotEmpty == true)
+        ? steganographyText!
+        : watermarkText;
+
+    bool robustVerified = false;
+    if (useRobustSteganography) {
+      robustVerified = analysis.robustSignature?.startsWith(expected) ?? false;
+    }
+
     return ProcessResult(
         outputPath: outPath,
         outputBytes: outputBytes,
@@ -1143,8 +1152,11 @@ class WatermarkProcessor {
         originalBytes: originalBytes,
         heatmapBytes: heatmapBytes,
         steganographyVerified:
-            analysis.signature != null || analysis.file != null,
-        isPdf: true);
+            analysis.signature != null || analysis.file != null || analysis.integrityVerified,
+        robustVerified: robustVerified,
+        isPdf: true,
+        width: originalPreview.width.round(),
+        height: originalPreview.height.round());
   }
 
   // Isolate entry point for PDF processing with progress reporting
@@ -1302,7 +1314,7 @@ class WatermarkProcessor {
         final pageProgressRange = pageProgressEnd - pageProgressStart;
 
         // Apply watermark field
-        WatermarkFieldHandler.applyWatermarkField(
+        await WatermarkFieldHandler.applyWatermarkField(
           watermarked,
           watermarkText,
           transparency,
@@ -1314,6 +1326,7 @@ class WatermarkProcessor {
           stamps,
           antiAiLevel: antiAiLevel,
           qrConfig: qrConfig,
+          digitallySign: digitallySign,
           watermarkType: watermarkType,
           watermarkImageBytes: watermarkImageBytes,
           onProgress: (progress, message) {
@@ -1417,6 +1430,7 @@ class WatermarkProcessor {
       bool robustVerified = false;
       if ((useSteganography ||
               useRobustSteganography ||
+              digitallySign ||
               hiddenFileName != null) &&
           preview != null) {
         final analysis =
@@ -1425,7 +1439,7 @@ class WatermarkProcessor {
             ? steganographyText!
             : watermarkText;
 
-        if (useSteganography || hiddenFileName != null) {
+        if (useSteganography || hiddenFileName != null || digitallySign) {
           bool allVerified = true;
           if (hiddenFileName != null) {
             allVerified &= (analysis.file != null &&
@@ -1434,6 +1448,9 @@ class WatermarkProcessor {
           if (useSteganography) {
             allVerified &=
                 (analysis.signature?.startsWith(expectedText) ?? false);
+          }
+          if (digitallySign) {
+            allVerified &= analysis.integrityVerified;
           }
           verified = allVerified;
         }

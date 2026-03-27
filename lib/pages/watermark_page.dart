@@ -402,6 +402,14 @@ class WatermarkPageState extends State<WatermarkPage>
           }
           _logoDirectory = prefs.getString('logoDirectory');
           _outputDirectory = prefs.getString('outputDirectory');
+
+          // Final safety check: if rasterizePdf is on, force-disable incompatible features
+          if (_rasterizePdf) {
+            _digitallySign = false;
+            _useSteganography = false;
+            _useRobustSteganography = false;
+            _hideFileWithSteganography = false;
+          }
         });
       }
     } catch (e) {
@@ -681,6 +689,14 @@ class WatermarkPageState extends State<WatermarkPage>
       }
       if (prefs.containsKey('${pKey}qrType')) {
         _qrType = QrType.values[prefs.getInt('${pKey}qrType')!];
+      }
+
+      // Final safety check: if rasterizePdf is on, force-disable incompatible features
+      if (_rasterizePdf) {
+        _digitallySign = false;
+        _useSteganography = false;
+        _useRobustSteganography = false;
+        _hideFileWithSteganography = false;
       }
     });
 
@@ -6228,7 +6244,9 @@ class WatermarkPageState extends State<WatermarkPage>
                                       child: _previewMode == PreviewMode.slider
                                           ? AspectRatio(
                                               aspectRatio: (_processedFiles[index].result.width != null &&
-                                                      _processedFiles[index].result.height != null)
+                                                      _processedFiles[index].result.height != null &&
+                                                      _processedFiles[index].result.width! > 0 &&
+                                                      _processedFiles[index].result.height! > 0)
                                                   ? _processedFiles[index].result.width! /
                                                       _processedFiles[index].result.height!
                                                   : 1.0,
@@ -7531,17 +7549,21 @@ class WatermarkPageState extends State<WatermarkPage>
         icon: Icons.fingerprint,
         enabledColor: Colors.blueAccent,
         isEnabled: _digitallySign,
+        isAvailable: !_rasterizePdf,
+        unavailableReason: _rasterizePdf ? l10n.unavailableRasterPdf : null,
         subtitle: _digitallySign ? 'Integrity protection enabled' : null,
         onToggle: () {
-          setState(() {
-            _digitallySign = !_digitallySign;
+          if (!_rasterizePdf) {
+            setState(() {
+              _digitallySign = !_digitallySign;
+              if (_digitallySign) {
+                _zipOutputs = true; // Auto-enable zip for signing
+              }
+            });
+            _savePreference('digitallySign', _digitallySign);
             if (_digitallySign) {
-              _zipOutputs = true; // Auto-enable zip for signing
+              _savePreference('zipOutputs', true);
             }
-          });
-          _savePreference('digitallySign', _digitallySign);
-          if (_digitallySign) {
-            _savePreference('zipOutputs', true);
           }
         },
         onConfigure: _showExpertOptions,
@@ -7554,23 +7576,27 @@ class WatermarkPageState extends State<WatermarkPage>
         icon: Icons.verified_user_outlined,
         enabledColor: Colors.green,
         isEnabled: _useSteganography,
+        isAvailable: !_rasterizePdf,
+        unavailableReason: _rasterizePdf ? l10n.unavailableRasterPdf : null,
         subtitle: _useSteganography ? l10n.steganographyEnabledHint : null,
         onToggle: () {
-          setState(() {
-            _useSteganography = !_useSteganography;
-            // If disabling steganography, also disable dependent features
-            if (!_useSteganography) {
-              if (_useRobustSteganography) {
-                _useRobustSteganography = false;
-                _savePreference('useRobustSteganography', false);
+          if (!_rasterizePdf) {
+            setState(() {
+              _useSteganography = !_useSteganography;
+              // If disabling steganography, also disable dependent features
+              if (!_useSteganography) {
+                if (_useRobustSteganography) {
+                  _useRobustSteganography = false;
+                  _savePreference('useRobustSteganography', false);
+                }
+                if (_hideFileWithSteganography) {
+                  _hideFileWithSteganography = false;
+                  _savePreference('hideFileWithSteganography', false);
+                }
               }
-              if (_hideFileWithSteganography) {
-                _hideFileWithSteganography = false;
-                _savePreference('hideFileWithSteganography', false);
-              }
-            }
-          });
-          _savePreference('useSteganography', _useSteganography);
+            });
+            _savePreference('useSteganography', _useSteganography);
+          }
         },
         onConfigure: _showSteganographyOptions,
       ),
@@ -7582,11 +7608,12 @@ class WatermarkPageState extends State<WatermarkPage>
         icon: Icons.shield_outlined,
         enabledColor: Colors.indigo,
         isEnabled: _useRobustSteganography,
-        isAvailable: _useSteganography,
-        unavailableReason:
-            _useSteganography ? null : l10n.requiresSteganography,
+        isAvailable: _useSteganography && !_rasterizePdf,
+        unavailableReason: _rasterizePdf
+            ? l10n.unavailableRasterPdf
+            : (_useSteganography ? null : l10n.requiresSteganography),
         onToggle: () {
-          if (_useSteganography) {
+          if (_useSteganography && !_rasterizePdf) {
             setState(() {
               _useRobustSteganography = !_useRobustSteganography;
             });
@@ -7639,12 +7666,13 @@ class WatermarkPageState extends State<WatermarkPage>
         icon: Icons.attachment,
         enabledColor: Colors.brown,
         isEnabled: _hideFileWithSteganography && _hiddenFileBytes != null,
-        isAvailable: _useSteganography,
-        unavailableReason:
-            _useSteganography ? null : l10n.requiresSteganography,
+        isAvailable: _useSteganography && !_rasterizePdf,
+        unavailableReason: _rasterizePdf
+            ? l10n.unavailableRasterPdf
+            : (_useSteganography ? null : l10n.requiresSteganography),
         subtitle: _hiddenFileBytes != null ? l10n.hideFileEnabledHint : null,
         onToggle: () {
-          if (_useSteganography) {
+          if (_useSteganography && !_rasterizePdf) {
             // If no file is selected, open the steganography modal to select one
             if (_hiddenFileBytes == null) {
               _showSteganographyOptions();
@@ -7711,8 +7739,21 @@ class WatermarkPageState extends State<WatermarkPage>
         onToggle: () {
           setState(() {
             _rasterizePdf = !_rasterizePdf;
+            if (_rasterizePdf) {
+              // Disable incompatible features
+              _digitallySign = false;
+              _useSteganography = false;
+              _useRobustSteganography = false;
+              _hideFileWithSteganography = false;
+            }
           });
           _savePreference('rasterizePdf', _rasterizePdf);
+          if (_rasterizePdf) {
+            _savePreference('digitallySign', false);
+            _savePreference('useSteganography', false);
+            _savePreference('useRobustSteganography', false);
+            _savePreference('hideFileWithSteganography', false);
+          }
         },
         onConfigure: _showExpertOptions,
       ),

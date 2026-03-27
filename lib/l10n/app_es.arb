@@ -732,6 +732,7 @@
   "statusDisabled": "Estado: Deshabilitado",
   "doubleTapToToggle": "Toca dos veces para alternar",
   "requiresSteganography": "Requiere esteganografía",
+  "unavailableRasterPdf": "Incompatible con rasterización PDF",
   "preserveMetadata": "Preservar metadatos",
   "tapInfo": "Tocar: info",
   "doubleTapToggle": "Tocar dos veces: alternar",
