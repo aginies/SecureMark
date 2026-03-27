@@ -98,30 +98,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
           'images/guide/share.png',
         ],
       ),
-      _OnboardingExpertSlide(
-        title: l10n.onboardingExpertTitle,
-        cards: [
-          _ExpertCardData(
-            title: l10n.onboardingExpertModeTitle,
-            body: l10n.onboardingExpertNote,
-            icon: Icons.settings,
-            isHighlight: true,
-          ),
-          _ExpertCardData(
-            title: l10n.onboardingSaveProfileTitle,
-            body: l10n.onboardingProfileSave,
-            icon: Icons.save_outlined,
-            image: 'images/guide/save_profile.png',
-          ),
-          _ExpertCardData(
-            title: l10n.onboardingFileAnalyzerTitle,
-            body: l10n.onboardingFileAnalyzerNote,
-            icon: Icons.search_rounded,
-            image: 'images/guide/file_analyser.png',
-          ),
-        ],
+      _OnboardingImageSlide(
+        title: l10n.watermarkCustomizationTitle,
+        body: l10n.watermarkCustomizationSubtitle,
+        image: 'images/guide/options_1.jpg',
       ),
-    ];
+      _OnboardingImageSlide(
+        title: l10n.activeOptionsHelpTitle,
+        body: l10n.onboardingOptionsNote,
+        image: 'images/guide/options_2.jpg',
+      ),
+      ];
 
     return Scaffold(
       body: Stack(
@@ -183,6 +170,67 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OnboardingImageSlide extends StatelessWidget {
+  final String title;
+  final String body;
+  final String image;
+
+  const _OnboardingImageSlide({
+    required this.title,
+    required this.body,
+    required this.image,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 60, 24, 100),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.primary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            body,
+            style: theme.textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Image.asset(
+                image,
+                fit: BoxFit.contain,
+              ),
             ),
           ),
         ],
@@ -488,7 +536,7 @@ class _OnboardingExpertSlide extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 120),
+                  constraints: const BoxConstraints(maxHeight: 220),
                   child: Image.asset(
                     data.image!,
                     fit: BoxFit.contain,

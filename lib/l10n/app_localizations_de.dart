@@ -1119,11 +1119,18 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get onboardingOptionsNote =>
-      'Aktive Optionen sehen (Doppeltippen zum Konfigurieren)';
+      'Doppeltippen zum Aktivieren/Deaktivieren einer Funktion und langes Drücken zum Konfigurieren.';
 
   @override
   String get onboardingFileAnalyzerNote =>
       'Datei-Analysator zur Prüfung auf versteckte Signaturen oder Dateien';
+
+  @override
+  String get watermarkCustomizationTitle => 'Wasserzeichen-Anpassung';
+
+  @override
+  String get watermarkCustomizationSubtitle =>
+      'Wählen Sie zwischen Text oder Logo, passen Sie Farben an und regulieren Sie Dichte und Deckkraft.';
 
   @override
   String get onboardingQrCodeNote =>

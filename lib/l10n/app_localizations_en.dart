@@ -1098,11 +1098,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingOptionsNote =>
-      'See which options are active (double-tap to open the configuration)';
+      'Double-tap to enable or disable a feature, and long-press to configure its settings.';
 
   @override
   String get onboardingFileAnalyzerNote =>
       'File Analyzer to check for hidden SecureMark signature or files';
+
+  @override
+  String get watermarkCustomizationTitle => 'Watermark Customization';
+
+  @override
+  String get watermarkCustomizationSubtitle =>
+      'Choose between Text or Logo, customize colors, and adjust density and opacity.';
 
   @override
   String get onboardingQrCodeNote =>

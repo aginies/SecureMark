@@ -1932,7 +1932,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingOptionsNote.
   ///
   /// In en, this message translates to:
-  /// **'See which options are active (double-tap to open the configuration)'**
+  /// **'Double-tap to enable or disable a feature, and long-press to configure its settings.'**
   String get onboardingOptionsNote;
 
   /// No description provided for @onboardingFileAnalyzerNote.
@@ -1940,6 +1940,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'File Analyzer to check for hidden SecureMark signature or files'**
   String get onboardingFileAnalyzerNote;
+
+  /// No description provided for @watermarkCustomizationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Watermark Customization'**
+  String get watermarkCustomizationTitle;
+
+  /// No description provided for @watermarkCustomizationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose between Text or Logo, customize colors, and adjust density and opacity.'**
+  String get watermarkCustomizationSubtitle;
 
   /// No description provided for @onboardingQrCodeNote.
   ///

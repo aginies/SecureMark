@@ -1119,11 +1119,18 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get onboardingOptionsNote =>
-      'Voir quelles options sont actives (double-tap pour configurer)';
+      'Appuyez deux fois pour activer/désactiver une option, et maintenez enfoncé pour la configurer.';
 
   @override
   String get onboardingFileAnalyzerNote =>
       'L\'analyseur pour vérifier les signatures ou fichiers cachés';
+
+  @override
+  String get watermarkCustomizationTitle => 'Personnalisation du tatouage';
+
+  @override
+  String get watermarkCustomizationSubtitle =>
+      'Choisissez entre Texte ou Logo, personnalisez les couleurs et ajustez la densité et l\'opacité.';
 
   @override
   String get onboardingQrCodeNote =>

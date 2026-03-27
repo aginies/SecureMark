@@ -286,6 +286,20 @@ class WatermarkPageState extends State<WatermarkPage>
   Future<void> _loadPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+
+      String? outputDir = prefs.getString('outputDirectory');
+      if (outputDir == null && !kIsWeb && Platform.isMacOS) {
+        try {
+          final directory = await getDownloadsDirectory();
+          if (directory != null) {
+            outputDir = directory.path;
+            _addLog('Default macOS output directory set to: $outputDir');
+          }
+        } catch (e) {
+          _addLog('Error setting default macOS output directory: $e');
+        }
+      }
+
       if (mounted) {
         setState(() {
           _transparency = prefs.getDouble('transparency') ?? 75.0;
@@ -401,7 +415,7 @@ class WatermarkPageState extends State<WatermarkPage>
             }
           }
           _logoDirectory = prefs.getString('logoDirectory');
-          _outputDirectory = prefs.getString('outputDirectory');
+          _outputDirectory = outputDir;
 
           // Final safety check: if rasterizePdf is on, force-disable incompatible features
           if (_rasterizePdf) {
@@ -988,7 +1002,6 @@ class WatermarkPageState extends State<WatermarkPage>
     _loadBookmarks();
     _loadShader();
     _initPackageInfo();
-    _initOutputDirectory();
     IdentityManager.onLog = _addLog;
     IdentityManager.getIdentityKeyPair().then((_) async {
       final pk = await IdentityManager.getDevicePublicKey();
@@ -1021,24 +1034,6 @@ class WatermarkPageState extends State<WatermarkPage>
       }
     });
     _addLog('✅ Platform method call handler ready');
-  }
-
-  Future<void> _initOutputDirectory() async {
-    if (!kIsWeb && Platform.isMacOS) {
-      try {
-        final directory = await getDownloadsDirectory();
-        if (directory != null) {
-          if (mounted) {
-            setState(() {
-              _outputDirectory = directory.path;
-            });
-          }
-          _addLog('Default macOS output directory set to: ${directory.path}');
-        }
-      } catch (e) {
-        _addLog('Error setting default macOS output directory: $e');
-      }
-    }
   }
 
   Future<void> _initPackageInfo() async {
