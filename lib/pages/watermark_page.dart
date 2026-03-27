@@ -160,10 +160,12 @@ class WatermarkPageState extends State<WatermarkPage>
   double _qrOpacity = 0.8;
 
   // Local Share State
-  List<String> _localIps = [];
+  List<NetworkInterfaceInfo> _networkInterfaces = [];
   int _servingPort = 0;
   String? _sendingFileName;
-  int _selectedLocalIpIndex = 0;
+  int _selectedInterfaceIndex = 0;
+  int _transferProgress = 0;
+  int _transferTotal = 0;
   String? _localEncryptionKey;
   bool _useLocalEncryption = true;
   bool _pushToReceiver = false;
@@ -1590,55 +1592,49 @@ class WatermarkPageState extends State<WatermarkPage>
     final now = DateTime.now();
     final timestamp =
         "${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}";
-    final suggestedName = "securemark_logs_$timestamp.txt";
+    final fileName = "securemark_logs_$timestamp.txt";
 
-    // Let the user choose a location, but if they cancel, save to default internal storage.
-    FileSaveLocation? selectedLocation;
+    // Let the user choose a directory
+    String? selectedDirectory;
     try {
-      selectedLocation = await getSaveLocation(suggestedName: suggestedName);
-    } catch (_) {
-      selectedLocation = null;
+      selectedDirectory = await getDirectoryPath();
+    } catch (e) {
+      _addLog('Error selecting directory: $e');
     }
 
     String logPath;
-    if (selectedLocation != null) {
-      logPath = selectedLocation.path;
+    if (selectedDirectory != null) {
+      // User selected a directory - save there
+      logPath = p.join(selectedDirectory, fileName);
     } else {
-      // Default: write directly to the app's documents directory (no UI prompt).
+      // User cancelled - save to default app documents directory
       final docsDir = await getApplicationDocumentsDirectory();
-      logPath = '${docsDir.path}/securemark_logs_$timestamp.txt';
+      logPath = p.join(docsDir.path, fileName);
     }
 
     final logContent = _logs.join('\n');
 
     try {
-      if (selectedLocation != null) {
-        final logFile = XFile.fromData(
-          Uint8List.fromList(utf8.encode(logContent)),
-          name: suggestedName,
-          mimeType: 'text/plain',
-        );
-        await logFile.saveTo(logPath);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.logsSaved(p.basename(logPath))),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      } else {
-        final File defaultFile = File(logPath);
-        await defaultFile.writeAsString(logContent);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Logs saved to ${p.basename(logPath)}'),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
+      final File logFile = File(logPath);
+      await logFile.writeAsString(logContent);
+      _addLog('Logs saved to: $logPath');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.logsSaved(p.basename(logPath))),
+          duration: const Duration(seconds: 3),
+        ),
+      );
     } catch (e) {
       _addLog('Error saving logs: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error saving logs: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -2638,9 +2634,21 @@ class WatermarkPageState extends State<WatermarkPage>
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    // Get local IPs
-    _localIps = await LocalServerManager.getLocalIps();
-    _selectedLocalIpIndex = 0;
+    // Get network interfaces with internal/external classification
+    _networkInterfaces = await LocalServerManager.getNetworkInterfaces();
+    _selectedInterfaceIndex = 0;
+
+    // Log detected interfaces
+    _addLog('📡 Detected ${_networkInterfaces.length} network interfaces:');
+    for (var i = 0; i < _networkInterfaces.length; i++) {
+      final iface = _networkInterfaces[i];
+      _addLog(
+          '  [$i] ${iface.ipAddress} (${iface.interfaceName}) - ${iface.isExternal ? "External" : "Internal"}');
+    }
+    if (_networkInterfaces.isNotEmpty) {
+      _addLog(
+          '✓ Default selected: ${_networkInterfaces[0].ipAddress} (${_networkInterfaces[0].interfaceName})');
+    }
 
     if (!mounted) return;
 
@@ -2740,7 +2748,10 @@ class WatermarkPageState extends State<WatermarkPage>
                   ? Text(l10n.encryptionDisabledWarning,
                       style: TextStyle(
                           color: theme.colorScheme.error, fontSize: 11))
-                  : null,
+                  : const Text(
+                      '⚠️ Large encrypted files (>500 MB) may cause Out of Memory on download',
+                      style: TextStyle(fontSize: 11, color: Colors.orange),
+                    ),
               secondary: Icon(Icons.enhanced_encryption_outlined,
                   size: 20,
                   color: _useLocalEncryption
@@ -2766,6 +2777,99 @@ class WatermarkPageState extends State<WatermarkPage>
             ),
             const Divider(),
 
+            // Network Interface Selection
+            if (!_pushToReceiver && _networkInterfaces.isNotEmpty) ...[
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Network Interface',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButton<int>(
+                      value: _selectedInterfaceIndex,
+                      isExpanded: true,
+                      items: List.generate(
+                        _networkInterfaces.length,
+                        (i) => DropdownMenuItem(
+                          value: i,
+                          child: Row(
+                            children: [
+                              Icon(
+                                _networkInterfaces[i].isExternal
+                                    ? Icons.public
+                                    : Icons.home_outlined,
+                                size: 18,
+                                color: _networkInterfaces[i].isExternal
+                                    ? Colors.orange
+                                    : Colors.green,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _networkInterfaces[i].ipAddress,
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _networkInterfaces[i].isExternal
+                                    ? 'External'
+                                    : 'Internal',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: _networkInterfaces[i].isExternal
+                                      ? Colors.orange
+                                      : Colors.green,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          _selectedInterfaceIndex = value!;
+                          _addLog(
+                              'Selected interface: ${_networkInterfaces[value].ipAddress}');
+                        });
+                      },
+                    ),
+                    if (_networkInterfaces[_selectedInterfaceIndex].isExternal)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Row(
+                          children: [
+                            Icon(Icons.warning_amber_rounded,
+                                size: 16, color: Colors.orange),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Warning: External IP detected! May be accessible from internet.',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.orange.shade700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const Divider(),
+            ],
+
             // Pick Custom File Button
             ListTile(
               title: Text(l10n.pickAnyFile,
@@ -2774,14 +2878,23 @@ class WatermarkPageState extends State<WatermarkPage>
               onTap: () async {
                 final result = await FilePicker.platform.pickFiles();
                 if (result != null && result.files.single.path != null) {
-                  final file = File(result.files.single.path!);
-                  final bytes = await file.readAsBytes();
+                  final filePath = result.files.single.path!;
                   final fileName = result.files.single.name;
-                  if (_pushToReceiver) {
-                    _showPushQrScanner(bytes: bytes, fileName: fileName);
+
+                  if (_pushToReceiver || _useLocalEncryption) {
+                    // Need bytes in memory for push or encryption
+                    final bytes = await File(filePath).readAsBytes();
+                    if (_pushToReceiver) {
+                      _showPushQrScanner(bytes: bytes, fileName: fileName);
+                    } else {
+                      await _startServingEncrypted(
+                          bytes, fileName, setDialogState,
+                          filePath: filePath);
+                    }
                   } else {
-                    await _startServingEncrypted(
-                        bytes, fileName, setDialogState);
+                    // Unencrypted: Stream from file (memory-efficient!)
+                    await _startServingEncrypted(null, fileName, setDialogState,
+                        filePath: filePath);
                   }
                 }
               },
@@ -2835,12 +2948,27 @@ class WatermarkPageState extends State<WatermarkPage>
                     title: Text(fileName, style: const TextStyle(fontSize: 14)),
                     leading: const Icon(Icons.description_outlined),
                     onTap: () async {
-                      final bytes = file.result.outputBytes;
                       if (_pushToReceiver) {
+                        // Push mode needs bytes in memory
+                        final bytes = file.result.outputBytes;
                         _showPushQrScanner(bytes: bytes, fileName: fileName);
-                      } else {
+                      } else if (_useLocalEncryption) {
+                        // Encryption needs bytes in memory
+                        final bytes = file.result.outputBytes;
                         await _startServingEncrypted(
-                            bytes, fileName, setDialogState);
+                          bytes,
+                          fileName,
+                          setDialogState,
+                          filePath: file.result.outputPath,
+                        );
+                      } else {
+                        // Unencrypted: Stream from file (memory-efficient!)
+                        await _startServingEncrypted(
+                          null, // No bytes - will use filePath instead
+                          fileName,
+                          setDialogState,
+                          filePath: file.result.outputPath,
+                        );
                       }
                     },
                   );
@@ -2850,25 +2978,84 @@ class WatermarkPageState extends State<WatermarkPage>
           ] else ...[
             Text(l10n.sendingFile(_sendingFileName ?? '')),
             const SizedBox(height: 8),
-            if (_localIps.length > 1)
+            // Network interface selection with internal/external indicator
+            if (_networkInterfaces.length > 1)
               DropdownButton<int>(
-                value: _selectedLocalIpIndex,
+                value: _selectedInterfaceIndex,
                 isExpanded: true,
                 items: List.generate(
-                    _localIps.length,
+                    _networkInterfaces.length,
                     (i) => DropdownMenuItem(
                           value: i,
-                          child: Text(_localIps[i]),
+                          child: Row(
+                            children: [
+                              Icon(
+                                _networkInterfaces[i].isExternal
+                                    ? Icons.public
+                                    : Icons.home_outlined,
+                                size: 16,
+                                color: _networkInterfaces[i].isExternal
+                                    ? Colors.orange
+                                    : Colors.green,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _networkInterfaces[i].ipAddress,
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ),
+                              Text(
+                                _networkInterfaces[i].isExternal
+                                    ? 'External'
+                                    : 'Internal',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: _networkInterfaces[i].isExternal
+                                      ? Colors.orange
+                                      : Colors.green,
+                                ),
+                              ),
+                            ],
+                          ),
                         )),
                 onChanged: (val) {
                   if (val != null) {
-                    setDialogState(() => _selectedLocalIpIndex = val);
+                    setDialogState(() => _selectedInterfaceIndex = val);
                   }
                 },
               )
-            else if (_localIps.isNotEmpty)
-              Text(_localIps.first,
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
+            else if (_networkInterfaces.isNotEmpty)
+              Row(
+                children: [
+                  Icon(
+                    _networkInterfaces.first.isExternal
+                        ? Icons.public
+                        : Icons.home_outlined,
+                    size: 16,
+                    color: _networkInterfaces.first.isExternal
+                        ? Colors.orange
+                        : Colors.green,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _networkInterfaces.first.ipAddress,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _networkInterfaces.first.isExternal
+                        ? '(External)'
+                        : '(Internal)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: _networkInterfaces.first.isExternal
+                          ? Colors.orange
+                          : Colors.green,
+                    ),
+                  ),
+                ],
+              ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
@@ -2877,26 +3064,60 @@ class WatermarkPageState extends State<WatermarkPage>
                 borderRadius: BorderRadius.circular(8),
               ),
               child: QrImageView(
-                data:
-                    'http://${_localIps[_selectedLocalIpIndex]}:$_servingPort/${LocalServerManager.token}/download?key=$_localEncryptionKey',
+                data: _localEncryptionKey != null
+                    ? 'http://${_networkInterfaces[_selectedInterfaceIndex].ipAddress}:$_servingPort/${LocalServerManager.token}/download?key=$_localEncryptionKey'
+                    : 'http://${_networkInterfaces[_selectedInterfaceIndex].ipAddress}:$_servingPort/${LocalServerManager.token}/download',
                 version: QrVersions.auto,
                 size: 200.0,
               ),
             ),
             const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () {
-                LocalServerManager.stopServer();
-                setDialogState(() {
-                  _servingPort = 0;
-                  _sendingFileName = null;
-                });
-              },
-              icon: const Icon(Icons.stop),
-              label: Text(l10n.reset),
-              style: ElevatedButton.styleFrom(
-                foregroundColor: theme.colorScheme.error,
+            // Progress display (only shown during active transfer)
+            if (_transferTotal > 0) ...[
+              LinearProgressIndicator(
+                value: _transferProgress / _transferTotal,
               ),
+              const SizedBox(height: 8),
+              Text(
+                'Uploading: ${(_transferProgress / (1024 * 1024)).toStringAsFixed(1)} / ${(_transferTotal / (1024 * 1024)).toStringAsFixed(1)} MB (${((_transferProgress / _transferTotal) * 100).toStringAsFixed(1)}%)',
+                style: const TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+            ],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    await LocalServerManager.cancelTransfer();
+                    setDialogState(() {
+                      _servingPort = 0;
+                      _sendingFileName = null;
+                      _transferProgress = 0;
+                      _transferTotal = 0;
+                    });
+                  },
+                  icon: const Icon(Icons.cancel_outlined),
+                  label: const Text('Cancel'),
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: theme.colorScheme.error,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    await LocalServerManager.stopServer();
+                    setDialogState(() {
+                      _servingPort = 0;
+                      _sendingFileName = null;
+                      _transferProgress = 0;
+                      _transferTotal = 0;
+                    });
+                  },
+                  icon: const Icon(Icons.stop),
+                  label: Text(l10n.reset),
+                ),
+              ],
             ),
           ],
         ],
@@ -2926,19 +3147,33 @@ class WatermarkPageState extends State<WatermarkPage>
           Text(l10n.waitingForFile,
               style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          if (_localIps.length > 1)
+          if (_networkInterfaces.length > 1)
             DropdownButton<int>(
-              value: _selectedLocalIpIndex,
+              value: _selectedInterfaceIndex,
               isExpanded: true,
               items: List.generate(
-                  _localIps.length,
+                  _networkInterfaces.length,
                   (i) => DropdownMenuItem(
                         value: i,
-                        child: Text(_localIps[i]),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _networkInterfaces[i].isExternal
+                                  ? Icons.public
+                                  : Icons.home_outlined,
+                              size: 16,
+                              color: _networkInterfaces[i].isExternal
+                                  ? Colors.orange
+                                  : Colors.green,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(_networkInterfaces[i].ipAddress),
+                          ],
+                        ),
                       )),
               onChanged: (val) {
                 if (val != null) {
-                  setDialogState(() => _selectedLocalIpIndex = val);
+                  setDialogState(() => _selectedInterfaceIndex = val);
                 }
               },
             ),
@@ -2949,7 +3184,7 @@ class WatermarkPageState extends State<WatermarkPage>
                 color: Colors.white, borderRadius: BorderRadius.circular(8)),
             child: QrImageView(
               data:
-                  'securemark://receive?addr=${_localIps[_selectedLocalIpIndex]}&port=$_servingPort&token=${LocalServerManager.token}',
+                  'securemark://receive?addr=${_networkInterfaces[_selectedInterfaceIndex].ipAddress}&port=$_servingPort&token=${LocalServerManager.token}',
               version: QrVersions.auto,
               size: 200.0,
             ),
@@ -3069,18 +3304,144 @@ class WatermarkPageState extends State<WatermarkPage>
           ),
         ),
         const SizedBox(height: 16),
+
+        // Network Interface Selection (before starting server)
+        if (_networkInterfaces.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Network Interface',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                DropdownButton<int>(
+                  value: _selectedInterfaceIndex,
+                  isExpanded: true,
+                  items: List.generate(
+                    _networkInterfaces.length,
+                    (i) => DropdownMenuItem(
+                      value: i,
+                      child: Row(
+                        children: [
+                          Icon(
+                            _networkInterfaces[i].isExternal
+                                ? Icons.public
+                                : Icons.home_outlined,
+                            size: 18,
+                            color: _networkInterfaces[i].isExternal
+                                ? Colors.orange
+                                : Colors.green,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _networkInterfaces[i].ipAddress,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _networkInterfaces[i].isExternal
+                                ? 'External'
+                                : 'Internal',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: _networkInterfaces[i].isExternal
+                                  ? Colors.orange
+                                  : Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      _selectedInterfaceIndex = value!;
+                      _addLog(
+                          'Selected interface: ${_networkInterfaces[value].ipAddress}');
+                    });
+                  },
+                ),
+                if (_networkInterfaces[_selectedInterfaceIndex].isExternal)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning_amber_rounded,
+                            size: 16, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Warning: External IP detected! May be accessible from internet.',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.orange.shade700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+
         Text(l10n.localShareInstructions, textAlign: TextAlign.center),
         const SizedBox(height: 8),
         OutlinedButton.icon(
           onPressed: () async {
             final port = await LocalServerManager.startReceiveServer(
-                (bytes, name, addr) {
-              _addLog('Received file $name from $addr');
-              _saveDownloadedFile(bytes, name, l10n: l10n);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.fileReceived(addr))),
+                (fileName, remoteAddr, {String? filePath}) {
+              try {
+                _addLog('Received file $fileName from $remoteAddr');
+
+                if (filePath == null) {
+                  _addLog('❌ Error: Cannot save file - no file path provided');
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: File transfer failed'),
+                        backgroundColor: Theme.of(context).colorScheme.error,
+                      ),
+                    );
+                  }
+                  return;
+                }
+
+                // Use memory-efficient file path (no reloading into memory!)
+                _saveDownloadedFile(
+                  null, // No bytes - using file path instead
+                  fileName,
+                  l10n: l10n,
+                  sourceFilePath: filePath,
                 );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.fileReceived(remoteAddr))),
+                  );
+                }
+              } catch (e, stackTrace) {
+                _addLog('❌ Error handling received file: $e');
+                _addLog('Stack trace: $stackTrace');
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error saving file: $e'),
+                      backgroundColor: Theme.of(context).colorScheme.error,
+                    ),
+                  );
+                }
               }
             }, onDone: () {
               if (mounted) {
@@ -3089,7 +3450,19 @@ class WatermarkPageState extends State<WatermarkPage>
                   _showReceiveQr = false;
                 });
               }
-            });
+            },
+                bindAddress: _networkInterfaces.isNotEmpty
+                    ? _networkInterfaces[_selectedInterfaceIndex].ipAddress
+                    : null);
+
+            // Add detailed logging for debugging
+            final selectedIp = _networkInterfaces.isNotEmpty
+                ? _networkInterfaces[_selectedInterfaceIndex].ipAddress
+                : 'unknown';
+            _addLog('📡 Receive server listening on: $selectedIp:$port');
+            _addLog(
+                '🔗 Upload URL: http://$selectedIp:$port/${LocalServerManager.token}/upload');
+
             setDialogState(() {
               _servingPort = port;
               _showReceiveQr = true;
@@ -3219,8 +3592,10 @@ class WatermarkPageState extends State<WatermarkPage>
     }
   }
 
+  /// Start serving file - supports both bytes and file path for streaming
   Future<void> _startServingEncrypted(
-      Uint8List bytes, String fileName, StateSetter setDialogState) async {
+      Uint8List? bytes, String fileName, StateSetter setDialogState,
+      {String? filePath}) async {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
@@ -3272,9 +3647,26 @@ class WatermarkPageState extends State<WatermarkPage>
 
     try {
       if (_useLocalEncryption) {
+        if (bytes == null) {
+          throw ArgumentError(
+              'Encryption requires bytes in memory (cannot stream from file)');
+        }
+
+        // Check file size and warn about large encrypted files
+        final fileSizeMB = bytes.length / (1024 * 1024);
+        if (fileSizeMB > 500) {
+          addLog(
+              '⚠️ Warning: Encrypting large file (${fileSizeMB.toStringAsFixed(1)} MB)');
+          addLog(
+              '   Large encrypted files may cause Out of Memory on receiver!');
+          addLog('   Consider disabling encryption for files >500 MB.');
+          _addLog(
+              '⚠️ Encrypting ${fileSizeMB.toStringAsFixed(1)} MB file - may cause OOM on download!');
+        }
+
         addLog(l10n.generatingKey);
-        final key = LocalServerManager.token ??
-            'sm-${DateTime.now().millisecondsSinceEpoch}';
+        // Generate separate encryption key (independent from URL access token)
+        final key = LocalServerManager.generateEncryptionKey();
         _localEncryptionKey = key;
         await Future.delayed(const Duration(milliseconds: 500));
         progress = 0.3;
@@ -3289,17 +3681,39 @@ class WatermarkPageState extends State<WatermarkPage>
 
         addLog(l10n.startingServer);
         final port = await LocalServerManager.startServer(
-            encryptedBytes, fileName, onDone: () {
-          if (mounted) {
+          encryptedBytes,
+          fileName,
+          bindAddress: _networkInterfaces.isNotEmpty
+              ? _networkInterfaces[_selectedInterfaceIndex].ipAddress
+              : null,
+          onProgress: (sent, total) {
             setDialogState(() {
-              _servingPort = 0;
-              _sendingFileName = null;
+              _transferProgress = sent;
+              _transferTotal = total;
             });
-          }
-        });
+          },
+          onDone: () {
+            if (mounted) {
+              setDialogState(() {
+                _servingPort = 0;
+                _sendingFileName = null;
+                _transferProgress = 0;
+                _transferTotal = 0;
+              });
+            }
+          },
+        );
         await Future.delayed(const Duration(milliseconds: 500));
         progress = 1.0;
         addLog(l10n.serverStarted(port));
+
+        // Add detailed logging for debugging
+        final selectedIp = _networkInterfaces.isNotEmpty
+            ? _networkInterfaces[_selectedInterfaceIndex].ipAddress
+            : 'unknown';
+        _addLog('📡 Server listening on: $selectedIp:$port');
+        _addLog(
+            '🔗 Access URL: http://$selectedIp:$port/${LocalServerManager.token}/download');
 
         await Future.delayed(const Duration(milliseconds: 500));
         if (mounted) Navigator.of(context, rootNavigator: true).pop();
@@ -3311,17 +3725,75 @@ class WatermarkPageState extends State<WatermarkPage>
       } else {
         _localEncryptionKey = null;
         addLog(l10n.startingServer);
-        final port =
-            await LocalServerManager.startServer(bytes, fileName, onDone: () {
-          if (mounted) {
-            setDialogState(() {
-              _servingPort = 0;
-              _sendingFileName = null;
-            });
-          }
-        });
+
+        // Use streaming from file path if available (memory-efficient)
+        final int port;
+        if (filePath != null && await File(filePath).exists()) {
+          addLog('Using streaming transfer (memory-efficient)');
+          port = await LocalServerManager.startServerFromFile(
+            filePath,
+            bindAddress: _networkInterfaces.isNotEmpty
+                ? _networkInterfaces[_selectedInterfaceIndex].ipAddress
+                : null,
+            onProgress: (sent, total) {
+              setDialogState(() {
+                _transferProgress = sent;
+                _transferTotal = total;
+              });
+            },
+            onDone: () {
+              if (mounted) {
+                setDialogState(() {
+                  _servingPort = 0;
+                  _sendingFileName = null;
+                  _transferProgress = 0;
+                  _transferTotal = 0;
+                });
+              }
+            },
+          );
+        } else if (bytes != null) {
+          // Fallback to in-memory transfer
+          addLog(
+              'Using in-memory transfer (${(bytes.length / (1024 * 1024)).toStringAsFixed(1)} MB)');
+          port = await LocalServerManager.startServer(
+            bytes,
+            fileName,
+            bindAddress: _networkInterfaces.isNotEmpty
+                ? _networkInterfaces[_selectedInterfaceIndex].ipAddress
+                : null,
+            onProgress: (sent, total) {
+              setDialogState(() {
+                _transferProgress = sent;
+                _transferTotal = total;
+              });
+            },
+            onDone: () {
+              if (mounted) {
+                setDialogState(() {
+                  _servingPort = 0;
+                  _sendingFileName = null;
+                  _transferProgress = 0;
+                  _transferTotal = 0;
+                });
+              }
+            },
+          );
+        } else {
+          throw ArgumentError(
+              'Either bytes or filePath must be provided for unencrypted transfer');
+        }
+
         progress = 1.0;
         addLog(l10n.serverStarted(port));
+
+        // Add detailed logging for debugging
+        final selectedIp = _networkInterfaces.isNotEmpty
+            ? _networkInterfaces[_selectedInterfaceIndex].ipAddress
+            : 'unknown';
+        _addLog('📡 Server listening on: $selectedIp:$port');
+        _addLog(
+            '🔗 Access URL: http://$selectedIp:$port/${LocalServerManager.token}/download');
 
         await Future.delayed(const Duration(milliseconds: 500));
         if (mounted) Navigator.of(context, rootNavigator: true).pop();
@@ -3430,6 +3902,7 @@ class WatermarkPageState extends State<WatermarkPage>
       final uri = Uri.parse(url);
       final key = uri.queryParameters['key'];
 
+      addLog('Connecting to: ${uri.host}:${uri.port}${uri.path}');
       addLog(l10n.connectingToServer);
 
       final client = http.Client();
@@ -3440,31 +3913,11 @@ class WatermarkPageState extends State<WatermarkPage>
       if (response.statusCode == 200) {
         final totalBytes = response.contentLength ?? 0;
         int receivedBytes = 0;
-        final List<int> byteBuffer = [];
         final startTime = DateTime.now();
 
         addLog(l10n.downloadingFile(''));
 
-        await for (final chunk in response.stream) {
-          byteBuffer.addAll(chunk);
-          receivedBytes += chunk.length;
-
-          final now = DateTime.now();
-          final duration = now.difference(startTime).inMilliseconds / 1000.0;
-          if (duration > 0) {
-            final speed = (receivedBytes / 1024.0 / 1024.0) / duration; // MB/s
-            speedText = '${speed.toStringAsFixed(2)} MB/s';
-          }
-
-          if (totalBytes > 0) {
-            progressValue = receivedBytes / totalBytes;
-          }
-          _progressListener?.call();
-        }
-
-        final bytes = Uint8List.fromList(byteBuffer);
-        addLog(l10n.connectionEstablished);
-
+        // Get filename early
         String fileName = 'downloaded_file';
         final disp = response.headers['content-disposition'];
         if (disp != null && disp.contains('filename=')) {
@@ -3474,25 +3927,111 @@ class WatermarkPageState extends State<WatermarkPage>
           if (fileName == 'download') fileName = 'securemark_file';
         }
 
-        Uint8List finalBytes = bytes;
+        // Check if encrypted (needs in-memory processing)
+        final isEncrypted = key != null;
 
-        if (key != null) {
+        if (isEncrypted) {
+          // Encrypted: Must load into memory for HMAC verification & decryption
+          addLog(
+              'Downloading encrypted file (${(totalBytes / (1024 * 1024)).toStringAsFixed(1)} MB)...');
+          final BytesBuilder builder = BytesBuilder();
+
+          await for (final chunk in response.stream) {
+            builder.add(chunk);
+            receivedBytes += chunk.length;
+
+            final now = DateTime.now();
+            final duration = now.difference(startTime).inMilliseconds / 1000.0;
+            if (duration > 0) {
+              final speed =
+                  (receivedBytes / 1024.0 / 1024.0) / duration; // MB/s
+              speedText = '${speed.toStringAsFixed(2)} MB/s';
+            }
+
+            if (totalBytes > 0) {
+              progressValue =
+                  (receivedBytes / totalBytes * 0.7).clamp(0.0, 0.7);
+            }
+            _progressListener?.call();
+          }
+
+          final bytes = builder.toBytes();
+          addLog(l10n.connectionEstablished);
+
           addLog(l10n.decryptingPayload);
+          progressValue = 0.75;
+          _progressListener?.call();
+
           // Use compute for decryption
           final decrypted =
               await compute(_decryptBytesTask, {'data': bytes, 'key': key});
           if (decrypted == null) {
             throw Exception('Decryption failed. Wrong key or corrupted data.');
           }
-          finalBytes = decrypted;
+
           progressValue = 1.0;
+          _progressListener?.call();
+
+          _stopStopwatch();
+          _progressListener = null;
+          if (mounted) Navigator.of(context, rootNavigator: true).pop();
+
+          await _saveDownloadedFile(decrypted, fileName, l10n: l10n);
+        } else {
+          // Unencrypted: Stream directly to file (memory-efficient!)
+          addLog(
+              'Streaming to disk (${(totalBytes / (1024 * 1024)).toStringAsFixed(1)} MB)...');
+
+          // Create temp file for streaming
+          final tempDir = await Directory.systemTemp.createTemp('download_');
+          final tempFile = File(p.join(tempDir.path, fileName));
+          final sink = tempFile.openWrite();
+
+          try {
+            await for (final chunk in response.stream) {
+              sink.add(chunk);
+              receivedBytes += chunk.length;
+
+              final now = DateTime.now();
+              final duration =
+                  now.difference(startTime).inMilliseconds / 1000.0;
+              if (duration > 0) {
+                final speed =
+                    (receivedBytes / 1024.0 / 1024.0) / duration; // MB/s
+                speedText = '${speed.toStringAsFixed(2)} MB/s';
+              }
+
+              if (totalBytes > 0) {
+                progressValue = (receivedBytes / totalBytes).clamp(0.0, 1.0);
+              }
+              _progressListener?.call();
+            }
+
+            await sink.flush();
+            await sink.close();
+
+            addLog(l10n.connectionEstablished);
+
+            _stopStopwatch();
+            _progressListener = null;
+            if (mounted) Navigator.of(context, rootNavigator: true).pop();
+
+            // Save using file path (memory-efficient - no reloading!)
+            await _saveDownloadedFile(
+              null,
+              fileName,
+              l10n: l10n,
+              sourceFilePath: tempFile.path,
+            );
+
+            // Cleanup temp
+            await tempDir.delete(recursive: true);
+          } catch (e) {
+            await sink.close();
+            await tempDir.delete(recursive: true);
+            rethrow;
+          }
         }
-
-        _stopStopwatch();
-        _progressListener = null;
-        if (mounted) Navigator.of(context, rootNavigator: true).pop();
-
-        await _saveDownloadedFile(finalBytes, fileName, l10n: l10n);
       } else {
         throw Exception('Server returned ${response.statusCode}');
       }
@@ -3501,7 +4040,13 @@ class WatermarkPageState extends State<WatermarkPage>
       _progressListener = null;
       if (mounted) Navigator.of(context, rootNavigator: true).pop();
 
-      _addLog('Error downloading file: $e');
+      final uri = Uri.tryParse(url);
+      _addLog('❌ Download failed: $e');
+      if (uri != null) {
+        _addLog('   Target: ${uri.host}:${uri.port}');
+        _addLog('   Path: ${uri.path}');
+      }
+      _addLog('   Error type: ${e.runtimeType}');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -3512,23 +4057,33 @@ class WatermarkPageState extends State<WatermarkPage>
     }
   }
 
-  Future<void> _saveDownloadedFile(Uint8List bytes, String fileName,
-      {AppLocalizations? l10n}) async {
+  /// Save downloaded file - accepts either bytes or a file path for memory efficiency
+  Future<void> _saveDownloadedFile(Uint8List? bytes, String fileName,
+      {AppLocalizations? l10n, String? sourceFilePath}) async {
     final effectiveL10n = l10n ?? AppLocalizations.of(context)!;
-
-    // Create a temporary file to use our existing saving logic
-    final tempDir = await getTemporaryDirectory();
-    final tempPath = p.join(tempDir.path, fileName);
-    final tempFile = File(tempPath);
-    await tempFile.writeAsBytes(bytes);
-
-    _tempFiles.add(tempPath);
 
     final String? outDir = _outputDirectory;
     if (outDir != null) {
       final outputPath = p.join(outDir, fileName);
-      await File(outputPath).writeAsBytes(bytes);
-      _addLog('Saved downloaded file to: $outputPath');
+
+      if (sourceFilePath != null) {
+        // Memory-efficient: Copy file instead of loading into memory
+        await File(sourceFilePath).copy(outputPath);
+        _addLog('Saved downloaded file to: $outputPath (streamed)');
+      } else if (bytes != null) {
+        // In-memory: Write bytes
+        await File(outputPath).writeAsBytes(bytes);
+        _addLog('Saved downloaded file to: $outputPath');
+
+        // Also create temp file for consistency
+        final tempDir = await getTemporaryDirectory();
+        final tempPath = p.join(tempDir.path, fileName);
+        await File(tempPath).writeAsBytes(bytes);
+        _tempFiles.add(tempPath);
+      } else {
+        throw ArgumentError('Either bytes or sourceFilePath must be provided');
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(effectiveL10n.fileSaved(fileName))),
@@ -3536,16 +4091,33 @@ class WatermarkPageState extends State<WatermarkPage>
       }
     } else {
       // Prompt user to save if no output dir
-      final result = await FilePicker.platform.saveFile(
-        fileName: fileName,
-        bytes: bytes,
-      );
-      if (result != null) {
-        _addLog('Saved downloaded file to: $result');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(effectiveL10n.fileSaved(fileName))),
-          );
+      if (bytes != null) {
+        final result = await FilePicker.platform.saveFile(
+          fileName: fileName,
+          bytes: bytes,
+        );
+        if (result != null) {
+          _addLog('Saved downloaded file to: $result');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(effectiveL10n.fileSaved(fileName))),
+            );
+          }
+        }
+      } else if (sourceFilePath != null) {
+        // For streaming: read bytes for FilePicker (unavoidable for picker)
+        final fileBytes = await File(sourceFilePath).readAsBytes();
+        final result = await FilePicker.platform.saveFile(
+          fileName: fileName,
+          bytes: fileBytes,
+        );
+        if (result != null) {
+          _addLog('Saved downloaded file to: $result');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(effectiveL10n.fileSaved(fileName))),
+            );
+          }
         }
       }
     }
