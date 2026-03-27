@@ -7128,7 +7128,7 @@ class WatermarkPageState extends State<WatermarkPage>
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -7187,11 +7187,11 @@ class WatermarkPageState extends State<WatermarkPage>
             if (_watermarkType == WatermarkType.text) ...[
               Center(
                 child: Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
+                  spacing: 12,
+                  runSpacing: 12,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    // Random Color Square
+                    // Random Color Rectangle
                     InkWell(
                       onTap: _processing ? null : () => _updateColorMode(true),
                       borderRadius: BorderRadius.circular(4),
@@ -7199,8 +7199,8 @@ class WatermarkPageState extends State<WatermarkPage>
                         duration: const Duration(milliseconds: 200),
                         opacity: _useRandomColor ? 1.0 : 0.4,
                         child: Container(
-                          width: 37,
-                          height: 37,
+                          width: 50,
+                          height: 34,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
@@ -7258,8 +7258,8 @@ class WatermarkPageState extends State<WatermarkPage>
                           duration: const Duration(milliseconds: 200),
                           opacity: isSelected ? 1.0 : 0.4,
                           child: Container(
-                            width: 37,
-                            height: 37,
+                            width: 34,
+                            height: 34,
                             decoration: BoxDecoration(
                               color: color,
                               shape: BoxShape.circle,
