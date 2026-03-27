@@ -57,6 +57,8 @@
 	<string>SecureMark needs access to the camera to take photos and apply watermarks directly.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>SecureMark needs access to your photo library to select images for watermarking.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>SecureMark uses the local network to share and receive files between devices.</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
