@@ -1,7 +1,20 @@
 import 'dart:math';
+import 'package:flutter/material.dart';
 
 /// Color conversion utilities for watermark generation
 class ColorUtils {
+  /// Returns a shadow color that is visible in both light and dark themes.
+  ///
+  /// In dark mode, it returns white with a very low opacity.
+  /// In light mode, it returns the provided [color] (defaulting to theme shadow) with [alpha].
+  static Color getAdaptiveShadowColor(ThemeData theme,
+      {Color? color, double alpha = 0.2}) {
+    if (theme.brightness == Brightness.dark) {
+      return Colors.white.withValues(alpha: 0.12);
+    }
+    return (color ?? theme.colorScheme.shadow).withValues(alpha: alpha);
+  }
+
   // ITU-R BT.601 standard coefficients for RGB ↔ YCbCr conversion
 
   /// RGB to Y (luminance) conversion coefficients

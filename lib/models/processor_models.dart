@@ -12,6 +12,7 @@ class ProcessResult {
     this.isPdf = false,
     this.width,
     this.height,
+    this.appliedFeatures = const [],
   });
 
   final String outputPath;
@@ -24,6 +25,7 @@ class ProcessResult {
   final bool isPdf;
   final int? width;
   final int? height;
+  final List<String> appliedFeatures;
 }
 
 class ExtractedFileResult {

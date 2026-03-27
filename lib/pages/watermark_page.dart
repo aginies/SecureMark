@@ -37,6 +37,7 @@ import '../widgets/watermark_shader_painter.dart';
 import '../main.dart';
 import '../watermark_error.dart';
 import '../models/processor_models.dart';
+import '../utils/color_utils.dart';
 import '../utils/identity_manager.dart';
 import '../utils/local_server_manager.dart';
 import '../steganography/encryption_utils.dart';
@@ -722,13 +723,27 @@ class WatermarkPageState extends State<WatermarkPage>
           break;
 
         case SettingsProfile.secureIdentity:
-          if (!prefs.containsKey('${pKey}targetSize')) _targetSize = 1280;
-          if (!prefs.containsKey('${pKey}transparency')) _transparency = 50;
-          if (!prefs.containsKey('${pKey}density')) _density = 50;
-          if (!prefs.containsKey('${pKey}jpegQuality')) _jpegQuality = 75;
-          if (!prefs.containsKey('${pKey}antiAiLevel')) _antiAiLevel = 100;
-          if (!prefs.containsKey('${pKey}useAiCloaking')) _useAiCloaking = true;
-          if (!prefs.containsKey('${pKey}digitallySign')) _digitallySign = false;
+          if (!prefs.containsKey('${pKey}targetSize')) {
+            _targetSize = 1280;
+          }
+          if (!prefs.containsKey('${pKey}transparency')) {
+            _transparency = 50;
+          }
+          if (!prefs.containsKey('${pKey}density')) {
+            _density = 50;
+          }
+          if (!prefs.containsKey('${pKey}jpegQuality')) {
+            _jpegQuality = 75;
+          }
+          if (!prefs.containsKey('${pKey}antiAiLevel')) {
+            _antiAiLevel = 100;
+          }
+          if (!prefs.containsKey('${pKey}useAiCloaking')) {
+            _useAiCloaking = true;
+          }
+          if (!prefs.containsKey('${pKey}digitallySign')) {
+            _digitallySign = false;
+          }
           if (!prefs.containsKey('${pKey}useSteganography')) {
             _useSteganography = true;
           }
@@ -2740,7 +2755,8 @@ class WatermarkPageState extends State<WatermarkPage>
             SwitchListTile(
               title: const Text("Push to Receiver",
                   style: TextStyle(fontSize: 14)),
-              subtitle: const Text("Scan a receiver's QR code after selecting a file",
+              subtitle: const Text(
+                  "Scan a receiver's QR code after selecting a file",
                   style: TextStyle(fontSize: 11)),
               secondary: const Icon(Icons.qr_code_scanner, size: 20),
               value: _pushToReceiver,
@@ -2764,7 +2780,8 @@ class WatermarkPageState extends State<WatermarkPage>
                   if (_pushToReceiver) {
                     _showPushQrScanner(bytes: bytes, fileName: fileName);
                   } else {
-                    await _startServingEncrypted(bytes, fileName, setDialogState);
+                    await _startServingEncrypted(
+                        bytes, fileName, setDialogState);
                   }
                 }
               },
@@ -5395,8 +5412,9 @@ class WatermarkPageState extends State<WatermarkPage>
                                           shape: BoxShape.circle,
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black
-                                                  .withValues(alpha: 0.2),
+                                              color: ColorUtils
+                                                  .getAdaptiveShadowColor(theme,
+                                                      alpha: 0.2),
                                               blurRadius: 4,
                                               offset: const Offset(0, 2),
                                             ),
@@ -5945,7 +5963,7 @@ class WatermarkPageState extends State<WatermarkPage>
                                   SecureMarkApp.of(context)
                                       .seedColor
                                       .toARGB32())
-                              : Colors.deepPurple,
+                              : Colors.blue,
                           isExpanded: true,
                           onChanged: (Color? newValue) {
                             if (newValue != null) {
@@ -6184,6 +6202,81 @@ class WatermarkPageState extends State<WatermarkPage>
     );
   }
 
+  IconData _getFeatureIcon(String key) {
+    switch (key) {
+      case 'steganographyTitle':
+        return Icons.verified_user_outlined;
+      case 'robustSteganographyTitle':
+        return Icons.shield_outlined;
+      case 'digitallySignTitle':
+        return Icons.fingerprint;
+      case 'aiCloakingTitle':
+        return Icons.visibility_off_outlined;
+      case 'antiAiProtectionTitle':
+        return Icons.auto_awesome;
+      case 'qrWatermarkTitle':
+        return Icons.qr_code_2;
+      case 'rasterizePdfTitle':
+        return Icons.picture_as_pdf;
+      case 'preserveMetadata':
+        return Icons.info_outline;
+      case 'pdfSecurityTitle':
+        return Icons.lock_outline;
+      default:
+        return Icons.check_circle_outline;
+    }
+  }
+
+  Color _getFeatureColor(String key) {
+    switch (key) {
+      case 'steganographyTitle':
+        return Colors.green;
+      case 'robustSteganographyTitle':
+        return Colors.indigo;
+      case 'digitallySignTitle':
+        return Colors.blueAccent;
+      case 'aiCloakingTitle':
+        return Colors.teal;
+      case 'antiAiProtectionTitle':
+        return Colors.purple;
+      case 'qrWatermarkTitle':
+        return Colors.blue;
+      case 'rasterizePdfTitle':
+        return Colors.redAccent;
+      case 'preserveMetadata':
+        return Colors.lightBlue;
+      case 'pdfSecurityTitle':
+        return Colors.orange;
+      default:
+        return Colors.blueGrey;
+    }
+  }
+
+  String _getFeatureLabel(String key, AppLocalizations l10n) {
+    switch (key) {
+      case 'steganographyTitle':
+        return l10n.steganographyTitle;
+      case 'robustSteganographyTitle':
+        return l10n.robustSteganographyTitle;
+      case 'digitallySignTitle':
+        return l10n.digitallySignTitle;
+      case 'aiCloakingTitle':
+        return l10n.aiCloakingTitle;
+      case 'antiAiProtectionTitle':
+        return l10n.antiAiProtectionTitle;
+      case 'qrWatermarkTitle':
+        return l10n.qrWatermarkTitle;
+      case 'rasterizePdfTitle':
+        return l10n.rasterizePdfTitle;
+      case 'preserveMetadata':
+        return l10n.preserveMetadata;
+      case 'pdfSecurityTitle':
+        return l10n.pdfSecurityTitle;
+      default:
+        return "";
+    }
+  }
+
   Widget _buildPreviewPanel(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
     final isMobile = !kIsWeb && (Platform.isIOS || Platform.isAndroid);
@@ -6289,7 +6382,57 @@ class WatermarkPageState extends State<WatermarkPage>
                       style: theme.textTheme.titleSmall,
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
+                    // Applied features display
+                    if (_processedFiles[_previewIndex]
+                        .result
+                        .appliedFeatures
+                        .isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          alignment: WrapAlignment.center,
+                          children: _processedFiles[_previewIndex]
+                              .result
+                              .appliedFeatures
+                              .map((key) {
+                            final icon = _getFeatureIcon(key);
+                            final color = _getFeatureColor(key);
+                            final label = _getFeatureLabel(key, l10n);
+
+                            return Tooltip(
+                              message: label,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                      color: color.withValues(alpha: 0.3)),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: ColorUtils.getAdaptiveShadowColor(
+                                          theme,
+                                          color: color,
+                                          alpha: 0.1),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    )
+                                  ],
+                                ),
+                                child: Icon(
+                                  icon,
+                                  size: 28,
+                                  color: color,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    const SizedBox(height: 4),
                     Expanded(
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(18),
@@ -6477,11 +6620,10 @@ class WatermarkPageState extends State<WatermarkPage>
                                                                     .circle,
                                                                 boxShadow: [
                                                                   BoxShadow(
-                                                                    color: Colors
-                                                                        .black
-                                                                        .withValues(
-                                                                            alpha:
-                                                                                0.3),
+                                                                    color: ColorUtils.getAdaptiveShadowColor(
+                                                                        theme,
+                                                                        alpha:
+                                                                            0.3),
                                                                     blurRadius:
                                                                         8,
                                                                     offset:
@@ -6544,8 +6686,9 @@ class WatermarkPageState extends State<WatermarkPage>
                                         borderRadius: BorderRadius.circular(20),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black
-                                                .withValues(alpha: 0.1),
+                                            color: ColorUtils
+                                                .getAdaptiveShadowColor(theme,
+                                                    alpha: 0.1),
                                             blurRadius: 4,
                                             offset: const Offset(0, 2),
                                           ),
@@ -6627,8 +6770,9 @@ class WatermarkPageState extends State<WatermarkPage>
                                         borderRadius: BorderRadius.circular(20),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black
-                                                .withValues(alpha: 0.2),
+                                            color: ColorUtils
+                                                .getAdaptiveShadowColor(theme,
+                                                    alpha: 0.2),
                                             blurRadius: 4,
                                             offset: const Offset(0, 2),
                                           ),
@@ -7136,7 +7280,7 @@ class WatermarkPageState extends State<WatermarkPage>
 
     return Card(
       elevation: 6,
-      shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.3),
+      shadowColor: ColorUtils.getAdaptiveShadowColor(theme, alpha: 0.3),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -7580,7 +7724,8 @@ class WatermarkPageState extends State<WatermarkPage>
                   border: Border.all(color: Colors.white, width: 3),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.3),
+                      color:
+                          ColorUtils.getAdaptiveShadowColor(theme, alpha: 0.3),
                       blurRadius: 6,
                     ),
                   ],
@@ -7626,7 +7771,8 @@ class WatermarkPageState extends State<WatermarkPage>
         boxShadow: isSelected
             ? [
                 BoxShadow(
-                  color: colorScheme.primary.withValues(alpha: 0.25),
+                  color: ColorUtils.getAdaptiveShadowColor(theme,
+                      color: colorScheme.primary, alpha: 0.25),
                   blurRadius: 14,
                   offset: const Offset(0, 6),
                 )
@@ -8705,6 +8851,13 @@ class WatermarkPageState extends State<WatermarkPage>
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
+
+      // Reset app theme and seed color to defaults
+      if (mounted) {
+        final appState = SecureMarkApp.of(context);
+        await appState.setThemeMode(AppTheme.system);
+        await appState.setSeedColor(Colors.blue);
+      }
     } catch (e) {
       _addLog('Error clearing preferences: $e');
     }
@@ -10117,7 +10270,8 @@ class _ProfileTileState extends State<_ProfileTile>
               boxShadow: widget.isSelected
                   ? [
                       BoxShadow(
-                        color: colorScheme.primary.withValues(alpha: 0.2),
+                        color: ColorUtils.getAdaptiveShadowColor(widget.theme,
+                            color: colorScheme.primary),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       )
@@ -10307,7 +10461,8 @@ class _GradientButtonState extends State<_GradientButton> {
           boxShadow: (widget.enabled && !_isPressed)
               ? [
                   BoxShadow(
-                    color: widget.gradientColors.first.withValues(alpha: 0.4),
+                    color: ColorUtils.getAdaptiveShadowColor(theme,
+                        color: widget.gradientColors.first, alpha: 0.4),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   )
@@ -10360,7 +10515,8 @@ class _PushDownWrapperState extends State<_PushDownWrapper> {
           boxShadow: (widget.enabled && !_isPressed)
               ? [
                   BoxShadow(
-                    color: theme.colorScheme.shadow.withValues(alpha: 0.25),
+                    color:
+                        ColorUtils.getAdaptiveShadowColor(theme, alpha: 0.25),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   )

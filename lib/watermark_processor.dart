@@ -539,6 +539,14 @@ class WatermarkProcessor {
 
       onProgress?.call(1.0, 'progressComplete');
 
+      final List<String> applied = [];
+      if (useSteganography) applied.add('steganographyTitle');
+      if (useRobustSteganography) applied.add('robustSteganographyTitle');
+      if (digitallySign) applied.add('digitallySignTitle');
+      if (useAiCloaking) applied.add('aiCloakingTitle');
+      if (antiAiLevel > 0) applied.add('antiAiProtectionTitle');
+      if (qrConfig != null) applied.add('qrWatermarkTitle');
+
       return ProcessResult(
           outputPath: outPath,
           outputBytes: res['output']!,
@@ -548,7 +556,8 @@ class WatermarkProcessor {
           steganographyVerified: verified,
           robustVerified: robustVerified,
           width: res['width'] as int?,
-          height: res['height'] as int?);
+          height: res['height'] as int?,
+          appliedFeatures: applied);
     } catch (e) {
       if (e is WatermarkError) {
         rethrow;
@@ -1145,6 +1154,12 @@ class WatermarkProcessor {
       robustVerified = analysis.robustSignature?.startsWith(expected) ?? false;
     }
 
+    final List<String> applied = [];
+    if (digitallySign) applied.add('digitallySignTitle');
+    if (enablePdfSecurity) applied.add('pdfSecurityTitle');
+    if (preserveMetadata) applied.add('preserveMetadata');
+    if (qrConfig != null) applied.add('qrWatermarkTitle');
+
     return ProcessResult(
         outputPath: outPath,
         outputBytes: outputBytes,
@@ -1157,7 +1172,8 @@ class WatermarkProcessor {
         robustVerified: robustVerified,
         isPdf: true,
         width: originalPreview.width.round(),
-        height: originalPreview.height.round());
+        height: originalPreview.height.round(),
+        appliedFeatures: applied);
   }
 
   // Isolate entry point for PDF processing with progress reporting
@@ -1462,6 +1478,15 @@ class WatermarkProcessor {
         }
       }
 
+      final List<String> applied = [];
+      applied.add('rasterizePdfTitle');
+      if (useSteganography) applied.add('steganographyTitle');
+      if (useRobustSteganography) applied.add('robustSteganographyTitle');
+      if (digitallySign) applied.add('digitallySignTitle');
+      if (useAiCloaking) applied.add('aiCloakingTitle');
+      if (antiAiLevel > 0) applied.add('antiAiProtectionTitle');
+      if (qrConfig != null) applied.add('qrWatermarkTitle');
+
       return ProcessResult(
         outputPath: outputPath,
         outputBytes: outputBytes,
@@ -1472,6 +1497,7 @@ class WatermarkProcessor {
         isPdf: true,
         width: firstPageWidth,
         height: firstPageHeight,
+        appliedFeatures: applied,
       );
     } catch (e) {
       if (e is WatermarkError) rethrow;

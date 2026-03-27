@@ -251,7 +251,7 @@ abstract class AppLocalizations {
   /// No description provided for @saveAll.
   ///
   /// In en, this message translates to:
-  /// **'Save All'**
+  /// **'Save'**
   String get saveAll;
 
   /// No description provided for @delete.
@@ -263,7 +263,7 @@ abstract class AppLocalizations {
   /// No description provided for @shareAll.
   ///
   /// In en, this message translates to:
-  /// **'Share All'**
+  /// **'Share'**
   String get shareAll;
 
   /// No description provided for @reset.

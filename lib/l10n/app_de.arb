@@ -55,9 +55,9 @@
     }
   },
   "applyWatermark": "SecureMark anwenden",
-  "saveAll": "Alle speichern",
+  "saveAll": "Speichern",
   "delete": "Löschen",
-  "shareAll": "Alle teilen",
+  "shareAll": "Teilen",
   "reset": "Zurücksetzen",
   "watermarkTypeText": "Text",
   "watermarkTypeImage": "Bild/Logo",

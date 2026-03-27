@@ -27,7 +27,7 @@ class SecureMarkApp extends StatefulWidget {
 
 class SecureMarkAppState extends State<SecureMarkApp> {
   AppTheme _appTheme = AppTheme.system;
-  Color _seedColor = Colors.deepPurple;
+  Color _seedColor = Colors.blue;
   bool _isFirstLaunch = false;
   bool _isLoading = true;
   bool _hasCamera = true;

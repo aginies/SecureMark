@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/watermark_option.dart';
+import '../utils/color_utils.dart';
 
 /// Grid of toggleable option icons with visual feedback
 class OptionToggleGrid extends StatelessWidget {
@@ -270,8 +271,9 @@ class _OptionTileState extends State<_OptionTile>
               boxShadow: isEnabled
                   ? [
                       BoxShadow(
-                        color:
-                            widget.option.enabledColor.withValues(alpha: 0.2),
+                        color: ColorUtils.getAdaptiveShadowColor(
+                            Theme.of(context),
+                            color: widget.option.enabledColor),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),

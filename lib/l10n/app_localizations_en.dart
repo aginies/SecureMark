@@ -92,13 +92,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get applyWatermark => 'Apply SecureMark';
 
   @override
-  String get saveAll => 'Save All';
+  String get saveAll => 'Save';
 
   @override
   String get delete => 'Delete';
 
   @override
-  String get shareAll => 'Share All';
+  String get shareAll => 'Share';
 
   @override
   String get reset => 'Reset';
