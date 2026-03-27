@@ -17,6 +17,7 @@ The SecureMark is designed as a **no-data-collection** utility. We do not collec
 The application requires specific permissions to function correctly. These permissions are used exclusively for the following purposes:
 
 *   **Storage / Media Access:** The app requires access to your images and PDF files so that you can select them, apply a watermark, and save the resulting files back to your device.
+*   **Network Access:** The app requires network permissions to enable the "Local Network Share" feature. This is used exclusively to transfer files directly between devices on your own local network. No data is sent to external servers or the internet.
 *   **Local Processing:** Files selected by the user are processed entirely in the device's volatile memory. We do not upload your files to any external servers.
 
 ## 3. Privacy & Offline Document Scanning
