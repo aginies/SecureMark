@@ -1257,6 +1257,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get uniqueColorSelected => 'Unique color selected';
 
   @override
+  String get densityLabel => 'DENSITY';
+
+  @override
+  String get opacityLabel => 'OPACITY';
+
+  @override
   String get generatingKey => 'Generating encryption key...';
 
   @override

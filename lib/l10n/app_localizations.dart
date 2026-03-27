@@ -2223,6 +2223,18 @@ abstract class AppLocalizations {
   /// **'Unique color selected'**
   String get uniqueColorSelected;
 
+  /// No description provided for @densityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'DENSITY'**
+  String get densityLabel;
+
+  /// No description provided for @opacityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'OPACITY'**
+  String get opacityLabel;
+
   /// No description provided for @generatingKey.
   ///
   /// In en, this message translates to:

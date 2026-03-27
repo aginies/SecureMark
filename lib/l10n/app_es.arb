@@ -752,6 +752,8 @@
   "sendAllZip": "Enviar todo (ZIP)",
   "randomColorSelected": "Color aleatorio seleccionado",
   "uniqueColorSelected": "Color único seleccionado",
+  "densityLabel": "DENSIDAD",
+  "opacityLabel": "OPACIDAD",
   "generatingKey": "Generando clave de cifrado...",
   "encryptingPayload": "Cifrando datos (AES-256)...",
   "startingServer": "Iniciando servidor HTTP local...",

@@ -6757,9 +6757,8 @@ class WatermarkPageState extends State<WatermarkPage>
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Wrap(
-          spacing: 12,
-          runSpacing: 12,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             FilledButton.icon(
               onPressed: _processing ||
@@ -6771,40 +6770,48 @@ class WatermarkPageState extends State<WatermarkPage>
               icon: const Icon(Icons.auto_fix_high),
               label: Text(l10n.applyWatermark),
               style: FilledButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: 16),
               ),
             ),
-            if (!isMobile)
-              FilledButton.icon(
-                onPressed: _processing || _processedFiles.isEmpty
-                    ? null
-                    : _saveCurrent,
-                icon: const Icon(Icons.save_alt),
-                label: Text(l10n.saveAll),
-                style: FilledButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: [
+                if (!isMobile)
+                  FilledButton.icon(
+                    onPressed: _processing || _processedFiles.isEmpty
+                        ? null
+                        : _saveCurrent,
+                    icon: const Icon(Icons.save_alt),
+                    label: Text(l10n.saveAll),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 12),
+                    ),
+                  ),
+                FilledButton.icon(
+                  onPressed: _processing || _processedFiles.isEmpty
+                      ? null
+                      : _shareCurrent,
+                  icon: const Icon(Icons.share_outlined),
+                  label: Text(l10n.shareAll),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 12),
+                  ),
                 ),
-              ),
-            FilledButton.icon(
-              onPressed:
-                  _processing || _processedFiles.isEmpty ? null : _shareCurrent,
-              icon: const Icon(Icons.share_outlined),
-              label: Text(l10n.shareAll),
-              style: FilledButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-              ),
-            ),
-            OutlinedButton.icon(
-              onPressed: _processing ? null : _reset,
-              icon: const Icon(Icons.refresh),
-              label: Text(l10n.reset),
-              style: OutlinedButton.styleFrom(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-              ),
+                OutlinedButton.icon(
+                  onPressed: _processing ? null : _reset,
+                  icon: const Icon(Icons.refresh),
+                  label: Text(l10n.reset),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 18, vertical: 12),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -6995,29 +7002,11 @@ class WatermarkPageState extends State<WatermarkPage>
               ),
               const SizedBox(height: 8),
             ],
-            // Graphical Visual Dashboard (XY Pad)
+            // Graphical Visual Dashboard (Unified)
             const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // XY Pad for Transparency & Density (Fixed Square)
-                Expanded(
-                  flex: 3,
-                  child: AspectRatio(
-                    aspectRatio: 1.0,
-                    child: _buildXYPad(),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Combined Preview (Fixed Square)
-                Expanded(
-                  flex: 4,
-                  child: AspectRatio(
-                    aspectRatio: 1.0,
-                    child: _buildCombinedVisualPreview(),
-                  ),
-                ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) =>
+                  _buildUnifiedVisualDashboard(constraints),
             ),
           ],
         ),
@@ -7025,131 +7014,10 @@ class WatermarkPageState extends State<WatermarkPage>
     );
   }
 
-  Widget _buildXYPad() {
+  Widget _buildUnifiedVisualDashboard(BoxConstraints constraints) {
     final theme = Theme.of(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final size = constraints.maxWidth;
-        // Map current values to 0.0-1.0 range for the UI dot position
-        final x = _transparency / 100;
-        final y =
-            1.0 - ((_density - 10) / 80); // Invert Y because 0 is top in UI
-
-        return GestureDetector(
-          onPanUpdate: (details) {
-            if (_processing) return;
-            final RenderBox box = context.findRenderObject() as RenderBox;
-            final offset = box.globalToLocal(details.globalPosition);
-
-            // Calculate new normalized values (0.0 to 1.0)
-            final newX = (offset.dx / box.size.width).clamp(0.0, 1.0);
-            final newY = (offset.dy / box.size.height).clamp(0.0, 1.0);
-
-            setState(() {
-              _transparency = newX * 100;
-              _density = 10 + ((1.0 - newY) * 80);
-            });
-            _savePreference('transparency', _transparency);
-            _savePreference('density', _density);
-          },
-          onTapDown: (details) {
-            if (_processing) return;
-            final RenderBox box = context.findRenderObject() as RenderBox;
-            final offset = box.globalToLocal(details.globalPosition);
-
-            final newX = (offset.dx / box.size.width).clamp(0.0, 1.0);
-            final newY = (offset.dy / box.size.height).clamp(0.0, 1.0);
-
-            setState(() {
-              _transparency = newX * 100;
-              _density = 10 + ((1.0 - newY) * 80);
-            });
-            _savePreference('transparency', _transparency);
-            _savePreference('density', _density);
-            HapticFeedback.lightImpact();
-          },
-          onDoubleTapDown: (details) {
-            if (_processing) return;
-            final RenderBox box = context.findRenderObject() as RenderBox;
-            final offset = box.globalToLocal(details.globalPosition);
-
-            final newX = (offset.dx / box.size.width).clamp(0.0, 1.0);
-            final newY = (offset.dy / box.size.height).clamp(0.0, 1.0);
-
-            setState(() {
-              _transparency = newX * 100;
-              _density = 10 + ((1.0 - newY) * 80);
-            });
-            _savePreference('transparency', _transparency);
-            _savePreference('density', _density);
-            HapticFeedback.mediumImpact();
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest
-                  .withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.colorScheme.outlineVariant),
-            ),
-            child: Stack(
-              children: [
-                // Labels for the axes
-                Positioned(
-                  bottom: 4,
-                  right: 4,
-                  child: Text('TRSP →',
-                      style: theme.textTheme.labelSmall
-                          ?.copyWith(fontSize: 8, color: theme.hintColor)),
-                ),
-                Positioned(
-                  top: 4,
-                  left: 4,
-                  child: Text('↓ DNST',
-                      style: theme.textTheme.labelSmall
-                          ?.copyWith(fontSize: 8, color: theme.hintColor)),
-                ),
-                // Cross-hair lines
-                Center(
-                  child: CustomPaint(
-                    size: Size(size, size),
-                    painter: _XYPadPainter(
-                        x: x,
-                        y: y,
-                        color:
-                            theme.colorScheme.primary.withValues(alpha: 0.2)),
-                  ),
-                ),
-                // The draggable dot
-                Positioned(
-                  left: (x * size) - 14,
-                  top: (y * size) - 14,
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 4,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                      border: Border.all(color: Colors.white, width: 3),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildCombinedVisualPreview() {
-    final theme = Theme.of(context);
+    final width = constraints.maxWidth;
+    const double height = 160.0;
 
     // Calculate high-contrast background color
     final baseColor = _useRandomColor ? Colors.red : _selectedColor;
@@ -7157,31 +7025,120 @@ class WatermarkPageState extends State<WatermarkPage>
         ? Colors.white
         : (baseColor.computeLuminance() > 0.5 ? Colors.black : Colors.white);
 
-    return Container(
-      // Fills available space from stretch
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outline),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          // Unified Preview (Watermark + Density)
-          Positioned.fill(
-            child: Opacity(
-              opacity: _transparency / 100,
-              child: CustomPaint(
-                painter: _DensityPainter(
-                  density: _density,
-                  color: baseColor,
-                  isPreview: true,
-                  useRandomColor: _useRandomColor,
+    // Map current values to 0.0-1.0 range for the UI dot position
+    // x=0 (Left) should be transparency=100 (Invisible)
+    // x=1 (Right) should be transparency=0 (Visible)
+    final x = 1.0 - (_transparency / 100);
+    final y = 1.0 - ((_density - 10) / 80); // 0 is top (90% density)
+
+    return GestureDetector(
+      onPanUpdate: (details) {
+        if (_processing) return;
+        final newX = (details.localPosition.dx / width).clamp(0.0, 1.0);
+        final newY = (details.localPosition.dy / height).clamp(0.0, 1.0);
+
+        setState(() {
+          _transparency = (1.0 - newX) * 100;
+          _density = 10 + ((1.0 - newY) * 80);
+        });
+        _savePreference('transparency', _transparency);
+        _savePreference('density', _density);
+      },
+      onTapDown: (details) {
+        if (_processing) return;
+        final newX = (details.localPosition.dx / width).clamp(0.0, 1.0);
+        final newY = (details.localPosition.dy / height).clamp(0.0, 1.0);
+
+        setState(() {
+          _transparency = (1.0 - newX) * 100;
+          _density = 10 + ((1.0 - newY) * 80);
+        });
+        _savePreference('transparency', _transparency);
+        _savePreference('density', _density);
+        HapticFeedback.lightImpact();
+      },
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: theme.colorScheme.outline),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            // 1. Live Preview Layer (Density + Text)
+            Positioned.fill(
+              child: Opacity(
+                opacity: (100 - _transparency) / 100,
+                child: CustomPaint(
+                  painter: _DensityPainter(
+                    density: _density,
+                    color: baseColor,
+                    isPreview: true,
+                    useRandomColor: _useRandomColor,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+            // 2. Axis Labels
+            Positioned(
+              bottom: 6,
+              right: 8,
+              child: Text('OPACITY →',
+                  style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                      color: backgroundColor == Colors.black
+                          ? Colors.white38
+                          : Colors.black38)),
+            ),
+            Positioned(
+              top: 8,
+              left: 6,
+              child: Text('↓ DENSITY',
+                  style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                      color: backgroundColor == Colors.black
+                          ? Colors.white38
+                          : Colors.black38)),
+            ),
+            // 3. Interactive Cross-hair Layer
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _XYPadPainter(
+                  x: x,
+                  y: y,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                ),
+              ),
+            ),
+            // 4. The Draggable Dot
+            Positioned(
+              left: (x * width) - 14,
+              top: (y * height) - 14,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
