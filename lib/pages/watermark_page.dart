@@ -7015,6 +7015,7 @@ class WatermarkPageState extends State<WatermarkPage>
   }
 
   Widget _buildUnifiedVisualDashboard(BoxConstraints constraints) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final width = constraints.maxWidth;
     const double height = 160.0;
@@ -7086,7 +7087,7 @@ class WatermarkPageState extends State<WatermarkPage>
             Positioned(
               bottom: 6,
               right: 8,
-              child: Text('OPACITY →',
+              child: Text('${l10n.opacityLabel} →',
                   style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
@@ -7098,7 +7099,7 @@ class WatermarkPageState extends State<WatermarkPage>
             Positioned(
               top: 8,
               left: 6,
-              child: Text('↓ DENSITY',
+              child: Text('↓ ${l10n.densityLabel}',
                   style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,

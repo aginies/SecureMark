@@ -1272,10 +1272,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get uniqueColorSelected => 'Colore unico selezionato';
 
   @override
-  String get densityLabel => 'DENSITY';
+  String get densityLabel => 'DENSITÀ';
 
   @override
-  String get opacityLabel => 'OPACITY';
+  String get opacityLabel => 'OPACITÀ';
 
   @override
   String get generatingKey => 'Generazione chiave di crittografia...';
