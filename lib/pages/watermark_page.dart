@@ -1541,11 +1541,10 @@ class WatermarkPageState extends State<WatermarkPage>
           children: [
             Expanded(
               child: Text(
-                _statusMessage,
+                _processing ? '' : _statusMessage,
                 style: theme.textTheme.bodyMedium,
               ),
-            ),
-            if (_processing) ...[
+            ),            if (_processing) ...[
               const SizedBox(width: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -9972,6 +9971,16 @@ class WatermarkPageState extends State<WatermarkPage>
                             : l10n.applyingWatermark,
                         style: theme.textTheme.titleMedium),
                     const SizedBox(height: 8),
+                    if (_processing && _statusMessage.isNotEmpty) ...[
+                      Text(
+                        _statusMessage,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                    ],
                     Text(
                       message,
                       textAlign: TextAlign.center,
