@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -57,8 +56,8 @@ void main() {
       expect(progressUpdates.isNotEmpty, isTrue);
       expect(progressUpdates.last, equals(testData.length));
 
-      print('Progress updates: ${progressUpdates.length}');
-      print('Final: ${progressUpdates.last} of ${testData.length} bytes');
+      debugPrint('Progress updates: ${progressUpdates.length}');
+      debugPrint('Final: ${progressUpdates.last} of ${testData.length} bytes');
 
       // Send ACK to server to let it shutdown gracefully
       await http.get(
@@ -99,8 +98,8 @@ void main() {
       expect(progressUpdates.isNotEmpty, isTrue);
       expect(progressUpdates.last, equals(testData.length));
 
-      print('Streamed ${testData.length} bytes from disk');
-      print('Progress updates: ${progressUpdates.length}');
+      debugPrint('Streamed ${testData.length} bytes from disk');
+      debugPrint('Progress updates: ${progressUpdates.length}');
 
       // Send ACK to server to let it shutdown gracefully
       await http.get(
@@ -131,7 +130,7 @@ void main() {
         expect(response.bodyBytes.length, equals(testData.length));
         expect(response.bodyBytes, equals(testData));
 
-        print('✓ $sizeKB KB file transferred successfully');
+        debugPrint('✓ $sizeKB KB file transferred successfully');
 
         // Send ACK to server
         final ackUrl =
@@ -186,12 +185,12 @@ void main() {
         expect(await receivedFile.exists(), isTrue);
         final receivedData = await receivedFile.readAsBytes();
         expect(receivedData, equals(uploadData));
-        print('✅ File streamed to disk: $receivedFilePath');
+        debugPrint('✅ File streamed to disk: $receivedFilePath');
       }
 
       // Note: Progress may not be reported if upload is too fast
-      print('Upload completed: ${uploadData.length} bytes');
-      print('Progress updates: ${progressUpdates.length}');
+      debugPrint('Upload completed: ${uploadData.length} bytes');
+      debugPrint('Progress updates: ${progressUpdates.length}');
     });
 
     test('Server stops automatically after one-shot transfer', () async {
@@ -275,10 +274,10 @@ void main() {
       expect(receivedBytes, equals(totalSize));
       expect(progressUpdates.isNotEmpty, isTrue);
 
-      print('Streamed ${totalSize / (1024 * 1024)} MB file');
-      print('Memory-efficient: file never fully loaded into memory');
-      print('Progress updates: ${progressUpdates.length}');
-      print('Final sent: ${progressUpdates.last} bytes');
+      debugPrint('Streamed ${totalSize / (1024 * 1024)} MB file');
+      debugPrint('Memory-efficient: file never fully loaded into memory');
+      debugPrint('Progress updates: ${progressUpdates.length}');
+      debugPrint('Final sent: ${progressUpdates.last} bytes');
 
       // Send ACK to server to let it shutdown gracefully
       await http.get(
@@ -306,13 +305,13 @@ void main() {
           expect(fingerprint!.length,
               greaterThan(30)); // SHA-256 fingerprint format
 
-          print('✅ Certificate generated with fingerprint: $fingerprint');
+          debugPrint('✅ Certificate generated with fingerprint: $fingerprint');
 
           // Cleanup
           await CertificateManager.deleteCertificate();
         } catch (e) {
           // OpenSSL not available - skip test
-          print('⚠️ OpenSSL not available, skipping certificate test: $e');
+          debugPrint('⚠️ OpenSSL not available, skipping certificate test: $e');
         }
       });
 
@@ -323,7 +322,7 @@ void main() {
         try {
           await CertificateManager.generateCertificate();
         } catch (e) {
-          print('⚠️ OpenSSL not available, skipping HTTPS test: $e');
+          debugPrint('⚠️ OpenSSL not available, skipping HTTPS test: $e');
           return;
         }
 
@@ -345,7 +344,7 @@ void main() {
 
         // Note: Cannot test actual HTTPS download without proper certificate trust setup
         // This test verifies server starts successfully
-        print('✅ HTTPS server started on port $port');
+        debugPrint('✅ HTTPS server started on port $port');
 
         await LocalServerManager.stopServer();
         await CertificateManager.deleteCertificate();
@@ -358,7 +357,7 @@ void main() {
         try {
           await CertificateManager.generateCertificate();
         } catch (e) {
-          print(
+          debugPrint(
               '⚠️ OpenSSL not available, skipping HTTPS file streaming test: $e');
           return;
         }
@@ -374,7 +373,7 @@ void main() {
         );
 
         expect(LocalServerManager.isRunning, isTrue);
-        print('✅ HTTPS server streaming from file on port $port');
+        debugPrint('✅ HTTPS server streaming from file on port $port');
 
         await LocalServerManager.stopServer();
         await CertificateManager.deleteCertificate();

@@ -65,8 +65,8 @@ function format_check() {
 function quality_checks() {
     format_check
 
-    echo "[INFO] Running static analysis (lib/ only)..."
-    $FLUTTER_PATH analyze lib || { echo "[ERROR] Analysis failed. Fix issues before building."; exit 1; }
+    echo "[INFO] Running static analysis..."
+    $FLUTTER_PATH analyze || { echo "[ERROR] Analysis failed. Fix issues before building."; exit 1; }
     
     echo "[INFO] Running tests..."
     $FLUTTER_PATH test test/ || { echo "[ERROR] Tests failed. Fix issues before building."; exit 1; }

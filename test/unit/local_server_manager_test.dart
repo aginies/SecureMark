@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:secure_mark/utils/local_server_manager.dart';
 
@@ -58,11 +59,11 @@ void main() {
       expect(oldEntropy.round(), equals(41)); // ~41 bits
 
       // New tokens are 2^215 times more secure (approx 10^64 times)
-      print(
+      debugPrint(
           'Token security improvement: ${newEntropy - oldEntropy.round()} additional bits');
-      print(
+      debugPrint(
           'Old entropy: ${oldEntropy.round()} bits (~${pow(2, oldEntropy.round()).toStringAsExponential(2)} combinations)');
-      print('New entropy: $newEntropy bits (2^256 combinations)');
+      debugPrint('New entropy: $newEntropy bits (2^256 combinations)');
     });
 
     test('Encryption keys are independent from URL access tokens', () {
@@ -87,7 +88,7 @@ void main() {
 
       // All keys should be unique (collision extremely unlikely with 256 bits)
       expect(encryptionKeys.length, equals(10));
-      print('Generated 10 unique encryption keys, all 256 bits (32 bytes)');
+      debugPrint('Generated 10 unique encryption keys, all 256 bits (32 bytes)');
     });
 
     test('Encryption key format differs from URL token format', () {
@@ -100,9 +101,9 @@ void main() {
 
       // URL tokens use base64url (only A-Za-z0-9_- without padding)
       // Different encoding emphasizes they serve different purposes
-      print('Encryption key uses standard base64 encoding');
-      print('URL tokens use base64url encoding (URL-safe)');
-      print('This separation prevents token/key confusion');
+      debugPrint('Encryption key uses standard base64 encoding');
+      debugPrint('URL tokens use base64url encoding (URL-safe)');
+      debugPrint('This separation prevents token/key confusion');
     });
   });
 }

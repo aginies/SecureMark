@@ -1,6 +1,5 @@
 import 'dart:convert';
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:secure_mark/steganography/encryption_utils.dart';
 
@@ -144,8 +143,8 @@ void main() {
       expect(decrypted, isNotNull);
       expect(decrypted!.length, equals(testData.length));
 
-      print('Encrypted 1MB in ${encryptTime}ms, decrypted in ${decryptTime}ms');
-      print('PBKDF2 (100k iterations) overhead included in timing');
+      debugPrint('Encrypted 1MB in ${encryptTime}ms, decrypted in ${decryptTime}ms');
+      debugPrint('PBKDF2 (100k iterations) overhead included in timing');
     });
 
     test('Decryption rejects data that is too short', () {

@@ -3,8 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
-import 'dart:ui';
-
+import 'package:flutter/foundation.dart';
 import 'certificate_manager.dart';
 
 /// Network interface information with IP classification
@@ -82,8 +81,7 @@ class LocalServerManager {
         }
       }
     } catch (e) {
-      // ignore: avoid_print
-      print('Error getting network interfaces: $e');
+      debugPrint('Error getting network interfaces: $e');
     }
     return interfaces;
   }
@@ -221,17 +219,14 @@ class LocalServerManager {
         ? InternetAddress(bindAddress)
         : InternetAddress.anyIPv4;
 
-    // ignore: avoid_print
-    print('[LocalServer] Binding to: ${address.address}');
+    debugPrint('[LocalServer] Binding to: ${address.address}');
     _server = await HttpServer.bind(address, 0);
-    // ignore: avoid_print
-    print(
+    debugPrint(
         '[LocalServer] Server started on ${address.address}:${_server!.port}');
 
     _server!.listen((HttpRequest request) async {
       final path = request.uri.path;
-      // ignore: avoid_print
-      print(
+      debugPrint(
           '[LocalServer] Request from ${request.connectionInfo?.remoteAddress.address}: $path');
       if (path == '/$_token/download') {
         request.response.headers.contentType =
@@ -242,8 +237,7 @@ class LocalServerManager {
             'identity'); // Disable compression for binary data
         request.response.contentLength = _fileSize!;
 
-        // ignore: avoid_print
-        print('[LocalServer] Starting transfer: $_fileName ($_fileSize bytes)');
+        debugPrint('[LocalServer] Starting transfer: $_fileName ($_fileSize bytes)');
 
         try {
           if (_fileBytes != null) {
@@ -262,11 +256,9 @@ class LocalServerManager {
             );
           }
 
-          // ignore: avoid_print
-          print('[LocalServer] Transfer complete, closing response stream');
+          debugPrint('[LocalServer] Transfer complete, closing response stream');
           await request.response.close();
-          // ignore: avoid_print
-          print(
+          debugPrint(
               '[LocalServer] Response stream closed, waiting for client acknowledgment...');
 
           // Wait for client to send acknowledgment (with timeout)
@@ -274,36 +266,30 @@ class LocalServerManager {
             await _transferCompleteCompleter!.future.timeout(
               const Duration(seconds: 10),
               onTimeout: () {
-                // ignore: avoid_print
-                print(
+                debugPrint(
                     '[LocalServer] ⚠️ Client acknowledgment timeout, shutting down anyway');
               },
             );
-            // ignore: avoid_print
-            print('[LocalServer] ✅ Client acknowledged receipt');
+            debugPrint('[LocalServer] ✅ Client acknowledged receipt');
 
             // Small delay to ensure ACK response is sent before server shutdown
             await Future.delayed(const Duration(milliseconds: 50));
           } catch (e) {
-            // ignore: avoid_print
-            print('[LocalServer] Error waiting for acknowledgment: $e');
+            debugPrint('[LocalServer] Error waiting for acknowledgment: $e');
           }
 
           // One-shot: stop server after successful download
-          // ignore: avoid_print
-          print('[LocalServer] Stopping server');
+          debugPrint('[LocalServer] Stopping server');
           await stopServer();
           onDone?.call();
         } catch (e) {
-          // ignore: avoid_print
-          print('Error serving file: $e');
+          debugPrint('Error serving file: $e');
           await request.response.close();
           await stopServer();
         }
       } else if (path == '/$_token/ack') {
         // Client acknowledgment that file was received successfully
-        // ignore: avoid_print
-        print('[LocalServer] Received acknowledgment from client');
+        debugPrint('[LocalServer] Received acknowledgment from client');
 
         if (_transferCompleteCompleter != null &&
             !_transferCompleteCompleter!.isCompleted) {
@@ -339,22 +325,19 @@ class LocalServerManager {
         ? InternetAddress(bindAddress)
         : InternetAddress.anyIPv4;
 
-    // ignore: avoid_print
-    print('[LocalServer HTTPS] Binding to: ${address.address}');
+    debugPrint('[LocalServer HTTPS] Binding to: ${address.address}');
     _server = await HttpServer.bindSecure(address, 0, context);
 
     // Optimize TCP settings for HTTPS performance
     _server!.serverHeader =
         null; // Don't send server header (small optimization)
 
-    // ignore: avoid_print
-    print(
+    debugPrint(
         '[LocalServer HTTPS] Server started on ${address.address}:${_server!.port}');
 
     _server!.listen((HttpRequest request) async {
       final path = request.uri.path;
-      // ignore: avoid_print
-      print(
+      debugPrint(
           '[LocalServer HTTPS] Request from ${request.connectionInfo?.remoteAddress.address}: $path');
       if (path == '/$_token/download') {
         request.response.headers.contentType =
@@ -365,8 +348,7 @@ class LocalServerManager {
             'identity'); // Disable compression for binary data
         request.response.contentLength = _fileSize!;
 
-        // ignore: avoid_print
-        print('[LocalServer] Starting transfer: $_fileName ($_fileSize bytes)');
+        debugPrint('[LocalServer] Starting transfer: $_fileName ($_fileSize bytes)');
 
         try {
           if (_fileBytes != null) {
@@ -385,11 +367,9 @@ class LocalServerManager {
             );
           }
 
-          // ignore: avoid_print
-          print('[LocalServer] Transfer complete, closing response stream');
+          debugPrint('[LocalServer] Transfer complete, closing response stream');
           await request.response.close();
-          // ignore: avoid_print
-          print(
+          debugPrint(
               '[LocalServer] Response stream closed, waiting for client acknowledgment...');
 
           // Wait for client to send acknowledgment (with timeout)
@@ -397,36 +377,30 @@ class LocalServerManager {
             await _transferCompleteCompleter!.future.timeout(
               const Duration(seconds: 10),
               onTimeout: () {
-                // ignore: avoid_print
-                print(
+                debugPrint(
                     '[LocalServer] ⚠️ Client acknowledgment timeout, shutting down anyway');
               },
             );
-            // ignore: avoid_print
-            print('[LocalServer] ✅ Client acknowledged receipt');
+            debugPrint('[LocalServer] ✅ Client acknowledged receipt');
 
             // Small delay to ensure ACK response is sent before server shutdown
             await Future.delayed(const Duration(milliseconds: 50));
           } catch (e) {
-            // ignore: avoid_print
-            print('[LocalServer] Error waiting for acknowledgment: $e');
+            debugPrint('[LocalServer] Error waiting for acknowledgment: $e');
           }
 
           // One-shot: stop server after successful download
-          // ignore: avoid_print
-          print('[LocalServer] Stopping server');
+          debugPrint('[LocalServer] Stopping server');
           await stopServer();
           onDone?.call();
         } catch (e) {
-          // ignore: avoid_print
-          print('Error serving file: $e');
+          debugPrint('Error serving file: $e');
           await request.response.close();
           await stopServer();
         }
       } else if (path == '/$_token/ack') {
         // Client acknowledgment that file was received successfully
-        // ignore: avoid_print
-        print('[LocalServer] Received acknowledgment from client');
+        debugPrint('[LocalServer] Received acknowledgment from client');
 
         if (_transferCompleteCompleter != null &&
             !_transferCompleteCompleter!.isCompleted) {
@@ -576,17 +550,14 @@ class LocalServerManager {
         ? InternetAddress(bindAddress)
         : InternetAddress.anyIPv4;
 
-    // ignore: avoid_print
-    print('[ReceiveServer] Binding to: ${address.address}');
+    debugPrint('[ReceiveServer] Binding to: ${address.address}');
     _server = await HttpServer.bind(address, 0);
-    // ignore: avoid_print
-    print(
+    debugPrint(
         '[ReceiveServer] Server started on ${address.address}:${_server!.port}');
 
     _server!.listen((HttpRequest request) async {
       final path = request.uri.path;
-      // ignore: avoid_print
-      print(
+      debugPrint(
           '[ReceiveServer] Request from ${request.connectionInfo?.remoteAddress.address}: ${request.method} $path');
       if (request.method == 'POST' && path == '/$_token/upload') {
         Directory? tempDir;
@@ -602,8 +573,7 @@ class LocalServerManager {
 
           int receivedBytes = 0;
 
-          // ignore: avoid_print
-          print(
+          debugPrint(
               '[ReceiveServer] Streaming upload to temp file: ${tempFile.path}');
 
           await for (final chunk in request) {
@@ -625,8 +595,7 @@ class LocalServerManager {
           await sink.flush();
           await sink.close();
 
-          // ignore: avoid_print
-          print(
+          debugPrint(
               '[ReceiveServer] Upload complete: $receivedBytes bytes streamed to disk');
 
           // Call callback with file path (memory-efficient - no reloading!)
@@ -644,8 +613,7 @@ class LocalServerManager {
           await stopServer();
           onDone?.call();
         } catch (e) {
-          // ignore: avoid_print
-          print('[ReceiveServer] Error: $e');
+          debugPrint('[ReceiveServer] Error: $e');
           request.response
             ..statusCode = HttpStatus.internalServerError
             ..write('Error: $e')
