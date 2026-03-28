@@ -117,11 +117,13 @@ class WatermarkPageState extends State<WatermarkPage>
   bool _logoDragging = false;
   bool _loadingFiles = false;
   bool _processing = false;
+  bool _hasErrors = false;
   double _progress = 0.0;
   bool _obscureHidingPassword = true;
   bool _obscureSecureZipPassword = true;
   bool _obscureExtractionPassword = true;
   String _statusMessage = '';
+  String _modalProgressStatus = '';
   String _progressMessage = '';
   String _elapsedTime = '00:00';
   String _appVersion = '';
@@ -1536,42 +1538,19 @@ class WatermarkPageState extends State<WatermarkPage>
           const SizedBox(height: 16),
         ],
         _buildActionButtons(),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                _processing ? '' : _statusMessage,
-                style: theme.textTheme.bodyMedium,
-              ),
-            ),            if (_processing) ...[
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.secondaryContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.timer_outlined,
-                        size: 14,
-                        color: theme.colorScheme.onSecondaryContainer),
-                    const SizedBox(width: 4),
-                    Text(
-                      _elapsedTime,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.onSecondaryContainer,
-                      ),
-                    ),
-                  ],
+        if (!_processing && _statusMessage.isNotEmpty && !_hasErrors) ...[
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _statusMessage,
+                  style: theme.textTheme.bodyMedium,
                 ),
               ),
             ],
-          ],
-        ),
+          ),
+        ],
         if (_processedFiles.isNotEmpty) ...[
           const SizedBox(height: 8),
           if (!kIsWeb &&
@@ -8733,6 +8712,43 @@ class WatermarkPageState extends State<WatermarkPage>
                 ),
               ),
             ),
+            if (_hasErrors && _statusMessage.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: InkWell(
+                  onTap: _showLogs,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.errorContainer
+                          .withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color:
+                              theme.colorScheme.error.withValues(alpha: 0.5)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline,
+                            color: theme.colorScheme.error, size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _statusMessage,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.error,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.chevron_right,
+                            color: theme.colorScheme.error, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             const SizedBox(height: 20),
             // Secondary buttons row/wrap
             Wrap(
@@ -9819,12 +9835,14 @@ class WatermarkPageState extends State<WatermarkPage>
 
     setState(() {
       _processing = true;
+      _hasErrors = false;
       _processedFiles = <ProcessedFile>[];
       _previewIndex = 0;
       _progress = 0.0;
       _progressMessage = '';
       _elapsedTime = '00:00';
-      _statusMessage = l10n.processingCount(paths.length);
+      _modalProgressStatus = l10n.processingCount(paths.length);
+      _statusMessage = '';
     });
 
     bool dialogOpened = false;
@@ -9923,9 +9941,9 @@ class WatermarkPageState extends State<WatermarkPage>
               };
 
               final message = _progressMessage.isEmpty
-                  ? (_statusMessage.isEmpty
+                  ? (_modalProgressStatus.isEmpty
                       ? l10n.processingFile
-                      : _statusMessage)
+                      : _modalProgressStatus)
                   : translateProgress(_progressMessage);
 
               final hasError = !_processing && failedFiles.isNotEmpty;
@@ -9971,9 +9989,9 @@ class WatermarkPageState extends State<WatermarkPage>
                             : l10n.applyingWatermark,
                         style: theme.textTheme.titleMedium),
                     const SizedBox(height: 8),
-                    if (_processing && _statusMessage.isNotEmpty) ...[
+                    if (_processing && _modalProgressStatus.isNotEmpty) ...[
                       Text(
-                        _statusMessage,
+                        _modalProgressStatus,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.bold,
@@ -10036,8 +10054,9 @@ class WatermarkPageState extends State<WatermarkPage>
         _addLog('Starting file $i: $fileName');
 
         setState(() {
-          _statusMessage =
+          _modalProgressStatus =
               l10n.processingNamedFile(i + 1, paths.length, fileName);
+          _statusMessage = '';
         });
         _progressListener?.call();
 
@@ -10192,6 +10211,7 @@ class WatermarkPageState extends State<WatermarkPage>
             _processing = false;
             _progress = 0.0;
             _progressMessage = '';
+            _modalProgressStatus = '';
             _statusMessage = l10n.processingCancelled;
           });
         } else {
@@ -10229,6 +10249,8 @@ class WatermarkPageState extends State<WatermarkPage>
           if ((_useSteganography || _useRobustSteganography) &&
               verifiedCount > 0) {
             successMessage += ' (Steganography Verified ✓)';
+          } else if (steganographyFailed) {
+            successMessage = l10n.steganographyVerificationFailed;
           }
 
           setState(() {
@@ -10243,14 +10265,15 @@ class WatermarkPageState extends State<WatermarkPage>
                 _statusMessage.contains('Samsung') ||
                 _statusMessage.contains('TIFF-wrapped');
 
-            if (_statusMessage.isEmpty ||
-                (_statusMessage.contains('\n') && !hasDetailedError)) {
+            if (_statusMessage.isEmpty || !hasDetailedError) {
               _statusMessage = successMessage;
             }
+            _hasErrors = processingErrors.isNotEmpty || steganographyFailed;
             _processing = false;
             _progress = 1.0;
             _steganographyVerificationFailed = steganographyFailed;
             _progressMessage = '';
+            _modalProgressStatus = '';
           });
 
           if (_previewController.hasClients) {
@@ -10271,6 +10294,7 @@ class WatermarkPageState extends State<WatermarkPage>
       _processing = false;
       _progress = 0.0;
       _progressMessage = '';
+      _modalProgressStatus = '';
       _statusMessage = l10n.processingCancelled;
     });
     if (mounted && Navigator.canPop(context)) {
@@ -10345,8 +10369,10 @@ class WatermarkPageState extends State<WatermarkPage>
       _previewMode = PreviewMode.processed;
       _comparisonSliderValue = 0.5;
       _verificationResult = null;
+      _hasErrors = false;
       _extractedSignature = null;
       _statusMessage = '';
+      _modalProgressStatus = '';
       _cancellationToken = null;
       _rawImage = null;
 
@@ -10558,6 +10584,7 @@ class WatermarkPageState extends State<WatermarkPage>
 
       setState(() {
         _statusMessage = statusMessage;
+        _hasErrors = failedFiles.isNotEmpty;
       });
 
       if (savedFiles.isNotEmpty && mounted) {
@@ -10568,6 +10595,7 @@ class WatermarkPageState extends State<WatermarkPage>
 
       setState(() {
         _statusMessage = l10n.errorSavingFiles(e.toString());
+        _hasErrors = true;
       });
     }
   }
@@ -10753,52 +10781,62 @@ class WatermarkPageState extends State<WatermarkPage>
       return;
     }
 
-    final shareFiles = <XFile>[];
+    try {
+      final shareFiles = <XFile>[];
 
-    if (_zipOutputs) {
-      final zipPath = await _createZipFromProcessedFiles(_processedFiles, true);
-      _tempFiles.add(zipPath);
-      shareFiles.add(XFile(zipPath, mimeType: 'application/zip'));
-    } else {
-      for (final file in _processedFiles) {
-        String outputPath = file.result.outputPath;
-        if (_outputDirectory != null) {
-          final fileName = p.basename(file.result.outputPath);
-          outputPath = p.join(_outputDirectory!, fileName);
+      if (_zipOutputs) {
+        final zipPath =
+            await _createZipFromProcessedFiles(_processedFiles, true);
+        _tempFiles.add(zipPath);
+        shareFiles.add(XFile(zipPath, mimeType: 'application/zip'));
+      } else {
+        for (final file in _processedFiles) {
+          String outputPath = file.result.outputPath;
+          if (_outputDirectory != null) {
+            final fileName = p.basename(file.result.outputPath);
+            outputPath = p.join(_outputDirectory!, fileName);
+          }
+
+          final directory = p.dirname(outputPath);
+          if (!await Directory(directory).exists()) {
+            await Directory(directory).create(recursive: true);
+          }
+
+          await File(outputPath).writeAsBytes(file.result.outputBytes);
+          _tempFiles.add(outputPath);
+          shareFiles.add(XFile(
+            outputPath,
+            mimeType: _mimeTypeForPath(outputPath),
+          ));
         }
-
-        final directory = p.dirname(outputPath);
-        if (!await Directory(directory).exists()) {
-          await Directory(directory).create(recursive: true);
-        }
-
-        await File(outputPath).writeAsBytes(file.result.outputBytes);
-        _tempFiles.add(outputPath);
-        shareFiles.add(XFile(
-          outputPath,
-          mimeType: _mimeTypeForPath(outputPath),
-        ));
       }
+
+      final result = await SharePlus.instance.share(
+        ShareParams(
+          files: shareFiles,
+          subject: l10n.shareSubject,
+          text: l10n.shareText,
+          sharePositionOrigin: sharePositionOrigin,
+        ),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _statusMessage = result.status == ShareResultStatus.success
+            ? l10n.sharedFiles(_processedFiles.length)
+            : l10n.shareOpenedFiles(_processedFiles.length);
+        _hasErrors = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _statusMessage = l10n.errorPrefix(e.toString());
+        _hasErrors = true;
+      });
     }
-
-    final result = await SharePlus.instance.share(
-      ShareParams(
-        files: shareFiles,
-        subject: l10n.shareSubject,
-        text: l10n.shareText,
-        sharePositionOrigin: sharePositionOrigin,
-      ),
-    );
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _statusMessage = result.status == ShareResultStatus.success
-          ? l10n.sharedFiles(_processedFiles.length)
-          : l10n.shareOpenedFiles(_processedFiles.length);
-    });
   }
 
   String _mimeTypeForPath(String path) {

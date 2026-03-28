@@ -1525,7 +1525,8 @@ class WatermarkProcessor {
         width: firstPageWidth,
         height: firstPageHeight,
         appliedFeatures: applied,
-      );    } catch (e) {
+      );
+    } catch (e) {
       if (e is WatermarkError) rethrow;
       throw WatermarkError(
         type: WatermarkErrorType.invalidPdfData,
