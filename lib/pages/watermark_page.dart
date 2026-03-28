@@ -6999,6 +6999,48 @@ class WatermarkPageState extends State<WatermarkPage>
                             style: theme.textTheme.titleSmall),
                       ],
                     ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      obscureText: _obscureSecureZipPassword,
+                      decoration: InputDecoration(
+                        labelText: l10n.secureZipPasswordLabel,
+                        hintText: l10n.secureZipPasswordHint,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureSecureZipPassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
+                          onPressed: () {
+                            final newValue = !_obscureSecureZipPassword;
+                            setDialogState(() {
+                              _obscureSecureZipPassword = newValue;
+                            });
+                            setState(() {
+                              _obscureSecureZipPassword = newValue;
+                            });
+                          },
+                        ),
+                      ),
+                      onChanged: (value) {
+                        if (value.isEmpty && _useSecureZip) {
+                          setDialogState(() {
+                            _useSecureZip = false;
+                          });
+                          setState(() {
+                            _useSecureZip = false;
+                          });
+                          _savePreference('useSecureZip', false);
+                        }
+                        _savePreference('secureZipPassword', value);
+                        // Trigger UI update for the grid icon availability
+                        setState(() {});
+                      },
+                      controller: _secureZipPasswordController,
+                    ),
+                    const SizedBox(height: 8),
                     CheckboxListTile(
                       title: Text(l10n.enableSecureZip),
                       value: _useSecureZip,
@@ -7024,50 +7066,6 @@ class WatermarkPageState extends State<WatermarkPage>
                         _savePreference('useSecureZip', enabled);
                       },
                     ),
-                    if (_useSecureZip ||
-                        _secureZipPasswordController.text.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      TextField(
-                        obscureText: _obscureSecureZipPassword,
-                        decoration: InputDecoration(
-                          labelText: l10n.secureZipPasswordLabel,
-                          hintText: l10n.secureZipPasswordHint,
-                          border: const OutlineInputBorder(),
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _obscureSecureZipPassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
-                            ),
-                            onPressed: () {
-                              final newValue = !_obscureSecureZipPassword;
-                              setDialogState(() {
-                                _obscureSecureZipPassword = newValue;
-                              });
-                              setState(() {
-                                _obscureSecureZipPassword = newValue;
-                              });
-                            },
-                          ),
-                        ),
-                        onChanged: (value) {
-                          if (value.isEmpty && _useSecureZip) {
-                            setDialogState(() {
-                              _useSecureZip = false;
-                            });
-                            setState(() {
-                              _useSecureZip = false;
-                            });
-                            _savePreference('useSecureZip', false);
-                          }
-                          _savePreference('secureZipPassword', value);
-                          // Trigger UI update for the grid icon availability
-                          setState(() {});
-                        },
-                        controller: _secureZipPasswordController,
-                      ),
-                    ],
                     /*
                     const Divider(),
                     const SizedBox(height: 8),
