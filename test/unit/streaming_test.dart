@@ -134,8 +134,8 @@ void main() {
         print('✓ $sizeKB KB file transferred successfully');
 
         // Send ACK to server
-        final ackUrl = Uri.parse(
-            'http://localhost:$port/${LocalServerManager.token}/ack');
+        final ackUrl =
+            Uri.parse('http://localhost:$port/${LocalServerManager.token}/ack');
         await http.get(ackUrl);
 
         // Wait for server to auto-stop after acknowledgment
@@ -303,7 +303,8 @@ void main() {
 
           final fingerprint = await CertificateManager.getFingerprint();
           expect(fingerprint, isNotNull);
-          expect(fingerprint!.length, greaterThan(30)); // SHA-256 fingerprint format
+          expect(fingerprint!.length,
+              greaterThan(30)); // SHA-256 fingerprint format
 
           print('✅ Certificate generated with fingerprint: $fingerprint');
 
@@ -357,7 +358,8 @@ void main() {
         try {
           await CertificateManager.generateCertificate();
         } catch (e) {
-          print('⚠️ OpenSSL not available, skipping HTTPS file streaming test: $e');
+          print(
+              '⚠️ OpenSSL not available, skipping HTTPS file streaming test: $e');
           return;
         }
 

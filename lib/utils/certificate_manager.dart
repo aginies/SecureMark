@@ -46,8 +46,6 @@ class CertificateManager {
       await _generateCertificateOpenssl();
     } catch (e) {
       // If openssl not available, try pointycastle fallback
-      print(
-          '[CertificateManager] OpenSSL not available, using PointyCastle: $e');
       try {
         await _generateCertificatePointyCastle();
       } catch (e2) {

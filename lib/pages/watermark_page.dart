@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:crypto/crypto.dart';
@@ -43,7 +44,6 @@ import '../utils/color_utils.dart';
 import '../utils/identity_manager.dart';
 import '../utils/local_server_manager.dart';
 import '../utils/certificate_manager.dart';
-import '../utils/secure_http_client.dart';
 import '../steganography/encryption_utils.dart';
 import '../models/watermark_option.dart';
 import '../widgets/option_toggle_grid.dart';
@@ -4322,11 +4322,11 @@ class WatermarkPageState extends State<WatermarkPage>
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Trust & Download'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: theme.colorScheme.primary,
                   foregroundColor: theme.colorScheme.onPrimary,
                 ),
+                child: const Text('Trust & Download'),
               ),
             ],
           ),
@@ -4337,6 +4337,9 @@ class WatermarkPageState extends State<WatermarkPage>
           _addLog('❌ Certificate verification cancelled by user');
           return;
         }
+
+        // Check if widget is still mounted before using context
+        if (!mounted) return;
 
         // Re-show progress dialog after verification
         _elapsedTime = '00:00';
