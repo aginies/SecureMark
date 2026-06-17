@@ -219,7 +219,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get advancedExpertSubtitle =>
-      'Débloque Steganographie, Mon Appareil Identité et Partage Réseau Local';
+      'Débloque Stéganographie, Mon Appareil Identité et Partage Réseau Local';
 
   @override
   String get requiresAdvancedExpert => 'Disponible dans Expert Avancé';
