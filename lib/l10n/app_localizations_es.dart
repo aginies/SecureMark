@@ -215,6 +215,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get expertOptions => 'Opciones de experto';
 
   @override
+  String get advancedExpertTitle => 'Experto Avanzado';
+
+  @override
+  String get advancedExpertSubtitle =>
+      'Desbloquea Esteganografía, Identidad de Mi Dispositivo y Compartición de Red Local';
+
+  @override
+  String get requiresAdvancedExpert => 'Disponible en Experto Avanzado';
+
+  @override
   String fontSizeValue(int value) {
     return 'Tamaño de fuente: ${value}px';
   }

@@ -152,6 +152,9 @@
   "cancel": "Cancel",
   "saveLocationInfo": "Files will be saved in the same folder as originals with 'securemark-' prefix",
   "expertOptions": "Expert Options",
+  "advancedExpertTitle": "Advanced Expert",
+  "advancedExpertSubtitle": "Unlocks Steganography, My Device Identity, and Local Network Share",
+  "requiresAdvancedExpert": "Available in Advanced Expert",
   "fontSizeValue": "Font Size: {value}px",
   "@fontSizeValue": {
     "placeholders": {

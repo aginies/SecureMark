@@ -152,6 +152,9 @@
   "cancel": "Abbrechen",
   "saveLocationInfo": "Dateien werden im selben Ordner wie die Originale mit dem Präfix 'securemark-' gespeichert",
   "expertOptions": "Experten-Optionen",
+  "advancedExpertTitle": "Experten-Modus",
+  "advancedExpertSubtitle": "Schaltet Steganographie, Meine Geräte-Identität und Lokalen Netzwerkfreigabe frei",
+  "requiresAdvancedExpert": "Verfügbar im Experten-Modus",
   "fontSizeValue": "Schriftgröße: {value}px",
   "@fontSizeValue": {
     "placeholders": {

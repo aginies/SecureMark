@@ -152,6 +152,9 @@
   "cancel": "Cancelar",
   "saveLocationInfo": "Los archivos se guardarán en la misma carpeta que los originales con prefijo 'securemark-'",
   "expertOptions": "Opciones de experto",
+  "advancedExpertTitle": "Experto Avanzado",
+  "advancedExpertSubtitle": "Desbloquea Esteganografía, Identidad de Mi Dispositivo y Compartición de Red Local",
+  "requiresAdvancedExpert": "Disponible en Experto Avanzado",
   "fontSizeValue": "Tamaño de fuente: {value}px",
   "@fontSizeValue": {
     "placeholders": {

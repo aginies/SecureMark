@@ -416,6 +416,24 @@ abstract class AppLocalizations {
   /// **'Expert Options'**
   String get expertOptions;
 
+  /// No description provided for @advancedExpertTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced Expert'**
+  String get advancedExpertTitle;
+
+  /// No description provided for @advancedExpertSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlocks Steganography, My Device Identity, and Local Network Share'**
+  String get advancedExpertSubtitle;
+
+  /// No description provided for @requiresAdvancedExpert.
+  ///
+  /// In en, this message translates to:
+  /// **'Available in Advanced Expert'**
+  String get requiresAdvancedExpert;
+
   /// No description provided for @fontSizeValue.
   ///
   /// In en, this message translates to:

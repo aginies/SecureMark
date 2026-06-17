@@ -215,6 +215,16 @@ class AppLocalizationsDe extends AppLocalizations {
   String get expertOptions => 'Experten-Optionen';
 
   @override
+  String get advancedExpertTitle => 'Experten-Modus';
+
+  @override
+  String get advancedExpertSubtitle =>
+      'Schaltet Steganographie, Meine Geräte-Identität und Lokalen Netzwerkfreigabe frei';
+
+  @override
+  String get requiresAdvancedExpert => 'Verfügbar im Experten-Modus';
+
+  @override
   String fontSizeValue(int value) {
     return 'Schriftgröße: ${value}px';
   }

@@ -215,6 +215,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get expertOptions => 'Options d\'expert';
 
   @override
+  String get advancedExpertTitle => 'Expert Avancé';
+
+  @override
+  String get advancedExpertSubtitle =>
+      'Débloque Steganographie, Mon Appareil Identité et Partage Réseau Local';
+
+  @override
+  String get requiresAdvancedExpert => 'Disponible dans Expert Avancé';
+
+  @override
   String fontSizeValue(int value) {
     return 'Taille de police : ${value}px';
   }

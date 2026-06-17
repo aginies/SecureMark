@@ -121,6 +121,7 @@ class WatermarkPageState extends State<WatermarkPage>
   double _progress = 0.0;
   bool _obscureHidingPassword = true;
   bool _obscureSecureZipPassword = true;
+  bool _advancedExpert = false;
   bool _obscureExtractionPassword = true;
   String _statusMessage = '';
   String _modalProgressStatus = '';
@@ -264,7 +265,8 @@ class WatermarkPageState extends State<WatermarkPage>
           initialDirectory: _logoDirectory,
         );
       } else {
-        directoryPath = await getDirectoryPath(initialDirectory: _logoDirectory);
+        directoryPath =
+            await getDirectoryPath(initialDirectory: _logoDirectory);
       }
 
       if (directoryPath != null) {
@@ -374,6 +376,7 @@ class WatermarkPageState extends State<WatermarkPage>
           _secureZipPasswordController.text =
               prefs.getString('secureZipPassword') ?? '';
           _useRandomColor = prefs.getBool('useRandomColor') ?? true;
+          _advancedExpert = prefs.getBool('advancedExpert') ?? false;
           _filePrefix = prefs.getString('filePrefix') ?? 'securemark-';
           _filePrefixController.text = _filePrefix;
 
@@ -1372,11 +1375,23 @@ class WatermarkPageState extends State<WatermarkPage>
               onPressed: _showFileAnalyzer,
               tooltip: l10n.analyzeFile,
             ),
-            IconButton(
-              icon: const Icon(Icons.verified_user_outlined),
-              onPressed: _showSteganographyOptions,
-              tooltip: l10n.steganographyTitle,
-            ),
+            if (_advancedExpert) ...[
+              IconButton(
+                icon: const Icon(Icons.verified_user_outlined),
+                onPressed: _showSteganographyOptions,
+                tooltip: l10n.steganographyTitle,
+              ),
+              IconButton(
+                icon: const Icon(Icons.person_pin_outlined),
+                onPressed: _showIdentityDialog,
+                tooltip: l10n.myIdentityTitle,
+              ),
+              IconButton(
+                icon: const Icon(Icons.sensors),
+                onPressed: _showLocalShareDialog,
+                tooltip: l10n.localShareTitle,
+              ),
+            ],
             IconButton(
               icon: const Icon(Icons.qr_code_2),
               onPressed: _showQrWatermarkOptions,
@@ -1386,16 +1401,6 @@ class WatermarkPageState extends State<WatermarkPage>
               icon: const Icon(Icons.image_outlined),
               onPressed: _showFontOptions,
               tooltip: l10n.fontConfigTitle,
-            ),
-            IconButton(
-              icon: const Icon(Icons.person_pin_outlined),
-              onPressed: _showIdentityDialog,
-              tooltip: l10n.myIdentityTitle,
-            ),
-            IconButton(
-              icon: const Icon(Icons.sensors),
-              onPressed: _showLocalShareDialog,
-              tooltip: l10n.localShareTitle,
             ),
           ],
         ),
@@ -1469,31 +1474,33 @@ class WatermarkPageState extends State<WatermarkPage>
   }
 
   Widget _buildProfileSelector(ThemeData theme, AppLocalizations l10n) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: SettingsProfile.values.map((profile) {
-          return Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: SizedBox(
-              width: 100,
-              height: 70,
-              child: _ProfileTile(
-                profile: profile,
-                label: _getProfileLabel(profile, l10n),
-                icon: _getProfileIcon(profile),
-                isSelected: _selectedProfile == profile,
-                theme: theme,
-                onTap: () => _applyProfile(profile),
-                onLongPress: () => _saveCurrentConfigToProfile(profile),
-                processing: _processing,
-              ),
-            ),
-          );
-        }).toList(),
-      ),
+    final availableProfiles = _advancedExpert
+        ? SettingsProfile.values
+        : SettingsProfile.values
+            .where((p) =>
+                p != SettingsProfile.secureIdentity &&
+                p != SettingsProfile.integrity)
+            .toList();
+
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 3,
+      mainAxisSpacing: 8,
+      crossAxisSpacing: 8,
+      childAspectRatio: 2.0,
+      children: availableProfiles.map((profile) {
+        return _ProfileTile(
+          profile: profile,
+          label: _getProfileLabel(profile, l10n),
+          icon: _getProfileIcon(profile),
+          isSelected: _selectedProfile == profile,
+          theme: theme,
+          onTap: () => _applyProfile(profile),
+          onLongPress: () => _saveCurrentConfigToProfile(profile),
+          processing: _processing,
+        );
+      }).toList(),
     );
   }
 
@@ -7088,6 +7095,24 @@ class WatermarkPageState extends State<WatermarkPage>
                         _savePreference('useSecureZip', enabled);
                       },
                     ),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      title: Text(l10n.advancedExpertTitle),
+                      subtitle: Text(l10n.advancedExpertSubtitle),
+                      value: _advancedExpert,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (value) {
+                        final bool enabled = value ?? false;
+                        setDialogState(() {
+                          _advancedExpert = enabled;
+                        });
+                        setState(() {
+                          _advancedExpert = enabled;
+                        });
+                        _savePreference('advancedExpert', enabled);
+                      },
+                    ),
                     /*
                     const Divider(),
                     const SizedBox(height: 8),
@@ -9353,8 +9378,12 @@ class WatermarkPageState extends State<WatermarkPage>
         enabledColor:
             _steganographyVerificationFailed ? Colors.red : Colors.green,
         isEnabled: _useSteganography,
-        isAvailable: !_rasterizePdf,
-        unavailableReason: _rasterizePdf ? l10n.unavailableRasterPdf : null,
+        isAvailable: !_rasterizePdf && _advancedExpert,
+        unavailableReason: _rasterizePdf
+            ? l10n.unavailableRasterPdf
+            : _advancedExpert
+                ? null
+                : l10n.requiresAdvancedExpert,
         subtitle: _steganographyVerificationFailed
             ? l10n.steganographyVerificationFailed
             : (_useSteganography ? l10n.steganographyEnabledHint : null),
@@ -9632,7 +9661,13 @@ class WatermarkPageState extends State<WatermarkPage>
         },
         onConfigure: null, // No settings dialog
       ),
-    ];
+    ].where((option) {
+      if (!_advancedExpert &&
+          (option.id == 'steganography' || option.id == 'robust_stego')) {
+        return false;
+      }
+      return true;
+    }).toList();
   }
 
   Widget? _buildStatusIcons(AppLocalizations l10n) {
@@ -10989,7 +11024,14 @@ class WatermarkPageState extends State<WatermarkPage>
           title: Text(l10n.resetProfiles),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            children: SettingsProfile.values.map((profile) {
+            children: (_advancedExpert
+                    ? SettingsProfile.values
+                    : SettingsProfile.values
+                        .where((p) =>
+                            p != SettingsProfile.secureIdentity &&
+                            p != SettingsProfile.integrity)
+                        .toList())
+                .map((profile) {
               String label = '';
               IconData icon;
               switch (profile) {
