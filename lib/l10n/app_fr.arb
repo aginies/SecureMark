@@ -654,6 +654,8 @@
   "themeLight": "Clair",
   "themeDark": "Sombre",
   "themeAmoled": "Noir Pur (AMOLED)",
+  "languageLabel": "Langue",
+  "languageSystem": "Système",
   "resetProfiles": "Réinitialiser les profils",
   "resetProfileConfirm": "Réinitialiser {profile} aux valeurs d'usine ?",
   "@resetProfileConfirm": {
@@ -783,5 +785,19 @@
   "waitingForFile": "Attente d'un fichier entrant...",
   "fileReceived": "Fichier reçu de {address}",
   "secureZipPasswordRequired": "Le mot de passe ZIP doit être défini dans les Options Expert pour activer le ZIP sécurisé.",
-  "imageResizingTitle": "Redimensionnement d'image"
+  "imageResizingTitle": "Redimensionnement d'image",
+  "useHttpsTitle": "Utiliser HTTPS (transport chiffré)",
+  "useHttpsSubtitleOn": "Certificat auto-signé avec vérification d'empreinte",
+  "useHttpsSubtitleOff": "Utilisation d'HTTP (sans chiffrement du transport)",
+  "pushToReceiverTitle": "Envoyer au destinataire",
+  "pushToReceiverSubtitle": "Scannez le code QR d'un destinataire après avoir sélectionné un fichier",
+  "backToCamera": "Retour à la caméra",
+  "uiThemeColor": "Couleur du thème de l'interface",
+  "sliderComparisonTooltip": "Comparaison avec curseur",
+  "importConfigPasswordHint": "Saisissez le mot de passe utilisé pour chiffrer cette sauvegarde.",
+  "importConfigFailed": "Échec de l'import : vérifiez le mot de passe ou le format du fichier.",
+  "loadingIdentity": "Chargement de l'identité...",
+  "identityLoadError": "Erreur lors du chargement des clés d'identité : {error}",
+  "profileP1": "P1",
+  "profileP2": "P2"
 }

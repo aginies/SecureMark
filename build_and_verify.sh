@@ -99,22 +99,16 @@ function build_apk() {
     VERSION_LINE=$(grep "version: " pubspec.yaml)
     VERSION_NAME=$(echo $VERSION_LINE | cut -d' ' -f2 | cut -d'+' -f1)
     BUILD_NUMBER=$(echo $VERSION_LINE | cut -d'+' -f2)
-    VERSION_PKG=$(echo $VERSION_NAME | tr '.' '_')
-    TARGET_PKG="org.ginies.secure_mark.v$VERSION_PKG"
-    echo "[INFO] Building Release APK v$VERSION_NAME+$BUILD_NUMBER (Package: $TARGET_PKG)..."
-    $FLUTTER_PATH build apk --release --build-name=$VERSION_NAME --build-number=$BUILD_NUMBER \
-        --dart-define=TARGET_PACKAGE=$TARGET_PKG
+    echo "[INFO] Building Release APK v$VERSION_NAME+$BUILD_NUMBER (Package: org.ginies.secure_mark)..."
+    $FLUTTER_PATH build apk --release --build-name=$VERSION_NAME --build-number=$BUILD_NUMBER
 }
 
 function build_aab() {
     VERSION_LINE=$(grep "version: " pubspec.yaml)
     VERSION_NAME=$(echo $VERSION_LINE | cut -d' ' -f2 | cut -d'+' -f1)
     BUILD_NUMBER=$(echo $VERSION_LINE | cut -d'+' -f2)
-    VERSION_PKG=$(echo $VERSION_NAME | tr '.' '_')
-    TARGET_PKG="org.ginies.secure_mark.v$VERSION_PKG"
-    echo "[INFO] Building Release App Bundle (AAB) v$VERSION_NAME+$BUILD_NUMBER (Package: $TARGET_PKG)..."
-    $FLUTTER_PATH build appbundle --release --build-name=$VERSION_NAME --build-number=$BUILD_NUMBER \
-        --dart-define=TARGET_PACKAGE=$TARGET_PKG
+    echo "[INFO] Building Release App Bundle (AAB) v$VERSION_NAME+$BUILD_NUMBER (Package: org.ginies.secure_mark)..."
+    $FLUTTER_PATH build appbundle --release --build-name=$VERSION_NAME --build-number=$BUILD_NUMBER
 }
 
 function build_ios() {

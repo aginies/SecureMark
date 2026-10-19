@@ -1,7 +1,7 @@
 name: secure_mark
-description: SecureMark - A professional application to secure documents with watermarks for safe sharing.
+description: SecureMark - High-security document distribution with watermarks.
 publish_to: 'none'
-version: 1.8.0+2
+version: 1.8.0+18
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -50,7 +50,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
-  
+
   # Custom fonts
   fonts:
     - family: LiberationMono

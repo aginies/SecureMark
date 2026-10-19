@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import '../qr_config.dart';
+import '../watermark_error.dart';
 import 'package:qr/qr.dart';
 
 class WatermarkUtils {
@@ -17,6 +18,12 @@ class WatermarkUtils {
         p.dirname(path), '$pref${p.basenameWithoutExtension(path)}$s$ext');
   }
 
+  /// Resolves the watermark text by appending the current date and time.
+  ///
+  /// This timestamp is always part of the visible watermark and is
+  /// independent of the includeTimestamp flag, which only gates the timestamp
+  /// in the output filename (see outputPath) — matching the UI label
+  /// "Include Date & Hour in Filename".
   static String resolvedWatermarkText(String t) {
     final n = DateTime.now();
     final d =
@@ -58,6 +65,13 @@ class WatermarkUtils {
         .contains(type);
   }
 
+  /// Detects the actual file type from the header bytes.
+  ///
+  /// A known extension is returned as-is; otherwise the header is sniffed.
+  /// If the file cannot be read, throws [WatermarkError]
+  /// ([WatermarkErrorType.fileCorrupted]) instead of silently falling back to
+  /// the raw extension: the extension of an unreadable file is an unverified
+  /// guess, and treating it as a detection can mis-identify the format.
   static Future<String> detectFileType(File file) async {
     final extension = p.extension(file.path).toLowerCase();
     if (['.pdf', '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif']
@@ -65,52 +79,67 @@ class WatermarkUtils {
       return extension;
     }
 
-    try {
-      if (!await file.exists()) {
-        return extension;
-      }
-      final raf = await file.open(mode: FileMode.read);
-      final header = await raf.read(12);
-      await raf.close();
+    if (!await file.exists()) {
+      return extension;
+    }
 
-      if (header.length >= 4) {
-        if (header[0] == 0x25 &&
-            header[1] == 0x50 &&
-            header[2] == 0x44 &&
-            header[3] == 0x46) {
-          return '.pdf';
-        }
-        if (header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF) {
-          return '.jpg';
-        }
-        if (header[0] == 0x89 &&
-            header[1] == 0x50 &&
-            header[2] == 0x4E &&
-            header[3] == 0x47) {
-          return '.png';
+    final List<int> header;
+    try {
+      final raf = await file.open(mode: FileMode.read);
+      try {
+        header = await raf.read(12);
+      } finally {
+        await raf.close();
+      }
+    } catch (e) {
+      // An unreadable file is not evidence about its format: fail explicitly
+      // rather than guessing from the extension.
+      if (e is WatermarkError) rethrow;
+      throw WatermarkError(
+        type: WatermarkErrorType.fileCorrupted,
+        message: 'Could not read file header',
+        filePath: file.path,
+        originalError: e,
+      );
+    }
+
+    if (header.length >= 4) {
+      if (header[0] == 0x25 &&
+          header[1] == 0x50 &&
+          header[2] == 0x44 &&
+          header[3] == 0x46) {
+        return '.pdf';
+      }
+      if (header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF) {
+        return '.jpg';
+      }
+      if (header[0] == 0x89 &&
+          header[1] == 0x50 &&
+          header[2] == 0x4E &&
+          header[3] == 0x47) {
+        return '.png';
+      }
+    }
+    if (header.length >= 12 &&
+        header[0] == 0x52 &&
+        header[1] == 0x49 &&
+        header[2] == 0x46 &&
+        header[3] == 0x46 &&
+        header[8] == 0x57 &&
+        header[9] == 0x45 &&
+        header[10] == 0x42 &&
+        header[11] == 0x50) {
+      return '.webp';
+    }
+    if (header.length >= 12) {
+      final ftyp = String.fromCharCodes(header.sublist(4, 8));
+      if (ftyp == 'ftyp') {
+        final brand = String.fromCharCodes(header.sublist(8, 12));
+        if (['heic', 'heix', 'hevc', 'mif1', 'msf1'].contains(brand)) {
+          return '.heic';
         }
       }
-      if (header.length >= 12 &&
-          header[0] == 0x52 &&
-          header[1] == 0x49 &&
-          header[2] == 0x46 &&
-          header[3] == 0x46 &&
-          header[8] == 0x57 &&
-          header[9] == 0x45 &&
-          header[10] == 0x42 &&
-          header[11] == 0x50) {
-        return '.webp';
-      }
-      if (header.length >= 12) {
-        final ftyp = String.fromCharCodes(header.sublist(4, 8));
-        if (ftyp == 'ftyp') {
-          final brand = String.fromCharCodes(header.sublist(8, 12));
-          if (['heic', 'heix', 'hevc', 'mif1', 'msf1'].contains(brand)) {
-            return '.heic';
-          }
-        }
-      }
-    } catch (_) {}
+    }
     return extension;
   }
 

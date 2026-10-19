@@ -1034,6 +1034,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get themeAmoled => 'Amoled Schwarz';
 
   @override
+  String get languageLabel => 'Sprache';
+
+  @override
+  String get languageSystem => 'Systemstandard';
+
+  @override
   String get resetProfiles => 'Profile zurücksetzen';
 
   @override
@@ -1388,4 +1394,53 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get imageResizingTitle => 'Bildgrößenänderung';
+
+  @override
+  String get useHttpsTitle => 'HTTPS verwenden (verschlüsselte Übertragung)';
+
+  @override
+  String get useHttpsSubtitleOn =>
+      'Selbstsigniertes Zertifikat mit Fingerabdruck-Prüfung';
+
+  @override
+  String get useHttpsSubtitleOff =>
+      'HTTP wird verwendet (unverschlüsselte Übertragung)';
+
+  @override
+  String get pushToReceiverTitle => 'An Empfänger senden';
+
+  @override
+  String get pushToReceiverSubtitle =>
+      'QR-Code eines Empfängers scannen, nachdem eine Datei ausgewählt wurde';
+
+  @override
+  String get backToCamera => 'Zurück zur Kamera';
+
+  @override
+  String get uiThemeColor => 'Farbe des Oberflächen-Themas';
+
+  @override
+  String get sliderComparisonTooltip => 'Schieberegler-Vergleich';
+
+  @override
+  String get importConfigPasswordHint =>
+      'Geben Sie das Passwort ein, mit dem dieses Backup verschlüsselt wurde.';
+
+  @override
+  String get importConfigFailed =>
+      'Import fehlgeschlagen: Passwort oder Dateiformat prüfen.';
+
+  @override
+  String get loadingIdentity => 'Identität wird geladen...';
+
+  @override
+  String identityLoadError(String error) {
+    return 'Fehler beim Laden der Identitätsschlüssel: $error';
+  }
+
+  @override
+  String get profileP1 => 'P1';
+
+  @override
+  String get profileP2 => 'P2';
 }

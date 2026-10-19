@@ -654,6 +654,8 @@
   "themeLight": "Hell",
   "themeDark": "Dunkel",
   "themeAmoled": "Amoled Schwarz",
+  "languageLabel": "Sprache",
+  "languageSystem": "Systemstandard",
   "resetProfiles": "Profile zurücksetzen",
   "resetProfileConfirm": "{profile} auf Werkseinstellungen zurücksetzen?",
   "@resetProfileConfirm": {
@@ -783,5 +785,19 @@
   "waitingForFile": "Warten auf eingehende Datei...",
   "fileReceived": "Datei von {address} erhalten",
   "secureZipPasswordRequired": "Das ZIP-Passwort muss in den Expertenoptionen festgelegt werden, um Secure ZIP zu aktivieren.",
-  "imageResizingTitle": "Bildgrößenänderung"
+  "imageResizingTitle": "Bildgrößenänderung",
+  "useHttpsTitle": "HTTPS verwenden (verschlüsselte Übertragung)",
+  "useHttpsSubtitleOn": "Selbstsigniertes Zertifikat mit Fingerabdruck-Prüfung",
+  "useHttpsSubtitleOff": "HTTP wird verwendet (unverschlüsselte Übertragung)",
+  "pushToReceiverTitle": "An Empfänger senden",
+  "pushToReceiverSubtitle": "QR-Code eines Empfängers scannen, nachdem eine Datei ausgewählt wurde",
+  "backToCamera": "Zurück zur Kamera",
+  "uiThemeColor": "Farbe des Oberflächen-Themas",
+  "sliderComparisonTooltip": "Schieberegler-Vergleich",
+  "importConfigPasswordHint": "Geben Sie das Passwort ein, mit dem dieses Backup verschlüsselt wurde.",
+  "importConfigFailed": "Import fehlgeschlagen: Passwort oder Dateiformat prüfen.",
+  "loadingIdentity": "Identität wird geladen...",
+  "identityLoadError": "Fehler beim Laden der Identitätsschlüssel: {error}",
+  "profileP1": "P1",
+  "profileP2": "P2"
 }

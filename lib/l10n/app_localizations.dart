@@ -1785,6 +1785,18 @@ abstract class AppLocalizations {
   /// **'Amoled Black'**
   String get themeAmoled;
 
+  /// No description provided for @languageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get languageLabel;
+
+  /// No description provided for @languageSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System Default'**
+  String get languageSystem;
+
   /// No description provided for @resetProfiles.
   ///
   /// In en, this message translates to:
@@ -2414,6 +2426,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Image Resizing'**
   String get imageResizingTitle;
+
+  /// Title of the HTTPS toggle in the local share dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Use HTTPS (Encrypted Transport)'**
+  String get useHttpsTitle;
+
+  /// No description provided for @useHttpsSubtitleOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Self-signed certificate with fingerprint verification'**
+  String get useHttpsSubtitleOn;
+
+  /// No description provided for @useHttpsSubtitleOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Using HTTP (no transport encryption)'**
+  String get useHttpsSubtitleOff;
+
+  /// No description provided for @pushToReceiverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Push to Receiver'**
+  String get pushToReceiverTitle;
+
+  /// No description provided for @pushToReceiverSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a receiver\'s QR code after selecting a file'**
+  String get pushToReceiverSubtitle;
+
+  /// No description provided for @backToCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Camera'**
+  String get backToCamera;
+
+  /// No description provided for @uiThemeColor.
+  ///
+  /// In en, this message translates to:
+  /// **'UI Theme Color'**
+  String get uiThemeColor;
+
+  /// No description provided for @sliderComparisonTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Slider Comparison'**
+  String get sliderComparisonTooltip;
+
+  /// No description provided for @importConfigPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the password used to encrypt this backup.'**
+  String get importConfigPasswordHint;
+
+  /// No description provided for @importConfigFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Import failed: check password or file format.'**
+  String get importConfigFailed;
+
+  /// No description provided for @loadingIdentity.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading Identity...'**
+  String get loadingIdentity;
+
+  /// No description provided for @identityLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading identity keys: {error}'**
+  String identityLoadError(String error);
+
+  /// No description provided for @profileP1.
+  ///
+  /// In en, this message translates to:
+  /// **'P1'**
+  String get profileP1;
+
+  /// No description provided for @profileP2.
+  ///
+  /// In en, this message translates to:
+  /// **'P2'**
+  String get profileP2;
 }
 
 class _AppLocalizationsDelegate

@@ -1141,6 +1141,10 @@ class WatermarkPageState extends State<WatermarkPage>
     _loadShader();
     _initPackageInfo();
     IdentityManager.onLog = _addLog;
+    // A processed document's embedded signature belongs to whichever identity
+    // was active when it was produced, so results cached under the old key are
+    // invalid the moment the identity changes.
+    IdentityManager.onIdentityChanged = WatermarkProcessor.clearCache;
     IdentityManager.getIdentityKeyPair().then((_) async {
       final pk = await IdentityManager.getDevicePublicKey();
       if (mounted) setState(() => _devicePublicKey = pk);
@@ -1519,9 +1523,9 @@ class WatermarkPageState extends State<WatermarkPage>
       case SettingsProfile.shareDocument:
         return l10n.profileShareDocument;
       case SettingsProfile.p1:
-        return "P1";
+        return l10n.profileP1;
       case SettingsProfile.p2:
-        return "P2";
+        return l10n.profileP2;
     }
   }
 
@@ -2806,12 +2810,10 @@ class WatermarkPageState extends State<WatermarkPage>
             ),
             // HTTPS Toggle
             SwitchListTile(
-              title: const Text("Use HTTPS (Encrypted Transport)",
-                  style: TextStyle(fontSize: 14)),
+              title: Text(l10n.useHttpsTitle,
+                  style: const TextStyle(fontSize: 14)),
               subtitle: Text(
-                _useHttps
-                    ? "Self-signed certificate with fingerprint verification"
-                    : "Using HTTP (no transport encryption)",
+                _useHttps ? l10n.useHttpsSubtitleOn : l10n.useHttpsSubtitleOff,
                 style: TextStyle(
                   fontSize: 11,
                   color: _useHttps ? Colors.green : Colors.grey,
@@ -2888,11 +2890,10 @@ class WatermarkPageState extends State<WatermarkPage>
             ),
             // Push to Receiver Toggle
             SwitchListTile(
-              title: const Text("Push to Receiver",
-                  style: TextStyle(fontSize: 14)),
-              subtitle: const Text(
-                  "Scan a receiver's QR code after selecting a file",
-                  style: TextStyle(fontSize: 11)),
+              title: Text(l10n.pushToReceiverTitle,
+                  style: const TextStyle(fontSize: 14)),
+              subtitle: Text(l10n.pushToReceiverSubtitle,
+                  style: const TextStyle(fontSize: 11)),
               secondary: const Icon(Icons.qr_code_scanner, size: 20),
               value: _pushToReceiver,
               onChanged: (val) {
@@ -3362,7 +3363,7 @@ class WatermarkPageState extends State<WatermarkPage>
               setDialogState(() => _showReceiveQr = false);
             },
             icon: const Icon(Icons.camera_alt_outlined),
-            label: Text("Back to Camera"),
+            label: Text(l10n.backToCamera),
           ),
         ],
       );
@@ -7348,7 +7349,7 @@ class WatermarkPageState extends State<WatermarkPage>
                     const SizedBox(height: 16),
                     const Divider(),
                     const SizedBox(height: 8),
-                    Text("UI Theme Color", style: theme.textTheme.titleSmall),
+                    Text(l10n.uiThemeColor, style: theme.textTheme.titleSmall),
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -7441,6 +7442,58 @@ class WatermarkPageState extends State<WatermarkPage>
                               SecureMarkApp.of(context).setThemeMode(mode);
                               setDialogState(() {});
                             }
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      l10n.languageLabel,
+                      style: theme.textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: theme.dividerColor),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<Locale?>(
+                          value: SecureMarkApp.of(context).appLocale,
+                          isExpanded: true,
+                          // null = follow the device system locale; language
+                          // names are shown in their own language
+                          items: [
+                            DropdownMenuItem<Locale?>(
+                              value: null,
+                              child: Text(l10n.languageSystem),
+                            ),
+                            DropdownMenuItem<Locale?>(
+                              value: const Locale('en'),
+                              child: Text('English'),
+                            ),
+                            DropdownMenuItem<Locale?>(
+                              value: const Locale('fr'),
+                              child: Text('Français'),
+                            ),
+                            DropdownMenuItem<Locale?>(
+                              value: const Locale('de'),
+                              child: Text('Deutsch'),
+                            ),
+                            DropdownMenuItem<Locale?>(
+                              value: const Locale('es'),
+                              child: Text('Español'),
+                            ),
+                            DropdownMenuItem<Locale?>(
+                              value: const Locale('it'),
+                              child: Text('Italiano'),
+                            ),
+                          ],
+                          onChanged: (locale) {
+                            SecureMarkApp.of(context).setLocale(locale);
+                            setDialogState(() {});
                           },
                         ),
                       ),
@@ -8151,7 +8204,8 @@ class WatermarkPageState extends State<WatermarkPage>
                                                   _previewMode =
                                                       PreviewMode.slider),
                                               theme: theme,
-                                              tooltip: "Slider Comparison",
+                                              tooltip:
+                                                  l10n.sliderComparisonTooltip,
                                             ),
                                           if (_processedFiles[index]
                                                   .result
@@ -11262,7 +11316,7 @@ class WatermarkPageState extends State<WatermarkPage>
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text("Enter the password used to encrypt this backup."),
+              Text(l10n.importConfigPasswordHint),
               const SizedBox(height: 16),
               TextField(
                 controller: passwordController,
@@ -11336,8 +11390,7 @@ class WatermarkPageState extends State<WatermarkPage>
     } catch (e) {
       _addLog('Error importing configuration: $e');
       messenger.showSnackBar(
-        SnackBar(
-            content: Text("Import failed: check password or file format.")),
+        SnackBar(content: Text(l10n.importConfigFailed)),
       );
     }
   }
@@ -11354,13 +11407,13 @@ class WatermarkPageState extends State<WatermarkPage>
         ]),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const AlertDialog(
+            return AlertDialog(
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text("Loading Identity..."),
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(l10n.loadingIdentity),
                 ],
               ),
             );
@@ -11370,7 +11423,7 @@ class WatermarkPageState extends State<WatermarkPage>
             _addLog('ERROR in Identity dialog: ${snapshot.error}');
             return AlertDialog(
               title: Text(l10n.myIdentityTitle),
-              content: Text("Error loading identity keys: ${snapshot.error}"),
+              content: Text(l10n.identityLoadError('${snapshot.error}')),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),

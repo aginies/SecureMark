@@ -1016,6 +1016,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeAmoled => 'Amoled Black';
 
   @override
+  String get languageLabel => 'Language';
+
+  @override
+  String get languageSystem => 'System Default';
+
+  @override
   String get resetProfiles => 'Reset Profiles';
 
   @override
@@ -1365,4 +1371,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get imageResizingTitle => 'Image Resizing';
+
+  @override
+  String get useHttpsTitle => 'Use HTTPS (Encrypted Transport)';
+
+  @override
+  String get useHttpsSubtitleOn =>
+      'Self-signed certificate with fingerprint verification';
+
+  @override
+  String get useHttpsSubtitleOff => 'Using HTTP (no transport encryption)';
+
+  @override
+  String get pushToReceiverTitle => 'Push to Receiver';
+
+  @override
+  String get pushToReceiverSubtitle =>
+      'Scan a receiver\'s QR code after selecting a file';
+
+  @override
+  String get backToCamera => 'Back to Camera';
+
+  @override
+  String get uiThemeColor => 'UI Theme Color';
+
+  @override
+  String get sliderComparisonTooltip => 'Slider Comparison';
+
+  @override
+  String get importConfigPasswordHint =>
+      'Enter the password used to encrypt this backup.';
+
+  @override
+  String get importConfigFailed =>
+      'Import failed: check password or file format.';
+
+  @override
+  String get loadingIdentity => 'Loading Identity...';
+
+  @override
+  String identityLoadError(String error) {
+    return 'Error loading identity keys: $error';
+  }
+
+  @override
+  String get profileP1 => 'P1';
+
+  @override
+  String get profileP2 => 'P2';
 }

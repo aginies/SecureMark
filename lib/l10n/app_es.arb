@@ -654,6 +654,8 @@
   "themeLight": "Claro",
   "themeDark": "Oscuro",
   "themeAmoled": "Negro Amoled",
+  "languageLabel": "Idioma",
+  "languageSystem": "Predeterminado del sistema",
   "resetProfiles": "Reiniciar perfiles",
   "resetProfileConfirm": "¿Reiniciar {profile} a los valores de fábrica?",
   "@resetProfileConfirm": {
@@ -783,5 +785,19 @@
   "waitingForFile": "Esperando archivo entrante...",
   "fileReceived": "Archivo recibido de {address}",
   "secureZipPasswordRequired": "La contraseña del ZIP debe establecerse en las Opciones de experto para habilitar el ZIP seguro.",
-  "imageResizingTitle": "Redimensionamiento de imagen"
+  "imageResizingTitle": "Redimensionamiento de imagen",
+  "useHttpsTitle": "Usar HTTPS (transporte cifrado)",
+  "useHttpsSubtitleOn": "Certificado autofirmado con verificación de huella",
+  "useHttpsSubtitleOff": "Usando HTTP (sin cifrado de transporte)",
+  "pushToReceiverTitle": "Enviar al receptor",
+  "pushToReceiverSubtitle": "Escanea el código QR del receptor después de seleccionar un archivo",
+  "backToCamera": "Volver a la cámara",
+  "uiThemeColor": "Color del tema de la interfaz",
+  "sliderComparisonTooltip": "Comparación con control deslizante",
+  "importConfigPasswordHint": "Introduzca la contraseña usada para cifrar esta copia de seguridad.",
+  "importConfigFailed": "Importación fallida: compruebe la contraseña o el formato del archivo.",
+  "loadingIdentity": "Cargando identidad...",
+  "identityLoadError": "Error al cargar las claves de identidad: {error}",
+  "profileP1": "P1",
+  "profileP2": "P2"
 }

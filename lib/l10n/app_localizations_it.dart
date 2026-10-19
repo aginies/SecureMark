@@ -1027,6 +1027,12 @@ class AppLocalizationsIt extends AppLocalizations {
   String get themeAmoled => 'Nero AMOLED';
 
   @override
+  String get languageLabel => 'Lingua';
+
+  @override
+  String get languageSystem => 'Predefinito di sistema';
+
+  @override
   String get resetProfiles => 'Ripristina profili';
 
   @override
@@ -1380,4 +1386,53 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get imageResizingTitle => 'Ridimensionamento immagine';
+
+  @override
+  String get useHttpsTitle => 'Usa HTTPS (trasporto cifrato)';
+
+  @override
+  String get useHttpsSubtitleOn =>
+      'Certificato autofirmato con verifica dell\'impronta';
+
+  @override
+  String get useHttpsSubtitleOff =>
+      'Uso di HTTP (senza cifratura del trasporto)';
+
+  @override
+  String get pushToReceiverTitle => 'Invia al destinatario';
+
+  @override
+  String get pushToReceiverSubtitle =>
+      'Scansiona il codice QR del destinatario dopo aver selezionato un file';
+
+  @override
+  String get backToCamera => 'Torna alla fotocamera';
+
+  @override
+  String get uiThemeColor => 'Colore del tema dell\'interfaccia';
+
+  @override
+  String get sliderComparisonTooltip => 'Confronto con cursore';
+
+  @override
+  String get importConfigPasswordHint =>
+      'Immetti la password usata per cifrare questo backup.';
+
+  @override
+  String get importConfigFailed =>
+      'Importazione non riuscita: verificare la password o il formato del file.';
+
+  @override
+  String get loadingIdentity => 'Caricamento identità...';
+
+  @override
+  String identityLoadError(String error) {
+    return 'Errore durante il caricamento delle chiavi di identità: $error';
+  }
+
+  @override
+  String get profileP1 => 'P1';
+
+  @override
+  String get profileP2 => 'P2';
 }

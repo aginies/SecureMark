@@ -1029,6 +1029,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get themeAmoled => 'Negro Amoled';
 
   @override
+  String get languageLabel => 'Idioma';
+
+  @override
+  String get languageSystem => 'Predeterminado del sistema';
+
+  @override
   String get resetProfiles => 'Reiniciar perfiles';
 
   @override
@@ -1382,4 +1388,52 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get imageResizingTitle => 'Redimensionamiento de imagen';
+
+  @override
+  String get useHttpsTitle => 'Usar HTTPS (transporte cifrado)';
+
+  @override
+  String get useHttpsSubtitleOn =>
+      'Certificado autofirmado con verificación de huella';
+
+  @override
+  String get useHttpsSubtitleOff => 'Usando HTTP (sin cifrado de transporte)';
+
+  @override
+  String get pushToReceiverTitle => 'Enviar al receptor';
+
+  @override
+  String get pushToReceiverSubtitle =>
+      'Escanea el código QR del receptor después de seleccionar un archivo';
+
+  @override
+  String get backToCamera => 'Volver a la cámara';
+
+  @override
+  String get uiThemeColor => 'Color del tema de la interfaz';
+
+  @override
+  String get sliderComparisonTooltip => 'Comparación con control deslizante';
+
+  @override
+  String get importConfigPasswordHint =>
+      'Introduzca la contraseña usada para cifrar esta copia de seguridad.';
+
+  @override
+  String get importConfigFailed =>
+      'Importación fallida: compruebe la contraseña o el formato del archivo.';
+
+  @override
+  String get loadingIdentity => 'Cargando identidad...';
+
+  @override
+  String identityLoadError(String error) {
+    return 'Error al cargar las claves de identidad: $error';
+  }
+
+  @override
+  String get profileP1 => 'P1';
+
+  @override
+  String get profileP2 => 'P2';
 }

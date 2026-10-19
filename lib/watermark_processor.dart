@@ -32,6 +32,59 @@ import 'utils/image_utils.dart';
 import 'utils/watermark_field_handler.dart';
 import 'package:crypto/crypto.dart';
 
+/// Every input that can change the bytes of a processed document.
+///
+/// The result cache hashes this record directly: Dart records derive `==` and
+/// `hashCode` from all of their fields, so any field declared here takes part
+/// in the cache key automatically. There is no second, hand-maintained list of
+/// hashed terms for a setting to go missing from — and because a record literal
+/// with fewer named fields is not assignable to this type, a call site that
+/// forgets to supply a setting fails to compile instead of silently caching a
+/// result that ignores it.
+///
+/// This is the structural guard for the `forcePng` defect, where the field was
+/// declared and passed at the call site but never hashed.
+typedef WatermarkCacheInput = ({
+  String filePath,
+  double transparency,
+  double density,
+  String watermarkText,
+  bool useRandomColor,
+  int selectedColorValue,
+  double fontSize,
+  String fontFamily,
+  int jpegQuality,
+  int? targetSize,
+  bool forcePng,
+  bool includeTimestamp,
+  bool preserveMetadata,
+  bool rasterizePdf,
+  String filePrefix,
+  double antiAiLevel,
+  bool useSteganography,
+  bool useRobustSteganography,
+  bool useAiCloaking,
+  WatermarkType watermarkType,
+  int? watermarkImageLength,
+  String? steganographyPassword,
+  String? steganographyText,
+  String? hiddenFileName,
+  int? hiddenFileLength,
+  bool? visibleQr,
+  bool? enablePdfSecurity,
+  String? pdfUserPassword,
+  String? pdfOwnerPassword,
+  bool? pdfAllowPrinting,
+  bool? pdfAllowCopying,
+  bool? pdfAllowEditing,
+  bool? digitallySign,
+
+  /// Base64 of the signing key pair's public half, null when the run does not
+  /// sign. Identifies the identity embedded in the output, so cached results
+  /// cannot outlive the key that produced them.
+  String? signerPublicKey,
+});
+
 class WatermarkProcessor {
   static final Map<String, ProcessResult> _resultCache = {};
   static const int _maxCacheSize = 10;
@@ -43,80 +96,13 @@ class WatermarkProcessor {
 
   static void clearCache() => _resultCache.clear();
 
-  /// Generates a hash-based cache key for efficient lookups
-  /// Uses Object.hash instead of string concatenation for better performance
-  static String _generateCacheKey({
-    required String filePath,
-    required double transparency,
-    required double density,
-    required String watermarkText,
-    required bool useRandomColor,
-    required int selectedColorValue,
-    required double fontSize,
-    required String fontFamily,
-    required int jpegQuality,
-    int? targetSize,
-    required bool forcePng,
-    required bool includeTimestamp,
-    required bool preserveMetadata,
-    required bool rasterizePdf,
-    required String filePrefix,
-    required double antiAiLevel,
-    required bool useSteganography,
-    required bool useRobustSteganography,
-    required bool useAiCloaking,
-    required WatermarkType watermarkType,
-    int? watermarkImageLength,
-    String? steganographyPassword,
-    String? steganographyText,
-    String? hiddenFileName,
-    int? hiddenFileLength,
-    bool? visibleQr,
-    bool? enablePdfSecurity,
-    String? pdfUserPassword,
-    String? pdfOwnerPassword,
-    bool? pdfAllowPrinting,
-    bool? pdfAllowCopying,
-    bool? pdfAllowEditing,
-    bool? digitallySign,
-  }) {
-    // Compute hash of all parameters for efficient cache key
-    final hash = Object.hashAll([
-      filePath,
-      transparency,
-      density,
-      watermarkText,
-      useRandomColor,
-      selectedColorValue,
-      fontSize,
-      fontFamily,
-      jpegQuality,
-      targetSize,
-      includeTimestamp,
-      preserveMetadata,
-      rasterizePdf,
-      filePrefix,
-      antiAiLevel,
-      useSteganography,
-      useRobustSteganography,
-      useAiCloaking,
-      digitallySign,
-      watermarkType,
-      watermarkImageLength,
-      steganographyPassword,
-      steganographyText,
-      hiddenFileName,
-      hiddenFileLength,
-      visibleQr,
-      enablePdfSecurity,
-      pdfUserPassword,
-      pdfOwnerPassword,
-      pdfAllowPrinting,
-      pdfAllowCopying,
-      pdfAllowEditing,
-    ]);
-    return hash.toRadixString(36); // Base-36 for compact representation
-  }
+  /// Derives the result-cache key from [input].
+  ///
+  /// Adding a setting means adding a field to [WatermarkCacheInput] and passing
+  /// it here — never adding a term to a hash list, since the record's own
+  /// `hashCode` already covers every field it holds.
+  static String _generateCacheKey(WatermarkCacheInput input) =>
+      input.hashCode.toRadixString(36); // Base-36 for a compact key
 
   static Future<bool> isSupportedFile(File file) =>
       WatermarkUtils.isSupportedFile(file);
@@ -214,7 +200,23 @@ class WatermarkProcessor {
           originalError: e);
     }
 
-    final cacheKey = _generateCacheKey(
+    // The signing identity must be resolved BEFORE the cache lookup, not after
+    // it: a signed output embeds a signature made by this device's key, so the
+    // key is part of what makes a cached result valid. Keying on the public key
+    // means an identity switch or reset can never serve a stale signature back
+    // out of the cache. These locals intentionally override the identically
+    // named parameters, which are ignored: signing always uses the device
+    // identity.
+    Uint8List? signingPrivateKey;
+    Uint8List? signingPublicKey;
+    if (digitallySign) {
+      signingPrivateKey = await IdentityManager.getDevicePrivateKey();
+      signingPublicKey = await IdentityManager.getDevicePublicKeyBytes();
+    }
+
+    // Record literal: every field of [WatermarkCacheInput] must be supplied
+    // here, so a newly added setting cannot be omitted from the cache key.
+    final cacheKey = _generateCacheKey((
       filePath: file.path,
       transparency: transparency,
       density: density,
@@ -247,21 +249,22 @@ class WatermarkProcessor {
       pdfAllowPrinting: pdfAllowPrinting,
       pdfAllowCopying: pdfAllowCopying,
       pdfAllowEditing: pdfAllowEditing,
-    );
+      digitallySign: digitallySign,
+      // Null when the run does not sign; the signing key pair is folded into
+      // the key whenever a signature will be embedded in the output.
+      signerPublicKey:
+          signingPublicKey == null ? null : base64Encode(signingPublicKey),
+    ));
     if (_resultCache.containsKey(cacheKey)) {
       onProgress?.call(1.0, 'progressFromCache');
       return _resultCache[cacheKey]!;
     }
 
+    // The visible watermark always carries a date/time stamp; the
+    // includeTimestamp flag only gates the timestamp in the output filename
+    // (see WatermarkUtils.outputPath).
     final resolvedText = WatermarkUtils.resolvedWatermarkText(watermarkText);
     ProcessResult result;
-
-    Uint8List? signingPrivateKey;
-    Uint8List? signingPublicKey;
-    if (digitallySign) {
-      signingPrivateKey = await IdentityManager.getDevicePrivateKey();
-      signingPublicKey = await IdentityManager.getDevicePublicKeyBytes();
-    }
 
     if (type == '.pdf') {
       result = await _processPdf(
@@ -2122,18 +2125,22 @@ class WatermarkProcessor {
         final hashBytes = hex.decode(originalHash);
 
         // Verify the cryptographic signature
-        final bool cryptoSignatureIsValid =
+        final SignatureVerification cryptoSignature =
             await IdentityManager.verifySignature(
                 hashBytes, integritySig, publicKey);
 
-        IdentityManager.onLog?.call(
-            '[VERIFY] Crypto signature is valid: $cryptoSignatureIsValid');
+        IdentityManager.onLog
+            ?.call('[VERIFY] Crypto signature verification: $cryptoSignature');
 
         // The signature verification proves:
         // - The document hash was created by the holder of the private key
         // - The hash has not been tampered with
         // - The document content (when originally signed) matches the hash
-        integrityVerified = cryptoSignatureIsValid;
+        //
+        // Only a positive verification counts as integrity proven. A corrupt
+        // signature (error) is not evidence of tampering, but it is not proof
+        // of integrity either.
+        integrityVerified = cryptoSignature == SignatureVerification.valid;
 
         IdentityManager.onLog?.call(
             '[VERIFY] Final integrity verification result: $integrityVerified');
@@ -2254,10 +2261,14 @@ class WatermarkProcessor {
       // Use forensic hash excluding ALL LSBs (where signatures live)
       final hash =
           ForensicUtils.calculateForensicHashBytes(image, excludeAllLSB: true);
-      integrityVerified = await IdentityManager.verifySignature(
-          hash.bytes, integritySig, publicKey);
+      final SignatureVerification verification =
+          await IdentityManager.verifySignature(
+              hash.bytes, integritySig, publicKey);
+      // Only a positive verification counts as integrity proven; a corrupt
+      // signature (error) is not evidence of tampering.
+      integrityVerified = verification == SignatureVerification.valid;
       IdentityManager.onLog
-          ?.call('Signature verification result: $integrityVerified');
+          ?.call('Signature verification result: $verification');
     } else {
       if (integritySig == null) {
         IdentityManager.onLog

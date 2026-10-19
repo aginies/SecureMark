@@ -3,6 +3,16 @@ import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Outcome of a signature verification attempt.
+///
+/// Distinguishing these states matters in a security feature: [invalid] means
+/// the signature was well-formed but failed to verify against the data and
+/// key (tampering, or a different key), while [error] means the inputs were
+/// corrupt or unreadable, so no cryptographic conclusion could be drawn at
+/// all. Treating both as plain "false" would present corrupt data as proof of
+/// tampering.
+enum SignatureVerification { valid, invalid, error }
+
 /// Manages the cryptographic identity of the device for digital signing.
 /// Uses Ed25519 algorithm for fast and compact signatures.
 class IdentityManager {
@@ -12,6 +22,11 @@ class IdentityManager {
 
   static SimpleKeyPair? _cachedKeyPair;
   static void Function(String)? onLog;
+
+  /// Invoked whenever the active signing identity changes (reset or explicit
+  /// key injection). Callers use this to invalidate anything derived from the
+  /// previous identity, such as the processor's result cache.
+  static void Function()? onIdentityChanged;
 
   static void _log(String msg) {
     onLog?.call('[IdentityManager] $msg');
@@ -28,6 +43,7 @@ class IdentityManager {
       type: KeyPairType.ed25519,
     );
     _log('Initialized from provided keys');
+    onIdentityChanged?.call();
   }
 
   /// Gets the raw private key bytes.
@@ -110,7 +126,13 @@ class IdentityManager {
   }
 
   /// Verifies a signature using a public key.
-  static Future<bool> verifySignature(
+  ///
+  /// Returns [SignatureVerification.error] when the signature or key bytes
+  /// are corrupt (undecodable, wrong size) and [SignatureVerification.invalid]
+  /// when they are well-formed but do not verify. Callers must not conflate
+  /// the two: a corrupt signature is not evidence of tampering, but it is
+  /// not evidence of integrity either.
+  static Future<SignatureVerification> verifySignature(
       List<int> data, String signatureB64, String publicKeyB64) async {
     try {
       final signatureBytes = base64Decode(signatureB64);
@@ -121,9 +143,11 @@ class IdentityManager {
         publicKey: SimplePublicKey(publicKeyBytes, type: KeyPairType.ed25519),
       );
 
-      return await _algorithm.verify(data, signature: signature);
+      return await _algorithm.verify(data, signature: signature)
+          ? SignatureVerification.valid
+          : SignatureVerification.invalid;
     } catch (_) {
-      return false;
+      return SignatureVerification.error;
     }
   }
 
@@ -144,10 +168,15 @@ class IdentityManager {
   }
 
   /// Resets the identity (use with caution).
+  ///
+  /// Any cached output signed by the outgoing key is stale, so observers are
+  /// notified via [onIdentityChanged] once the new state is in effect.
   static Future<void> resetIdentity() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_privateKeyPref);
     await prefs.remove(_publicKeyPref);
     _cachedKeyPair = null;
+    _log('Identity reset; notifying observers to drop cached results');
+    onIdentityChanged?.call();
   }
 }

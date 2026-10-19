@@ -658,6 +658,8 @@
   "themeLight": "Light",
   "themeDark": "Dark",
   "themeAmoled": "Amoled Black",
+  "languageLabel": "Language",
+  "languageSystem": "System Default",
   "resetProfiles": "Reset Profiles",
   "resetProfileConfirm": "Reset {profile} to factory defaults?",
   "@resetProfileConfirm": {
@@ -783,5 +785,21 @@
   "waitingForFile": "Waiting for incoming file...",
   "fileReceived": "File received from {address}",
   "secureZipPasswordRequired": "ZIP password must be set in Expert Options to enable Secure ZIP.",
-  "imageResizingTitle": "Image Resizing"
+  "imageResizingTitle": "Image Resizing",
+  "useHttpsTitle": "Use HTTPS (Encrypted Transport)",
+  "@useHttpsTitle": {"description": "Title of the HTTPS toggle in the local share dialog"},
+  "useHttpsSubtitleOn": "Self-signed certificate with fingerprint verification",
+  "useHttpsSubtitleOff": "Using HTTP (no transport encryption)",
+  "pushToReceiverTitle": "Push to Receiver",
+  "pushToReceiverSubtitle": "Scan a receiver's QR code after selecting a file",
+  "backToCamera": "Back to Camera",
+  "uiThemeColor": "UI Theme Color",
+  "sliderComparisonTooltip": "Slider Comparison",
+  "importConfigPasswordHint": "Enter the password used to encrypt this backup.",
+  "importConfigFailed": "Import failed: check password or file format.",
+  "loadingIdentity": "Loading Identity...",
+  "identityLoadError": "Error loading identity keys: {error}",
+  "@identityLoadError": {"placeholders": {"error": {"type": "String"}}},
+  "profileP1": "P1",
+  "profileP2": "P2"
 }

@@ -1034,6 +1034,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get themeAmoled => 'Noir Pur (AMOLED)';
 
   @override
+  String get languageLabel => 'Langue';
+
+  @override
+  String get languageSystem => 'Système';
+
+  @override
   String get resetProfiles => 'Réinitialiser les profils';
 
   @override
@@ -1387,4 +1393,53 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get imageResizingTitle => 'Redimensionnement d\'image';
+
+  @override
+  String get useHttpsTitle => 'Utiliser HTTPS (transport chiffré)';
+
+  @override
+  String get useHttpsSubtitleOn =>
+      'Certificat auto-signé avec vérification d\'empreinte';
+
+  @override
+  String get useHttpsSubtitleOff =>
+      'Utilisation d\'HTTP (sans chiffrement du transport)';
+
+  @override
+  String get pushToReceiverTitle => 'Envoyer au destinataire';
+
+  @override
+  String get pushToReceiverSubtitle =>
+      'Scannez le code QR d\'un destinataire après avoir sélectionné un fichier';
+
+  @override
+  String get backToCamera => 'Retour à la caméra';
+
+  @override
+  String get uiThemeColor => 'Couleur du thème de l\'interface';
+
+  @override
+  String get sliderComparisonTooltip => 'Comparaison avec curseur';
+
+  @override
+  String get importConfigPasswordHint =>
+      'Saisissez le mot de passe utilisé pour chiffrer cette sauvegarde.';
+
+  @override
+  String get importConfigFailed =>
+      'Échec de l\'import : vérifiez le mot de passe ou le format du fichier.';
+
+  @override
+  String get loadingIdentity => 'Chargement de l\'identité...';
+
+  @override
+  String identityLoadError(String error) {
+    return 'Erreur lors du chargement des clés d\'identité : $error';
+  }
+
+  @override
+  String get profileP1 => 'P1';
+
+  @override
+  String get profileP2 => 'P2';
 }

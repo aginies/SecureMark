@@ -28,6 +28,8 @@ class SecureMarkApp extends StatefulWidget {
 class SecureMarkAppState extends State<SecureMarkApp> {
   AppTheme _appTheme = AppTheme.system;
   Color _seedColor = Colors.blue;
+  // null = follow the device system locale
+  Locale? _appLocale;
   bool _isFirstLaunch = false;
   bool _isLoading = true;
   bool _hasCamera = true;
@@ -35,6 +37,7 @@ class SecureMarkAppState extends State<SecureMarkApp> {
 
   AppTheme get appTheme => _appTheme;
   Color get seedColor => _seedColor;
+  Locale? get appLocale => _appLocale;
 
   @override
   void initState() {
@@ -53,6 +56,10 @@ class SecureMarkAppState extends State<SecureMarkApp> {
     }
     if (seedColorValue != null) {
       _seedColor = Color(seedColorValue);
+    }
+    final localeCode = prefs.getString('appLocale');
+    if (localeCode != null) {
+      _appLocale = Locale(localeCode);
     }
 
     await _checkCameraHardware();
@@ -143,6 +150,19 @@ class SecureMarkAppState extends State<SecureMarkApp> {
     });
   }
 
+  /// Sets the app locale; null restores the device system locale.
+  Future<void> setLocale(Locale? locale) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (locale == null) {
+      await prefs.remove('appLocale');
+    } else {
+      await prefs.setString('appLocale', locale.languageCode);
+    }
+    setState(() {
+      _appLocale = locale;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -178,6 +198,7 @@ class SecureMarkAppState extends State<SecureMarkApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
+      locale: _appLocale,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: _seedColor,
