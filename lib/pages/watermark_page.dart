@@ -1154,10 +1154,15 @@ class WatermarkPageState extends State<WatermarkPage>
     // was active when it was produced, so results cached under the old key are
     // invalid the moment the identity changes.
     IdentityManager.onIdentityChanged = WatermarkProcessor.clearCache;
-    IdentityManager.getIdentityKeyPair().then((_) async {
-      final pk = await IdentityManager.getDevicePublicKey();
-      if (mounted) setState(() => _devicePublicKey = pk);
-    });
+    // The web UI does not sign: don't auto-generate an identity key pair
+    // and persist the private key to localStorage for every visitor.
+    // (Opening the identity dialog explicitly still creates one on demand.)
+    if (!kIsWeb) {
+      IdentityManager.getIdentityKeyPair().then((_) async {
+        final pk = await IdentityManager.getDevicePublicKey();
+        if (mounted) setState(() => _devicePublicKey = pk);
+      });
+    }
 
     // Check for shared content multiple times to handle race conditions
     _handleSharedContent();
