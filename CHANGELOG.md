@@ -2,7 +2,7 @@
 
 All notable changes to SecureMark are documented in this file.
 
-## Unreleased
+## 1.9.0
 
 ### Changed
 

@@ -1,7 +1,7 @@
 name: secure_mark
 description: SecureMark - High-security document distribution with watermarks.
 publish_to: 'none'
-version: 1.8.1+19
+version: 1.9.0+20
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
