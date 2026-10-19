@@ -1445,4 +1445,25 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get profileP2 => 'P2';
+
+  @override
+  String webFileTooLarge(String names) {
+    return 'Trop volumineux (max 10 Mo) : $names';
+  }
+
+  @override
+  String get webMaxFilesReached => 'Maximum de 5 fichiers par session';
+
+  @override
+  String webFilesPartiallyAdded(int added, int total) {
+    return '$added fichiers sur $total ajoutés (max 5 par session)';
+  }
+
+  @override
+  String webRetentionWarning(String time) {
+    return 'Les fichiers ne quittent jamais votre navigateur : ils sont conservés en mémoire uniquement et seront effacés dans $time. Téléchargez-les avant.';
+  }
+
+  @override
+  String get webDataExpired => 'Les fichiers ont été effacés de la mémoire';
 }

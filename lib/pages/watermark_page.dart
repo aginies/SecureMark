@@ -137,6 +137,16 @@ class WatermarkPageState extends State<WatermarkPage>
   final List<String> _logs = <String>[];
   final List<String> _tempFiles = <String>[];
   List<String> _selectedPaths = <String>[];
+
+  /// Web deployment limits: files live in browser memory only, so the
+  /// session is bounded (5 files, 10 MB each) and erased after 2 minutes
+  /// of inactivity.
+  static const int _webMaxFiles = 5;
+  static const int _webMaxFileSizeBytes = 10 * 1024 * 1024;
+  static const Duration _webRetentionWindow = Duration(minutes: 2);
+
+  Timer? _webRetentionTimer;
+  DateTime? _webRetentionDeadline;
   ui.FragmentProgram? _shaderProgram;
   Stopwatch? _stopwatch;
   Timer? _timer;
@@ -1207,6 +1217,7 @@ class WatermarkPageState extends State<WatermarkPage>
     _cleanupTempFiles();
     _shareCheckTimer1?.cancel();
     _shareCheckTimer2?.cancel();
+    _webRetentionTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _textController.dispose();
     _steganographyTextController.dispose();
@@ -7871,6 +7882,28 @@ class WatermarkPageState extends State<WatermarkPage>
     }
   }
 
+  /// (Web only) Countdown banner: files live in browser memory only and are
+  /// erased when the retention window elapses.
+  Widget _buildWebRetentionBanner(ThemeData theme, AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(Icons.timer_outlined, size: 16, color: theme.colorScheme.error),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              l10n.webRetentionWarning(_webRetentionRemainingLabel ?? '00:00'),
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.error),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPreviewPanel(ThemeData theme) {
     final l10n = AppLocalizations.of(context)!;
     final isMobile = !kIsWeb && (Platform.isIOS || Platform.isAndroid);
@@ -7898,6 +7931,8 @@ class WatermarkPageState extends State<WatermarkPage>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (kIsWeb && _webRetentionDeadline != null)
+                        _buildWebRetentionBanner(theme, l10n),
                       if (_selectedPaths.isNotEmpty) ...[
                         Text(
                           l10n.selectedFilesLabel(_selectedPaths.length),
@@ -7968,6 +8003,8 @@ class WatermarkPageState extends State<WatermarkPage>
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    if (kIsWeb && _webRetentionDeadline != null)
+                      _buildWebRetentionBanner(theme, l10n),
                     Text(
                       File(_currentProcessedFile!.sourcePath)
                           .uri
@@ -10043,12 +10080,58 @@ class WatermarkPageState extends State<WatermarkPage>
         // directory per batch avoids name collisions.
         final batchDir = '/picked/${DateTime.now().microsecondsSinceEpoch}';
         validPaths = [];
+        final rejectedTooLarge = <String>[];
         for (final f in result.files) {
           final bytes = f.bytes;
           if (bytes == null) continue;
+          // Web deployment limit: 10 MB per file.
+          if (bytes.lengthInBytes > _webMaxFileSizeBytes) {
+            rejectedTooLarge.add(f.name);
+            continue;
+          }
           final path = p.join(batchDir, f.name);
           WebFileStore.put(path, bytes);
           validPaths.add(path);
+        }
+        // Web deployment limit: 5 files per session (picks append to the
+        // existing selection).
+        final acceptedCount = validPaths.length;
+        final room = _webMaxFiles - _selectedPaths.length;
+        final keep = room.clamp(0, validPaths.length);
+        if (validPaths.length > keep) {
+          for (final path in validPaths.sublist(keep)) {
+            WebFileStore.remove(path);
+          }
+          validPaths.removeRange(keep, validPaths.length);
+        }
+        if (rejectedTooLarge.isNotEmpty || acceptedCount > validPaths.length) {
+          if (!mounted) return;
+          final l10n = AppLocalizations.of(context)!;
+          final messenger = ScaffoldMessenger.of(context);
+          if (rejectedTooLarge.isNotEmpty) {
+            _addLog(
+                'Rejected over-limit file(s): ${rejectedTooLarge.join(', ')}');
+            messenger.showSnackBar(
+              SnackBar(
+                content:
+                    Text(l10n.webFileTooLarge(rejectedTooLarge.join(', '))),
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          }
+          if (acceptedCount > validPaths.length) {
+            _addLog('Rejected ${acceptedCount - validPaths.length} file(s) '
+                'over the 5-file web limit.');
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(room <= 0
+                    ? l10n.webMaxFilesReached
+                    : l10n.webFilesPartiallyAdded(
+                        validPaths.length, acceptedCount)),
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          }
         }
       } else {
         validPaths = result.files
@@ -10093,6 +10176,9 @@ class WatermarkPageState extends State<WatermarkPage>
       _statusMessage = '';
     });
 
+    // Web-only: (re)start the 2-minute in-memory retention window.
+    _webStartRetentionWindow();
+
     try {
       if (allPaths.isNotEmpty) {
         final firstPath = allPaths.first;
@@ -10127,6 +10213,62 @@ class WatermarkPageState extends State<WatermarkPage>
         });
       }
     }
+  }
+
+  /// (Web only) (Re)starts the 2-minute in-memory retention window.
+  ///
+  /// On the web, picked and generated files exist only in browser memory
+  /// (WebFileStore). So that sensitive data cannot linger indefinitely in a
+  /// shared browser, all file data is erased 2 minutes after the last pick
+  /// or processing run.
+  void _webStartRetentionWindow() {
+    if (!kIsWeb) return;
+    _webRetentionDeadline = DateTime.now().add(_webRetentionWindow);
+    _webRetentionTimer?.cancel();
+    _webRetentionTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final deadline = _webRetentionDeadline;
+      if (deadline == null) return;
+      if (deadline.isBefore(DateTime.now())) {
+        _webEraseData();
+      } else {
+        // Refresh the countdown shown in the retention banner.
+        setState(() {});
+      }
+    });
+  }
+
+  /// (Web only) Erases all in-memory file data (picked + generated).
+  void _webEraseData() {
+    _webRetentionTimer?.cancel();
+    _webRetentionTimer = null;
+    _webRetentionDeadline = null;
+    WebFileStore.clear();
+    _addLog('In-memory files erased after the 2-minute retention window.');
+    if (!mounted) return;
+    setState(() {
+      _selectedPaths = <String>[];
+      _processedFiles = <ProcessedFile>[];
+      _previewIndex = 0;
+      _rawImage = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.webDataExpired),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  /// (Web only) Countdown text for the retention banner (mm:ss).
+  String? get _webRetentionRemainingLabel {
+    final deadline = _webRetentionDeadline;
+    if (deadline == null) return null;
+    final remaining = deadline.difference(DateTime.now());
+    if (remaining.isNegative) return null;
+    final minutes = remaining.inMinutes.toString().padLeft(2, '0');
+    final seconds = (remaining.inSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 
   Future<void> _processPaths(List<String> paths) async {
@@ -10586,6 +10728,9 @@ class WatermarkPageState extends State<WatermarkPage>
             _modalProgressStatus = '';
           });
 
+          // Web-only: (re)start the 2-minute in-memory retention window.
+          _webStartRetentionWindow();
+
           if (_previewController.hasClients) {
             _previewController.jumpToPage(0);
           }
@@ -10660,6 +10805,9 @@ class WatermarkPageState extends State<WatermarkPage>
 
     WatermarkProcessor.clearCache();
     WebFileStore.clear();
+    _webRetentionTimer?.cancel();
+    _webRetentionTimer = null;
+    _webRetentionDeadline = null;
     await _cleanupTempFiles();
 
     if (_previewController.hasClients) {

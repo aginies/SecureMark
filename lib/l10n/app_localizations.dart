@@ -2516,6 +2516,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'P2'**
   String get profileP2;
+
+  /// No description provided for @webFileTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Too large (max 10 MB): {names}'**
+  String webFileTooLarge(String names);
+
+  /// No description provided for @webMaxFilesReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum of 5 files per session'**
+  String get webMaxFilesReached;
+
+  /// No description provided for @webFilesPartiallyAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {added} of {total} files (max 5 per session)'**
+  String webFilesPartiallyAdded(int added, int total);
+
+  /// No description provided for @webRetentionWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Files never leave your browser: they are kept in memory only and will be erased in {time}. Download them before then.'**
+  String webRetentionWarning(String time);
+
+  /// No description provided for @webDataExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Files were erased from memory'**
+  String get webDataExpired;
 }
 
 class _AppLocalizationsDelegate

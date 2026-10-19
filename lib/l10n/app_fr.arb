@@ -800,5 +800,18 @@
   "loadingIdentity": "Chargement de l'identité...",
   "identityLoadError": "Erreur lors du chargement des clés d'identité : {error}",
   "profileP1": "P1",
-  "profileP2": "P2"
+  "profileP2": "P2",
+  "webFileTooLarge": "Trop volumineux (max 10 Mo) : {names}",
+  "@webFileTooLarge": {"placeholders": {"names": {"type": "String"}}},
+  "webMaxFilesReached": "Maximum de 5 fichiers par session",
+  "webFilesPartiallyAdded": "{added} fichiers sur {total} ajoutés (max 5 par session)",
+  "@webFilesPartiallyAdded": {
+    "placeholders": {
+      "added": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "webRetentionWarning": "Les fichiers ne quittent jamais votre navigateur : ils sont conservés en mémoire uniquement et seront effacés dans {time}. Téléchargez-les avant.",
+  "@webRetentionWarning": {"placeholders": {"time": {"type": "String"}}},
+  "webDataExpired": "Les fichiers ont été effacés de la mémoire"
 }

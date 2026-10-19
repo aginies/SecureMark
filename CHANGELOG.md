@@ -20,6 +20,11 @@ All notable changes to SecureMark are documented in this file.
 
 ### Added
 
+- Web deployment limits: files are rejected above 10 MB, sessions are
+  capped at 5 files, and all in-memory file data (picked + generated)
+  is erased 2 minutes after the last pick or processing run, with a
+  visible countdown banner warning the user to download results before
+  the data is gone.
 - Web output: on the web the processed files are handed to the browser as a
   download — a single file directly, several files (or the zip option) as one
   `securemark-files-<timestamp>.zip`. The LAN local-share dialog is hidden on

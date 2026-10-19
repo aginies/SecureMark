@@ -802,5 +802,18 @@
   "identityLoadError": "Error loading identity keys: {error}",
   "@identityLoadError": {"placeholders": {"error": {"type": "String"}}},
   "profileP1": "P1",
-  "profileP2": "P2"
+  "profileP2": "P2",
+  "webFileTooLarge": "Too large (max 10 MB): {names}",
+  "@webFileTooLarge": {"placeholders": {"names": {"type": "String"}}},
+  "webMaxFilesReached": "Maximum of 5 files per session",
+  "webFilesPartiallyAdded": "Added {added} of {total} files (max 5 per session)",
+  "@webFilesPartiallyAdded": {
+    "placeholders": {
+      "added": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "webRetentionWarning": "Files never leave your browser: they are kept in memory only and will be erased in {time}. Download them before then.",
+  "@webRetentionWarning": {"placeholders": {"time": {"type": "String"}}},
+  "webDataExpired": "Files were erased from memory"
 }

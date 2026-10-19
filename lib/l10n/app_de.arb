@@ -800,5 +800,18 @@
   "loadingIdentity": "Identität wird geladen...",
   "identityLoadError": "Fehler beim Laden der Identitätsschlüssel: {error}",
   "profileP1": "P1",
-  "profileP2": "P2"
+  "profileP2": "P2",
+  "webFileTooLarge": "Zu groß (max. 10 MB): {names}",
+  "@webFileTooLarge": {"placeholders": {"names": {"type": "String"}}},
+  "webMaxFilesReached": "Maximum 5 Dateien pro Sitzung",
+  "webFilesPartiallyAdded": "{added} von {total} Dateien hinzugefügt (max. 5 pro Sitzung)",
+  "@webFilesPartiallyAdded": {
+    "placeholders": {
+      "added": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "webRetentionWarning": "Dateien verlassen Ihren Browser nie: Sie werden nur im Speicher gehalten und in {time} gelöscht. Laden Sie sie vorher herunter.",
+  "@webRetentionWarning": {"placeholders": {"time": {"type": "String"}}},
+  "webDataExpired": "Dateien wurden aus dem Speicher gelöscht"
 }
