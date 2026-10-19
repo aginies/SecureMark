@@ -29,6 +29,10 @@ All notable changes to SecureMark are documented in this file.
   download — a single file directly, several files (or the zip option) as one
   `securemark-files-<timestamp>.zip`. The LAN local-share dialog is hidden on
   the web, where it cannot work.
+- `docs/apache-vhost.example.conf`: ready-to-adapt Apache virtual host
+  example for the web deployment (TLS with Let's Encrypt fullchain,
+  HTTP→HTTPS redirect, wasm/mjs MIME types, bundle compression,
+  HSTS, SELinux notes).
 - Web legal pages: the footer now offers « Mentions légales » and
   « Confidentialité » dialogs (web only, French — the French version is the
   official one for French hosting). The privacy text documents the actual
