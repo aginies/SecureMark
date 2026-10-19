@@ -5,6 +5,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'certificate_manager.dart';
+import 'watermark_utils.dart';
 
 /// Network interface information with IP classification
 class NetworkInterfaceInfo {
@@ -214,10 +215,11 @@ class LocalServerManager {
     Function(int, int)? onProgress,
     String? bindAddress,
   }) async {
-    // Bind to specific address or all IPv4 interfaces
+    // Bind to the selected interface, falling back to loopback (never all
+    // interfaces) so the share server is not exposed to the whole network.
     final address = bindAddress != null
         ? InternetAddress(bindAddress)
-        : InternetAddress.anyIPv4;
+        : InternetAddress.loopbackIPv4;
 
     debugPrint('[LocalServer] Binding to: ${address.address}');
     _server = await HttpServer.bind(address, 0);
@@ -231,8 +233,8 @@ class LocalServerManager {
       if (path == '/$_token/download') {
         request.response.headers.contentType =
             ContentType.parse('application/octet-stream');
-        request.response.headers
-            .add('Content-Disposition', 'attachment; filename="$_fileName"');
+        request.response.headers.add('Content-Disposition',
+            'attachment; filename="${WatermarkUtils.sanitizeFileName(_fileName ?? 'file')}"');
         request.response.headers.set('Content-Encoding',
             'identity'); // Disable compression for binary data
         request.response.contentLength = _fileSize!;
@@ -322,10 +324,11 @@ class LocalServerManager {
     // Load SecurityContext from certificate manager
     final context = await CertificateManager.getSecurityContext();
 
-    // Bind to specific address or all IPv4 interfaces
+    // Bind to the selected interface, falling back to loopback (never all
+    // interfaces) so the share server is not exposed to the whole network.
     final address = bindAddress != null
         ? InternetAddress(bindAddress)
-        : InternetAddress.anyIPv4;
+        : InternetAddress.loopbackIPv4;
 
     debugPrint('[LocalServer HTTPS] Binding to: ${address.address}');
     _server = await HttpServer.bindSecure(address, 0, context);
@@ -344,8 +347,8 @@ class LocalServerManager {
       if (path == '/$_token/download') {
         request.response.headers.contentType =
             ContentType.parse('application/octet-stream');
-        request.response.headers
-            .add('Content-Disposition', 'attachment; filename="$_fileName"');
+        request.response.headers.add('Content-Disposition',
+            'attachment; filename="${WatermarkUtils.sanitizeFileName(_fileName ?? 'file')}"');
         request.response.headers.set('Content-Encoding',
             'identity'); // Disable compression for binary data
         request.response.contentLength = _fileSize!;
@@ -549,10 +552,11 @@ class LocalServerManager {
     _token = _generateRandomToken();
     _cancelController = StreamController<void>.broadcast();
 
-    // Bind to specific address or all IPv4 interfaces
+    // Bind to the selected interface, falling back to loopback (never all
+    // interfaces) so the receive server is not exposed to the whole network.
     final address = bindAddress != null
         ? InternetAddress(bindAddress)
-        : InternetAddress.anyIPv4;
+        : InternetAddress.loopbackIPv4;
 
     debugPrint('[ReceiveServer] Binding to: ${address.address}');
     _server = await HttpServer.bind(address, 0);
@@ -563,11 +567,19 @@ class LocalServerManager {
       final path = request.uri.path;
       debugPrint(
           '[ReceiveServer] Request from ${request.connectionInfo?.remoteAddress.address}: ${request.method} $path');
-      if (request.method == 'POST' && path == '/$_token/upload') {
+      // Accept the token from the legacy path segment or, preferably, from
+      // an Authorization header so the secret does not travel in the URL.
+      final authorized = path == '/$_token/upload' ||
+          (path == '/upload' &&
+              request.headers.value('authorization') == 'Bearer $_token');
+      if (request.method == 'POST' && authorized) {
         Directory? tempDir;
         try {
-          final fileName =
+          final rawName =
               request.headers.value('x-file-name') ?? 'uploaded_file';
+          // A client-supplied file name must never be able to escape the temp
+          // directory (`..`/absolute paths) or carry control characters.
+          final fileName = WatermarkUtils.sanitizeFileName(rawName);
           final contentLength = request.contentLength;
 
           // Stream to temp file (memory-efficient!)

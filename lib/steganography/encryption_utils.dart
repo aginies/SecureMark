@@ -3,8 +3,8 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
-import 'package:encrypt/encrypt.dart' as enc;
 import 'package:flutter/foundation.dart';
+import 'package:pointycastle/export.dart' as pc;
 
 class EncryptionUtils {
   static int crc16(List<int> data) {
@@ -38,26 +38,28 @@ class EncryptionUtils {
     final hmacKey = keys.hmacKey;
 
     // Generate random IV
-    final iv = enc.IV.fromSecureRandom(16);
+    final iv = Uint8List.fromList(
+      List<int>.generate(16, (_) => random.nextInt(256)),
+    );
 
-    // Encrypt data
-    final key = enc.Key(encryptionKey);
-    final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
-    final encrypted = encrypter.encryptBytes(data, iv: iv);
+    // Encrypt data with AES-256-CBC + PKCS#7 padding. This is byte-for-byte
+    // the same construction the legacy `encrypt` package used.
+    final cipher = _aesCbc(encryptionKey, iv, forEncryption: true);
+    final encrypted = cipher.process(data);
 
     // Calculate HMAC over salt + iv + ciphertext
     final dataToAuth = BytesBuilder()
       ..add(salt)
-      ..add(iv.bytes)
-      ..add(encrypted.bytes);
+      ..add(iv)
+      ..add(encrypted);
     final hmacBytes = Hmac(sha256, hmacKey).convert(dataToAuth.toBytes()).bytes;
 
     // Assemble final format: salt + iv + hmac + ciphertext
     final result = BytesBuilder()
       ..add(salt)
-      ..add(iv.bytes)
+      ..add(iv)
       ..add(hmacBytes)
-      ..add(encrypted.bytes);
+      ..add(encrypted);
 
     return result.toBytes();
   }
@@ -74,7 +76,7 @@ class EncryptionUtils {
 
       // Parse components
       final salt = encryptedData.sublist(0, 32);
-      final iv = enc.IV(encryptedData.sublist(32, 48));
+      final iv = encryptedData.sublist(32, 48);
       final storedHmac = encryptedData.sublist(48, 80);
       final ciphertext = encryptedData.sublist(80);
 
@@ -92,7 +94,7 @@ class EncryptionUtils {
       // Verify HMAC before decryption (authenticate-then-decrypt)
       final dataToAuth = BytesBuilder()
         ..add(salt)
-        ..add(iv.bytes)
+        ..add(iv)
         ..add(ciphertext);
       final computedHmac =
           Hmac(sha256, hmacKey).convert(dataToAuth.toBytes()).bytes;
@@ -105,16 +107,37 @@ class EncryptionUtils {
       }
 
       // HMAC verified, now decrypt
-      final key = enc.Key(encryptionKey);
-      final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
-      final decrypted =
-          encrypter.decryptBytes(enc.Encrypted(ciphertext), iv: iv);
+      final cipher = _aesCbc(encryptionKey, iv, forEncryption: false);
+      final decrypted = cipher.process(ciphertext);
 
-      return Uint8List.fromList(decrypted);
+      return decrypted;
     } catch (e) {
       debugPrint('Decryption error: $e');
       return null;
     }
+  }
+
+  /// Builds an AES-256-CBC cipher with PKCS#7 padding.
+  ///
+  /// This is the exact construction the legacy `encrypt` package used, so the
+  /// on-disk format (ciphertext bytes) is unchanged.
+  static pc.PaddedBlockCipherImpl _aesCbc(
+    Uint8List key,
+    Uint8List iv, {
+    required bool forEncryption,
+  }) {
+    final cipher = pc.PaddedBlockCipherImpl(
+      pc.PKCS7Padding(),
+      pc.CBCBlockCipher(pc.AESEngine()),
+    );
+    cipher.init(
+      forEncryption,
+      pc.PaddedBlockCipherParameters(
+        pc.ParametersWithIV(pc.KeyParameter(key), iv),
+        null,
+      ),
+    );
+    return cipher;
   }
 
   /// Synchronous PBKDF2 implementation using HMAC-SHA256

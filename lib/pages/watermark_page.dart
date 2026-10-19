@@ -3707,7 +3707,7 @@ class WatermarkPageState extends State<WatermarkPage>
                 : 'unknown';
             _addLog('📡 Receive server listening on: $selectedIp:$port');
             _addLog(
-                '🔗 Upload URL: http://$selectedIp:$port/${LocalServerManager.token}/upload');
+                '🔗 Upload endpoint: http://$selectedIp:$port/upload (token in Authorization header)');
 
             setDialogState(() {
               _servingPort = port;
@@ -3798,9 +3798,12 @@ class WatermarkPageState extends State<WatermarkPage>
     );
 
     try {
-      final uploadUrl = 'http://$addr:$port/$token/upload';
+      // Send the token in the Authorization header rather than in the URL so
+      // the secret is not exposed in request logs.
+      final uploadUrl = 'http://$addr:$port/upload';
       final request = http.Request('POST', Uri.parse(uploadUrl));
       request.headers['x-file-name'] = fileName;
+      request.headers['authorization'] = 'Bearer $token';
       request.bodyBytes = fileBytes;
 
       final streamedResponse =
@@ -4619,37 +4622,12 @@ class WatermarkPageState extends State<WatermarkPage>
           headers: headers,
         );
       } else if (isHttps) {
-        // HTTPS without fingerprint - accept any certificate (less secure but encrypted)
-        addLog(
-            'Using HTTPS without fingerprint verification (accepting self-signed certificate)');
-        httpClient = HttpClient();
-        var certAcceptedLogged = false;
-        httpClient.badCertificateCallback = (cert, host, port) {
-          // Accept any certificate (no verification)
-          // Log only once to avoid performance overhead
-          if (!certAcceptedLogged) {
-            certAcceptedLogged = true;
-            Future.microtask(
-                () => addLog('⚠️ Accepting certificate without verification'));
-          }
-          return true;
-        };
-
-        final req = await httpClient.getUrl(uri);
-        final resp = await req.close().timeout(const Duration(seconds: 30));
-
-        // Convert HttpClientResponse to StreamedResponse
-        final headers = <String, String>{};
-        resp.headers.forEach((name, values) {
-          headers[name] = values.join(', ');
-        });
-
-        response = http.StreamedResponse(
-          resp,
-          resp.statusCode,
-          contentLength: resp.contentLength,
-          headers: headers,
-        );
+        // HTTPS without a fingerprint: refuse to proceed. Accepting an
+        // unverifiable self-signed certificate would defeat MITM protection.
+        const error =
+            'HTTPS download requires a certificate fingerprint for verification.';
+        addLog(error);
+        throw Exception(error);
       } else {
         // Regular HTTP
         final client = http.Client();
@@ -4674,6 +4652,9 @@ class WatermarkPageState extends State<WatermarkPage>
           fileName = p.basename(uri.path);
           if (fileName == 'download') fileName = 'securemark_file';
         }
+        // The name is server-controlled (or from a URL) and is joined into a
+        // filesystem path below; reduce it to a safe basename first.
+        fileName = WatermarkUtils.sanitizeFileName(fileName);
 
         // Check if encrypted (needs in-memory processing)
         final isEncrypted = key != null;
@@ -4839,6 +4820,9 @@ class WatermarkPageState extends State<WatermarkPage>
   Future<void> _saveDownloadedFile(Uint8List? bytes, String fileName,
       {AppLocalizations? l10n, String? sourceFilePath}) async {
     final effectiveL10n = l10n ?? AppLocalizations.of(context)!;
+    // Never trust a caller-supplied name for filesystem or picker use; reduce
+    // it to a bare basename so it cannot traverse out of the target directory.
+    fileName = WatermarkUtils.sanitizeFileName(fileName);
 
     final String? outDir = _outputDirectory;
     if (outDir != null) {

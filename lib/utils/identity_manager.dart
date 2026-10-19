@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Outcome of a signature verification attempt.
 ///
@@ -19,6 +19,10 @@ class IdentityManager {
   static final Ed25519 _algorithm = Ed25519();
   static const String _privateKeyPref = 'device_private_key';
   static const String _publicKeyPref = 'device_public_key';
+
+  // The signing key pair lives in the platform secure storage (Android
+  // Keystore / iOS Keychain) rather than plaintext SharedPreferences.
+  static const FlutterSecureStorage _storage = FlutterSecureStorage();
 
   static SimpleKeyPair? _cachedKeyPair;
   static void Function(String)? onLog;
@@ -61,7 +65,7 @@ class IdentityManager {
   }
 
   /// Gets or creates the device identity key pair.
-  /// Keys are stored in SharedPreferences.
+  /// Keys are stored in the platform secure storage (encrypted at rest).
   static Future<SimpleKeyPair> getIdentityKeyPair() async {
     try {
       if (_cachedKeyPair != null) {
@@ -69,15 +73,14 @@ class IdentityManager {
         return _cachedKeyPair!;
       }
 
-      _log('Loading keys from SharedPreferences...');
-      final prefs = await SharedPreferences.getInstance();
-      final String? privateKeyB64 = prefs.getString(_privateKeyPref);
+      _log('Loading keys from secure storage...');
+      final String? privateKeyB64 = await _storage.read(key: _privateKeyPref);
 
       if (privateKeyB64 != null) {
-        final String? publicKeyB64 = prefs.getString(_publicKeyPref);
+        final String? publicKeyB64 = await _storage.read(key: _publicKeyPref);
         if (publicKeyB64 != null) {
-          _log(
-              'Found existing keys in prefs (PK length: ${publicKeyB64.length})');
+          _log('Found existing keys in secure storage '
+              '(PK length: ${publicKeyB64.length})');
           // Load existing key
           final privateKeyBytes = base64Decode(privateKeyB64);
           final publicKeyBytes = base64Decode(publicKeyB64);
@@ -101,13 +104,11 @@ class IdentityManager {
       final privateKey = keyPairData.bytes;
       final publicKey = keyPairData.publicKey;
 
-      _log('Keys generated, saving to SharedPreferences...');
-      final successPriv =
-          await prefs.setString(_privateKeyPref, base64Encode(privateKey));
-      final successPub =
-          await prefs.setString(_publicKeyPref, base64Encode(publicKey.bytes));
-
-      _log('Save results: private=$successPriv, public=$successPub');
+      _log('Keys generated, saving to secure storage...');
+      await _storage.write(
+          key: _privateKeyPref, value: base64Encode(privateKey));
+      await _storage.write(
+          key: _publicKeyPref, value: base64Encode(publicKey.bytes));
 
       _cachedKeyPair = keyPairData;
       return _cachedKeyPair!;
@@ -172,9 +173,8 @@ class IdentityManager {
   /// Any cached output signed by the outgoing key is stale, so observers are
   /// notified via [onIdentityChanged] once the new state is in effect.
   static Future<void> resetIdentity() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_privateKeyPref);
-    await prefs.remove(_publicKeyPref);
+    await _storage.delete(key: _privateKeyPref);
+    await _storage.delete(key: _publicKeyPref);
     _cachedKeyPair = null;
     _log('Identity reset; notifying observers to drop cached results');
     onIdentityChanged?.call();

@@ -102,6 +102,8 @@ class CertificateManager {
       throw Exception('OpenSSL failed: ${result.stderr}');
     }
 
+    await _protectPrivateKey(keyPath);
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_certFilenameKey, 'server.crt');
     await prefs.setString(_keyFilenameKey, 'server.key');
@@ -136,6 +138,7 @@ class CertificateManager {
 
     await File(certPath).writeAsString(certPemString);
     await File(keyPath).writeAsString(keyBytes);
+    await _protectPrivateKey(keyPath);
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_certFilenameKey, 'server.crt');
@@ -322,6 +325,20 @@ class CertificateManager {
   static Future<Directory> _getCertificateDirectory() async {
     final appDir = await getApplicationSupportDirectory();
     return Directory('${appDir.path}/certs');
+  }
+
+  /// Restricts a generated private key file to owner read/write only.
+  ///
+  /// OpenSSL is invoked with `-nodes` (no passphrase) because generation is
+  /// non-interactive; restrictive file permissions are the compensating
+  /// control so other local users cannot read the key.
+  static Future<void> _protectPrivateKey(String keyPath) async {
+    if (Platform.isWindows) return; // Windows uses per-user ACLs instead.
+    try {
+      await Process.run('chmod', ['600', keyPath]);
+    } catch (_) {
+      // Non-fatal: the app sandbox still limits access on most platforms.
+    }
   }
 
   /// Delete certificate and reset state

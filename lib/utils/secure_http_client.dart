@@ -116,6 +116,16 @@ class SecureHttpClient {
     required String outputPath,
     Function(int, int)? onProgress,
   }) async {
+    // Guard: only HTTP(S) is allowed, and HTTPS connections are always
+    // validated against the platform trust store (no badCertificateCallback
+    // is set here). Prefer downloadWithFingerprint for self-signed peers.
+    final parsed = Uri.tryParse(url);
+    if (parsed == null ||
+        parsed.host.isEmpty ||
+        (parsed.scheme != 'http' && parsed.scheme != 'https')) {
+      throw ArgumentError('Unsupported or malformed download URL: $url');
+    }
+
     final client = HttpClient();
 
     try {

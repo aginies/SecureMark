@@ -18,6 +18,22 @@ class WatermarkUtils {
     return prefix.replaceAll(RegExp(r'[/\\:\u0000-\u001f\u007f]'), '');
   }
 
+  /// Strips a client-supplied file name down to a safe basename.
+  ///
+  /// A name can arrive from an `x-file-name` header, a `Content-Disposition`
+  /// header, or a URL path. It must never be able to escape its target
+  /// directory (`..`, absolute paths, Windows drive/separators) or inject an
+  /// HTTP header (CR/LF/controls/quotes).
+  static String sanitizeFileName(String name) {
+    var sanitized = name.replaceAll(RegExp(r'[\\:\u0000-\u001f\u007f"]'), '_');
+    sanitized = p.basename(sanitized);
+    sanitized = sanitized.replaceAll('/', '_').trim();
+    if (sanitized.isEmpty || sanitized == '.' || sanitized == '..') {
+      return 'file';
+    }
+    return sanitized;
+  }
+
   static String outputPath(String path, String ext,
       [bool ts = false, String pref = 'securemark-']) {
     String s = '';

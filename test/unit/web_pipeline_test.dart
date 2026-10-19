@@ -1,13 +1,14 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:secure_mark/utils/web_file_store.dart';
 import 'package:secure_mark/watermark_processor.dart';
 
-// SharedPreferences (used by IdentityManager) needs a binding in tests.
+// IdentityManager stores keys via FlutterSecureStorage, which needs a mock in
+// tests (the real platform plugin is unavailable on the VM).
 void _ensureBinding() => TestWidgetsFlutterBinding.ensureInitialized();
 
 /// Web pipeline tests.
@@ -126,7 +127,7 @@ void main() {
     });
 
     test('text + AI cloaking + digital signature', () async {
-      SharedPreferences.setMockInitialValues({});
+      FlutterSecureStorage.setMockInitialValues({});
 
       final result = await WatermarkProcessor.processFile(
         file: File('/picked/1234/cloak.jpg'),
