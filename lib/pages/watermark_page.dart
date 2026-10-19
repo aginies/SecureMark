@@ -9919,7 +9919,11 @@ class WatermarkPageState extends State<WatermarkPage>
           'heic',
           'heif'
         ],
-        withData: false,
+        // On web the picker can only hand back in-memory bytes — with
+        // withData:false its "path" is a data URL that no File API can
+        // open. On native a path is all we need, and withData:false keeps
+        // large files out of memory twice.
+        withData: kIsWeb,
         lockParentWindow: true,
       );
 
@@ -9930,10 +9934,27 @@ class WatermarkPageState extends State<WatermarkPage>
 
       _addLog('Picked ${result.files.length} files via picker.');
 
-      final validPaths = result.files
-          .where((f) => f.path != null)
-          .map((f) => f.path!)
-          .toList();
+      final List<String> validPaths;
+      if (kIsWeb) {
+        // Materialize the picked files in the browser's virtual filesystem
+        // (IndexedDB-backed) so the path-based pipeline below can read
+        // them. A unique directory per batch avoids name collisions.
+        final batchDir = '/picked/${DateTime.now().microsecondsSinceEpoch}';
+        await Directory(batchDir).create(recursive: true);
+        validPaths = [];
+        for (final f in result.files) {
+          final bytes = f.bytes;
+          if (bytes == null) continue;
+          final path = p.join(batchDir, f.name);
+          await File(path).writeAsBytes(bytes);
+          validPaths.add(path);
+        }
+      } else {
+        validPaths = result.files
+            .where((f) => f.path != null)
+            .map((f) => f.path!)
+            .toList();
+      }
 
       if (validPaths.isNotEmpty) {
         setState(() => _loadingFiles = true);
