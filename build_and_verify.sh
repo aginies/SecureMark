@@ -35,6 +35,7 @@ function show_help() {
     echo "  build_ios         - Build release iOS (macOS only)"
     echo "  build_macos       - Build release macOS (macOS only)"
     echo "  build_windows     - Build release Windows (Windows only)"
+    echo "  build_web         - Build release Web (JS + WASM)"
     echo "  verify_apk        - Verify APK signature with apksigner"
     echo "  verify_aab        - Verify AAB signature with jarsigner"
     echo "  collect_artifacts - Move and rename artifacts to releases/ folder"
@@ -169,6 +170,25 @@ function build_windows() {
     fi
 }
 
+function build_web() {
+    VERSION_LINE=$(grep "version: " pubspec.yaml)
+    VERSION_NAME=$(echo $VERSION_LINE | cut -d' ' -f2 | cut -d'+' -f1)
+    BUILD_NUMBER=$(echo $VERSION_LINE | cut -d'+' -f2)
+    echo "[INFO] Building Release Web (JS) v$VERSION_NAME+$BUILD_NUMBER..."
+    $FLUTTER_PATH build web --release --build-name=$VERSION_NAME --build-number=$BUILD_NUMBER
+    echo "[INFO] Building Release Web (WASM) v$VERSION_NAME+$BUILD_NUMBER..."
+    $FLUTTER_PATH build web --release --wasm --build-name=$VERSION_NAME --build-number=$BUILD_NUMBER
+
+    if [ -d "build/web" ]; then
+        echo "[INFO] Packaging web build into ZIP..."
+        cd build/web
+        zip -r ../../secure-mark-web.zip . > /dev/null
+        cd ../..
+        echo "[SUCCESS] Web build in build/web/ (deploy its contents to the web server)."
+        echo "[INFO] Server configuration example: docs/apache-vhost.example.conf"
+    fi
+}
+
 function verify_apk() {
     if [ -f "$APK_PATH" ]; then
         echo "[INFO] Verifying APK signature..."
@@ -211,6 +231,7 @@ function collect_artifacts() {
     [ -f "secure-mark-ios.zip" ] && mv "secure-mark-ios.zip" "$RELEASE_DIR/SecureMark-$VERSION_NAME-iOS.zip" && echo "[SUCCESS] iOS ZIP collected."
     [ -f "secure-mark-macos.zip" ] && mv "secure-mark-macos.zip" "$RELEASE_DIR/SecureMark-$VERSION_NAME-macOS.zip" && echo "[SUCCESS] macOS ZIP collected."
     [ -f "secure-mark-windows.zip" ] && mv "secure-mark-windows.zip" "$RELEASE_DIR/SecureMark-$VERSION_NAME-Windows.zip" && echo "[SUCCESS] Windows ZIP collected."
+    [ -f "secure-mark-web.zip" ] && mv "secure-mark-web.zip" "$RELEASE_DIR/SecureMark-$VERSION_NAME-Web.zip" && echo "[SUCCESS] Web ZIP collected."
 }
 
 function create_keystore() {
@@ -241,6 +262,7 @@ function all() {
     build_ios
     build_macos
     build_windows
+    build_web
     echo ""
     echo "------------------------------------------------------------"
     echo "[INFO] Build Complete. Starting Verification..."

@@ -33,6 +33,10 @@ All notable changes to SecureMark are documented in this file.
   example for the web deployment (TLS with Let's Encrypt fullchain,
   HTTP→HTTPS redirect, wasm/mjs MIME types, bundle compression,
   HSTS, SELinux notes).
+- Web build is now documented and scriptable: `./build_and_verify.sh
+  build_web` builds both bundles (JS + WASM) into `build/web/` and
+  packages `secure-mark-web.zip` like the other platforms; `all` and
+  `collect_artifacts` include it, and the README has a Web section.
 - Web legal pages: the footer now offers « Mentions légales » and
   « Confidentialité » dialogs (web only, French — the French version is the
   official one for French hosting). The privacy text documents the actual

@@ -61,6 +61,7 @@ flutter gen-l10n
 ./build_and_verify.sh build_ios        # Build iOS (macOS only)
 ./build_and_verify.sh build_macos      # Build macOS (macOS only)
 ./build_and_verify.sh build_windows    # Build Windows (Windows only)
+./build_and_verify.sh build_web        # Build web (JS + WASM) → build/web/
 ```
 
 ---

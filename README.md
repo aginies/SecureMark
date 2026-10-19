@@ -331,6 +331,13 @@ SecureMark registers as a share target for image and PDF files:
 - **File Selector**: Native file picker dialogs on all desktop platforms
 - **Path Provider**: Cross-platform temporary and document directory access
 
+### Web
+
+- **Fully client-side**: all processing runs in the browser — no server-side code, user files never leave the device
+- **Build**: `./build_and_verify.sh build_web` (or `flutter build web --release` plus `--wasm`) — both bundles land in `build/web/`
+- **Deploy**: copy the *contents* of `build/web/` to any static web server; see [docs/apache-vhost.example.conf](docs/apache-vhost.example.conf) for a tested Apache vhost (TLS, wasm/mjs MIME types, compression)
+- **Web-specific behavior**: outputs are handed to the browser as downloads; picking is limited to 10 MB per file and 5 files per session; in-memory file data is auto-erased 2 minutes after the last import or processing; the analyzer, expert mode, digital signing, file hiding and config export/import are hidden
+
 ## Supported Input Formats
 
 - **PNG** - Lossless compression
