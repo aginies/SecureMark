@@ -52,6 +52,44 @@ import '../models/watermark_option.dart';
 import '../widgets/option_toggle_grid.dart';
 import 'onboarding_page.dart';
 
+/// Whether [key] is part of the SecureMark configuration backup.
+///
+/// Shared by the export and import paths so an imported
+/// `securemark_config.json` can only write keys the export path would
+/// produce. Anything else (e.g. `https_cert_fingerprint`) is rejected,
+/// preventing a malicious backup zip from injecting arbitrary
+/// SharedPreferences state.
+bool _isConfigBackupKey(String key) {
+  // The Ed25519 private key is never part of a backup, so it must never
+  // be importable either.
+  if (key == 'device_private_key') return false;
+  if (key.startsWith('profile_') || key.startsWith('device_')) return true;
+  return const {
+    'transparency',
+    'density',
+    'fontSize',
+    'jpegQuality',
+    'targetSize',
+    'includeTimestamp',
+    'preserveMetadata',
+    'rasterizePdf',
+    'antiAiLevel',
+    'useSteganography',
+    'useRobustSteganography',
+    'useAiCloaking',
+    'digitallySign',
+    'deviceName',
+    'filePrefix',
+    'selectedProfile',
+    'selectedFont',
+    'qrVisible',
+    'qrType',
+    'qrAuthor',
+    'qrUrl',
+    'identity_bookmarks',
+  }.contains(key);
+}
+
 class WatermarkPage extends StatefulWidget {
   final bool hasCamera;
   const WatermarkPage({super.key, this.hasCamera = true});
@@ -4939,6 +4977,22 @@ class WatermarkPageState extends State<WatermarkPage>
     );
   }
 
+  /// A QR identity payload carries a Base64-encoded Ed25519 public key.
+  /// Accept only keys that decode to exactly 32 bytes so corrupt or
+  /// attacker-crafted values never reach the bookmark list (and later
+  /// signature verification).
+  static bool _isValidEd25519PublicKey(String encoded) {
+    final normalized = encoded.trim();
+    if (normalized.isEmpty) return false;
+    final Uint8List? decoded;
+    try {
+      decoded = base64Decode(normalized);
+    } catch (_) {
+      return false;
+    }
+    return decoded.length == 32;
+  }
+
   void _showIdentityQrScanner(StateSetter setParentDialogState) {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
@@ -4985,7 +5039,7 @@ class WatermarkPageState extends State<WatermarkPage>
                           // Not JSON, assume raw public key
                         }
 
-                        if (pubKey.length > 20) {
+                        if (_isValidEd25519PublicKey(pubKey)) {
                           Navigator.pop(context);
                           setParentDialogState(() {
                             _identityBookmarks.add(IdentityBookmark(
@@ -11704,33 +11758,10 @@ class WatermarkPageState extends State<WatermarkPage>
       final Map<String, dynamic> configData = {};
 
       for (final key in allKeys) {
-        // Only export SecureMark related keys
-        if (key.startsWith('profile_') ||
-            key.startsWith('device_') ||
-            [
-              'transparency',
-              'density',
-              'fontSize',
-              'jpegQuality',
-              'targetSize',
-              'includeTimestamp',
-              'preserveMetadata',
-              'rasterizePdf',
-              'antiAiLevel',
-              'useSteganography',
-              'useRobustSteganography',
-              'useAiCloaking',
-              'digitallySign',
-              'deviceName',
-              'filePrefix',
-              'selectedProfile',
-              'selectedFont',
-              'qrVisible',
-              'qrType',
-              'qrAuthor',
-              'qrUrl',
-              'identity_bookmarks'
-            ].contains(key)) {
+        // Only export SecureMark related keys. The Ed25519 private key is
+        // intentionally excluded: a backup must not carry the signing
+        // identity's secret material.
+        if (_isConfigBackupKey(key)) {
           configData[key] = prefs.get(key);
         }
       }
@@ -11879,6 +11910,14 @@ class WatermarkPageState extends State<WatermarkPage>
           for (final entry in configData.entries) {
             final key = entry.key;
             final value = entry.value;
+
+            // Reject keys the export path would never produce so a malicious
+            // backup zip cannot inject arbitrary SharedPreferences state
+            // (e.g. device_private_key, https_cert_fingerprint).
+            if (!_isConfigBackupKey(key)) {
+              _addLog('Skipping non-config key from imported backup: $key');
+              continue;
+            }
 
             if (value is bool) {
               await prefs.setBool(key, value);

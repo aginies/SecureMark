@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Outcome of a signature verification attempt.
@@ -17,8 +18,21 @@ enum SignatureVerification { valid, invalid, error }
 /// Uses Ed25519 algorithm for fast and compact signatures.
 class IdentityManager {
   static final Ed25519 _algorithm = Ed25519();
+
+  /// Legacy plaintext SharedPreferences keys (pre-secure-storage installs).
+  /// The private key pref is only read for one-time migration and removed
+  /// immediately afterwards.
   static const String _privateKeyPref = 'device_private_key';
   static const String _publicKeyPref = 'device_public_key';
+
+  /// Platform secure storage key for the Ed25519 private key.
+  static const String _securePrivateKeyKey = 'identity_ed25519_private_key';
+
+  /// The private key lives in platform secure storage (Keychain on
+  /// iOS/macOS, Keystore-backed AES-GCM on Android, libsecret on Linux,
+  /// Credential Manager on Windows) so it is not readable in plaintext on a
+  /// rooted or jailbroken device.
+  static final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   static SimpleKeyPair? _cachedKeyPair;
   static void Function(String)? onLog;
@@ -61,7 +75,9 @@ class IdentityManager {
   }
 
   /// Gets or creates the device identity key pair.
-  /// Keys are stored in SharedPreferences.
+  ///
+  /// The private key is stored in platform secure storage; the public key
+  /// (not secret) remains in SharedPreferences.
   static Future<SimpleKeyPair> getIdentityKeyPair() async {
     try {
       if (_cachedKeyPair != null) {
@@ -69,45 +85,48 @@ class IdentityManager {
         return _cachedKeyPair!;
       }
 
-      _log('Loading keys from SharedPreferences...');
+      _log('Loading keys...');
       final prefs = await SharedPreferences.getInstance();
-      final String? privateKeyB64 = prefs.getString(_privateKeyPref);
+      final String? publicKeyB64 = prefs.getString(_publicKeyPref);
+      String? privateKeyB64 = await _readSecurePrivateKey();
 
-      if (privateKeyB64 != null) {
-        final String? publicKeyB64 = prefs.getString(_publicKeyPref);
-        if (publicKeyB64 != null) {
-          _log(
-              'Found existing keys in prefs (PK length: ${publicKeyB64.length})');
-          // Load existing key
-          final privateKeyBytes = base64Decode(privateKeyB64);
-          final publicKeyBytes = base64Decode(publicKeyB64);
-
-          _cachedKeyPair = SimpleKeyPairData(
-            privateKeyBytes,
-            publicKey: SimplePublicKey(
-              publicKeyBytes,
-              type: KeyPairType.ed25519,
-            ),
-            type: KeyPairType.ed25519,
-          );
-          return _cachedKeyPair!;
+      if (privateKeyB64 == null && publicKeyB64 != null) {
+        // One-time migration from the legacy plaintext pref.
+        final legacyPrivate = prefs.getString(_privateKeyPref);
+        if (legacyPrivate != null) {
+          await _storePrivateKey(legacyPrivate);
+          await prefs.remove(_privateKeyPref);
+          _log('Migrated private key from prefs to platform secure storage');
+          privateKeyB64 = legacyPrivate;
         }
       }
 
+      if (privateKeyB64 != null && publicKeyB64 != null) {
+        _log('Found existing keys (PK length: ${publicKeyB64.length})');
+        final privateKeyBytes = base64Decode(privateKeyB64);
+        final publicKeyBytes = base64Decode(publicKeyB64);
+
+        _cachedKeyPair = SimpleKeyPairData(
+          privateKeyBytes,
+          publicKey: SimplePublicKey(
+            publicKeyBytes,
+            type: KeyPairType.ed25519,
+          ),
+          type: KeyPairType.ed25519,
+        );
+        return _cachedKeyPair!;
+      }
+
       _log('No keys found, generating new Ed25519 key pair...');
-      // Generate new key if none exists or corrupted
       final keyPair = await _algorithm.newKeyPair();
       final keyPairData = await keyPair.extract();
-      final privateKey = keyPairData.bytes;
-      final publicKey = keyPairData.publicKey;
 
-      _log('Keys generated, saving to SharedPreferences...');
-      final successPriv =
-          await prefs.setString(_privateKeyPref, base64Encode(privateKey));
-      final successPub =
-          await prefs.setString(_publicKeyPref, base64Encode(publicKey.bytes));
-
-      _log('Save results: private=$successPriv, public=$successPub');
+      // A leftover legacy private key without a matching public key is
+      // corrupt state; drop it so no orphaned secret stays in plaintext.
+      await prefs.remove(_privateKeyPref);
+      await prefs.setString(
+          _publicKeyPref, base64Encode(keyPairData.publicKey.bytes));
+      await _storePrivateKey(base64Encode(keyPairData.bytes));
 
       _cachedKeyPair = keyPairData;
       return _cachedKeyPair!;
@@ -115,6 +134,31 @@ class IdentityManager {
       _log('ERROR in getIdentityKeyPair: $e');
       _log('Stack: $stack');
       rethrow;
+    }
+  }
+
+  /// Reads the private key from secure storage, returning null when the
+  /// platform backend is unavailable instead of throwing.
+  static Future<String?> _readSecurePrivateKey() async {
+    try {
+      return await _secureStorage.read(key: _securePrivateKeyKey);
+    } catch (e) {
+      _log('Secure storage read failed: $e');
+      return null;
+    }
+  }
+
+  /// Stores the private key in secure storage, falling back to the legacy
+  /// plaintext pref when the platform backend is unavailable (e.g. a headless
+  /// Linux without a keyring) so identity creation never hard-fails.
+  static Future<void> _storePrivateKey(String privateKeyB64) async {
+    try {
+      await _secureStorage.write(
+          key: _securePrivateKeyKey, value: privateKeyB64);
+    } catch (e) {
+      _log('Secure storage write failed, falling back to prefs: $e');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_privateKeyPref, privateKeyB64);
     }
   }
 
@@ -175,6 +219,11 @@ class IdentityManager {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_privateKeyPref);
     await prefs.remove(_publicKeyPref);
+    try {
+      await _secureStorage.delete(key: _securePrivateKeyKey);
+    } catch (_) {
+      // Secure storage unavailable; nothing to delete there.
+    }
     _cachedKeyPair = null;
     _log('Identity reset; notifying observers to drop cached results');
     onIdentityChanged?.call();
