@@ -1634,6 +1634,23 @@ class WatermarkPageState extends State<WatermarkPage>
         "${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}";
     final fileName = "securemark_logs_$timestamp.txt";
 
+    // The web engine has no filesystem (and no documents directory) —
+    // hand the log to the browser as a download.
+    if (kIsWeb) {
+      final logContent = _logs.join('\n');
+      browserDownload(
+          Uint8List.fromList(utf8.encode(logContent)), fileName, 'text/plain');
+      _addLog('Logs download started: $fileName');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.logsSaved(fileName)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
     // Let the user choose a directory
     String? selectedDirectory;
     try {

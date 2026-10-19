@@ -18,6 +18,16 @@ All notable changes to SecureMark are documented in this file.
   so picked files are now kept in memory and fed to the processor as bytes
   under synthetic paths. Picking, previews, processing, saving (as download),
   camera capture, and config export/import all work on the web now.
+- Web processing pipeline. The web engine of this SDK has no isolates at all
+  (`Isolate.spawn`, `ReceivePort` and `TransferableTypedData` all throw
+  `UnsupportedError` in the browser), which made every processing run fail
+  with "Unsupported file or processing failed." The image and PDF pipelines
+  now run on the main isolate on the web (same code, same message protocol);
+  native platforms still use spawned isolates with zero-copy transfers. The
+  progress UI is kept alive by yielding to the event loop between pipeline
+  steps, though heavy steps still block the UI thread on the web.
+- Log file download on the web: the log export is now handed to the browser
+  as a download (the web has no documents directory to write to).
 
 ## 1.8.1
 

@@ -417,12 +417,12 @@ class WatermarkProcessor {
     }
 
     try {
-      // Create ReceivePort to get progress updates from isolate
-      final receivePort = ReceivePort();
       final completer = Completer<Map<String, dynamic>>();
+      ReceivePort? receivePort;
 
-      // Listen to messages from isolate
-      receivePort.listen((message) {
+      // Message protocol shared by both execution modes (see
+      // _runImagePipeline): log, progress, result, error.
+      void handleMessage(dynamic message) {
         if (message is Map) {
           if (message.containsKey('log')) {
             // Forward log from isolate
@@ -443,65 +443,86 @@ class WatermarkProcessor {
               return MapEntry(key, value);
             });
             completer.complete(result);
-            receivePort.close();
+            receivePort?.close();
           } else if (message.containsKey('error')) {
             // Error occurred
             completer.completeError(message['error']);
-            receivePort.close();
+            receivePort?.close();
           }
         }
-      });
+      }
 
-      // Spawn isolate with SendPort
       // Optimize: Use TransferableTypedData to avoid copying large byte arrays (200-500ms faster)
-      await Isolate.spawn(
-        _imageIsolateEntry,
-        {
-          'sendPort': receivePort.sendPort,
-          'inputBytes': TransferableTypedData.fromList([bytes]),
-          'transparency': transparency,
-          'density': density,
-          'watermarkText': watermarkText,
-          'useRandomColor': useRandomColor,
-          'selectedColorValue': selectedColorValue,
-          'fontSize': fontSize,
-          'font': font,
-          'jpegQuality': jpegQuality,
-          'targetSize': targetSize,
-          'forcePng': forcePng,
-          'filePath': file.path,
-          'originalExtension': extension,
-          'preserveMetadata': preserveMetadata,
-          'antiAiLevel': antiAiLevel,
-          'useSteganography': useSteganography,
-          'useRobustSteganography': useRobustSteganography,
-          'useAiCloaking': useAiCloaking,
-          'digitallySign': digitallySign,
-          'watermarkType': watermarkType,
-          'watermarkImageBytes': watermarkImageBytes != null
-              ? TransferableTypedData.fromList([watermarkImageBytes])
-              : null,
-          'steganographyPassword': steganographyPassword,
-          'steganographyText': steganographyText,
-          'hiddenFileName': hiddenFileName,
-          'hiddenFileBytes': hiddenFileBytes != null
-              ? TransferableTypedData.fromList([hiddenFileBytes])
-              : null,
-          'qrConfig': qrConfig,
-          'signingPrivateKey': signingPrivateKey != null
-              ? TransferableTypedData.fromList([signingPrivateKey])
-              : null,
-          'signingPublicKey': signingPublicKey,
-          'preRenderedStamps': preRenderedStamps?.map((key, value) =>
-              MapEntry(key, TransferableTypedData.fromList([value]))),
-          'enablePdfSecurity': enablePdfSecurity,
-          'pdfUserPassword': pdfUserPassword,
-          'pdfOwnerPassword': pdfOwnerPassword,
-          'pdfAllowPrinting': pdfAllowPrinting,
-          'pdfAllowCopying': pdfAllowCopying,
-          'pdfAllowEditing': pdfAllowEditing,
-        },
-      );
+      // Zero-copy transfer on native; plain lists on web (no isolates there)
+      final params = <String, dynamic>{
+        'inputBytes': kIsWeb ? bytes : TransferableTypedData.fromList([bytes]),
+        'transparency': transparency,
+        'density': density,
+        'watermarkText': watermarkText,
+        'useRandomColor': useRandomColor,
+        'selectedColorValue': selectedColorValue,
+        'fontSize': fontSize,
+        'font': font,
+        'jpegQuality': jpegQuality,
+        'targetSize': targetSize,
+        'forcePng': forcePng,
+        'filePath': file.path,
+        'originalExtension': extension,
+        'preserveMetadata': preserveMetadata,
+        'antiAiLevel': antiAiLevel,
+        'useSteganography': useSteganography,
+        'useRobustSteganography': useRobustSteganography,
+        'useAiCloaking': useAiCloaking,
+        'digitallySign': digitallySign,
+        'watermarkType': watermarkType,
+        'watermarkImageBytes': watermarkImageBytes != null
+            ? (kIsWeb
+                ? watermarkImageBytes
+                : TransferableTypedData.fromList([watermarkImageBytes]))
+            : null,
+        'steganographyPassword': steganographyPassword,
+        'steganographyText': steganographyText,
+        'hiddenFileName': hiddenFileName,
+        'hiddenFileBytes': hiddenFileBytes != null
+            ? (kIsWeb
+                ? hiddenFileBytes
+                : TransferableTypedData.fromList([hiddenFileBytes]))
+            : null,
+        'qrConfig': qrConfig,
+        'signingPrivateKey': signingPrivateKey != null
+            ? (kIsWeb
+                ? signingPrivateKey
+                : TransferableTypedData.fromList([signingPrivateKey]))
+            : null,
+        'signingPublicKey': signingPublicKey,
+        'preRenderedStamps': kIsWeb
+            ? preRenderedStamps
+            : preRenderedStamps?.map((key, value) =>
+                MapEntry(key, TransferableTypedData.fromList([value]))),
+        'enablePdfSecurity': enablePdfSecurity,
+        'pdfUserPassword': pdfUserPassword,
+        'pdfOwnerPassword': pdfOwnerPassword,
+        'pdfAllowPrinting': pdfAllowPrinting,
+        'pdfAllowCopying': pdfAllowCopying,
+        'pdfAllowEditing': pdfAllowEditing,
+      };
+
+      if (kIsWeb) {
+        // The web engine has no isolates (SendPort/ReceivePort throw
+        // UnsupportedError) — run the same pipeline on the main isolate.
+        // Yielding to the event loop between steps keeps the progress UI
+        // alive while it runs.
+        await _runImagePipeline(params, (message) async {
+          handleMessage(message);
+          await Future<void>.delayed(Duration.zero);
+        });
+      } else {
+        // Create ReceivePort to get progress updates from isolate
+        receivePort = ReceivePort();
+        receivePort.listen(handleMessage);
+        await Isolate.spawn(
+            _imageIsolateEntry, {'sendPort': receivePort.sendPort, ...params});
+      }
 
       final rawRes = await completer.future;
       final Map<String, dynamic> res = (rawRes as Map).map((key, value) {
@@ -592,36 +613,40 @@ class WatermarkProcessor {
   }
 
   // Isolate entry point for image processing with progress reporting
-  static void _imageIsolateEntry(Map<String, dynamic> params) async {
-    final sendPort = params['sendPort'] as SendPort;
-    IdentityManager.onLog = (msg) => sendPort.send({'log': msg});
+  /// Unwraps a byte-array pipeline parameter.
+  ///
+  /// Native isolates receive zero-copy [TransferableTypedData]; the web
+  /// engine has no isolates (and no TransferableTypedData), so on web the
+  /// same parameters arrive as plain [Uint8List].
+  static Uint8List? _bytesFromParam(dynamic value) {
+    if (value == null) return null;
+    if (value is TransferableTypedData) {
+      return value.materialize().asUint8List();
+    }
+    return value as Uint8List;
+  }
+
+  /// Runs the image pipeline, reporting through [send] with the message
+  /// protocol {'log'}, {'progress','message'}, {'result'} or {'error'}.
+  ///
+  /// On native this body runs inside a spawned isolate; on web the engine
+  /// has no isolates at all, so the same code runs on the main isolate.
+  static Future<void> _runImagePipeline(Map<String, dynamic> params,
+      FutureOr<void> Function(Map<String, dynamic>) send) async {
+    IdentityManager.onLog = (msg) => send({'log': msg});
 
     try {
-      // Unwrap TransferableTypedData
-      final inputBytes = (params['inputBytes'] as TransferableTypedData)
-          .materialize()
-          .asUint8List();
-      final watermarkImageBytes = params['watermarkImageBytes'] != null
-          ? (params['watermarkImageBytes'] as TransferableTypedData)
-              .materialize()
-              .asUint8List()
-          : null;
-      final hiddenFileBytes = params['hiddenFileBytes'] != null
-          ? (params['hiddenFileBytes'] as TransferableTypedData)
-              .materialize()
-              .asUint8List()
-          : null;
+      // Unwrap TransferableTypedData (native) or take the plain list (web)
+      final inputBytes = _bytesFromParam(params['inputBytes'])!;
+      final watermarkImageBytes =
+          _bytesFromParam(params['watermarkImageBytes']);
+      final hiddenFileBytes = _bytesFromParam(params['hiddenFileBytes']);
       final preRenderedStamps = params['preRenderedStamps'] != null
-          ? (params['preRenderedStamps'] as Map<String, dynamic>).map(
-              (key, value) => MapEntry(key,
-                  (value as TransferableTypedData).materialize().asUint8List()))
+          ? (params['preRenderedStamps'] as Map<String, dynamic>)
+              .map((key, value) => MapEntry(key, _bytesFromParam(value)!))
           : null;
 
-      final signingPrivateKey = params['signingPrivateKey'] != null
-          ? (params['signingPrivateKey'] as TransferableTypedData)
-              .materialize()
-              .asUint8List()
-          : null;
+      final signingPrivateKey = _bytesFromParam(params['signingPrivateKey']);
       final signingPublicKey = params['signingPublicKey'] as Uint8List?;
 
       if (signingPrivateKey != null && signingPublicKey != null) {
@@ -656,20 +681,28 @@ class WatermarkProcessor {
         hiddenFileBytes: hiddenFileBytes,
         qrConfig: params['qrConfig'] as QrWatermarkConfig?,
         preRenderedStamps: preRenderedStamps,
-        progressPort: sendPort,
+        sendProgress: send,
       );
 
       // Wrap Uint8List in TransferableTypedData for faster transfer back
-      final transferableResult = result.map((key, value) {
-        if (value is Uint8List) {
-          return MapEntry(key, TransferableTypedData.fromList([value]));
-        }
-        return MapEntry(key, value);
-      });
-      sendPort.send({'result': transferableResult});
+      // (native only — the web engine has no TransferableTypedData)
+      final transferableResult = kIsWeb
+          ? result
+          : result.map((key, value) {
+              if (value is Uint8List) {
+                return MapEntry(key, TransferableTypedData.fromList([value]));
+              }
+              return MapEntry(key, value);
+            });
+      send({'result': transferableResult});
     } catch (e) {
-      sendPort.send({'error': e});
+      send({'error': e});
     }
+  }
+
+  static void _imageIsolateEntry(Map<String, dynamic> params) async {
+    final sendPort = params['sendPort'] as SendPort;
+    await _runImagePipeline(params, sendPort.send);
   }
 
   static Future<Map<String, dynamic>> _renderWatermarkedImageBytes({
@@ -700,9 +733,10 @@ class WatermarkProcessor {
     Uint8List? hiddenFileBytes,
     QrWatermarkConfig? qrConfig,
     Map<String, Uint8List>? preRenderedStamps,
-    SendPort? progressPort,
+    FutureOr<void> Function(Map<String, dynamic>)? sendProgress,
   }) async {
-    progressPort?.send({'progress': 0.05, 'message': 'progressDecodingImage'});
+    await sendProgress
+        ?.call({'progress': 0.05, 'message': 'progressDecodingImage'});
 
     // Check if image resolution exceeds limits BEFORE attempting to decode
     // This prevents memory exhaustion from ultra-high-resolution images (>50MP)
@@ -836,7 +870,8 @@ class WatermarkProcessor {
           filePath: filePath);
     }
 
-    progressPort?.send({'progress': 0.15, 'message': 'progressResizingImage'});
+    await sendProgress
+        ?.call({'progress': 0.15, 'message': 'progressResizingImage'});
     final resized = WatermarkUtils.resizeToTarget(decoded, targetSize);
     var output = img.Image.from(resized);
 
@@ -848,8 +883,8 @@ class WatermarkProcessor {
     }
 
     if (useAiCloaking) {
-      progressPort
-          ?.send({'progress': 0.25, 'message': 'progressApplyingCloaking'});
+      await sendProgress
+          ?.call({'progress': 0.25, 'message': 'progressApplyingCloaking'});
       output = ImageUtils.applyAiCloaking(output);
     }
     if (preserveMetadata && !decoded.exif.isEmpty) {
@@ -869,13 +904,13 @@ class WatermarkProcessor {
     // IMPORTANT: Apply Robust Steganography (DCT) BEFORE signing
     // because it modifies pixel values significantly.
     if (useRobustSteganography) {
-      progressPort
-          ?.send({'progress': 0.30, 'message': 'progressEmbeddingRobust'});
+      await sendProgress
+          ?.call({'progress': 0.30, 'message': 'progressEmbeddingRobust'});
       output = DctHandler.embedRobustSignature(output, expected);
     }
 
-    progressPort
-        ?.send({'progress': 0.35, 'message': 'progressApplyingWatermark'});
+    await sendProgress
+        ?.call({'progress': 0.35, 'message': 'progressApplyingWatermark'});
 
     final String? integrityText =
         await WatermarkFieldHandler.applyWatermarkField(
@@ -895,7 +930,7 @@ class WatermarkProcessor {
             watermarkImageBytes: watermarkImageBytes,
             onProgress: (progress, message) {
       // Map internal progress (0.0-1.0) to watermark range (0.35-0.75)
-      progressPort?.send({
+      sendProgress?.call({
         'progress': 0.35 + (progress * 0.40),
         'message': message,
       });
@@ -903,12 +938,14 @@ class WatermarkProcessor {
 
     if (useSteganography) {
       if (hiddenFileName != null && hiddenFileBytes != null) {
-        progressPort?.send({'progress': 0.85, 'message': 'progressHidingFile'});
+        await sendProgress
+            ?.call({'progress': 0.85, 'message': 'progressHidingFile'});
         output = LsbHandler.embedFileIntoImage(
             output, hiddenFileName, hiddenFileBytes,
             password: steganographyPassword, channel: 'g');
       }
-      progressPort?.send({'progress': 0.88, 'message': 'progressEmbeddingLsb'});
+      await sendProgress
+          ?.call({'progress': 0.88, 'message': 'progressEmbeddingLsb'});
       output = LsbHandler.embedLSB(output, expected,
           password: steganographyPassword, channel: 'b');
       final cHash =
@@ -928,7 +965,8 @@ class WatermarkProcessor {
           password: steganographyPassword, channel: 'r');
     }
 
-    progressPort?.send({'progress': 0.90, 'message': 'progressEncodingImage'});
+    await sendProgress
+        ?.call({'progress': 0.90, 'message': 'progressEncodingImage'});
     final outBytes = WatermarkUtils.encodeImageInOriginalFormat(
         output, originalExtension, jpegQuality, forcePng || digitallySign);
     final result = {
@@ -1028,12 +1066,12 @@ class WatermarkProcessor {
           cancellationToken: cancellationToken);
     }
 
-    // Create ReceivePort to get progress updates from isolate
-    final receivePort = ReceivePort();
     final completer = Completer<dynamic>();
+    ReceivePort? receivePort;
 
-    // Listen to messages from isolate
-    receivePort.listen((message) {
+    // Message protocol shared by both execution modes (see
+    // _runPdfPipeline): log, progress, result, error.
+    void handleMessage(dynamic message) {
       if (message is Map) {
         if (message.containsKey('log')) {
           // Forward log from isolate
@@ -1046,57 +1084,69 @@ class WatermarkProcessor {
         } else if (message.containsKey('result')) {
           // Final result
           completer.complete(message['result']);
-          receivePort.close();
+          receivePort?.close();
         } else if (message.containsKey('error')) {
           // Error occurred
           completer.completeError(message['error']);
-          receivePort.close();
+          receivePort?.close();
         }
       }
-    });
+    }
 
     // Try vector PDF processing, fallback to raster if it fails
     Uint8List outputBytes;
+    final params = <String, dynamic>{
+      'inputBytes': bytes,
+      'transparency': transparency,
+      'density': density,
+      'watermarkText': watermarkText,
+      'useRandomColor': useRandomColor,
+      'selectedColorValue': selectedColorValue,
+      'fontSize': fontSize,
+      'jpegQuality': jpegQuality,
+      'forcePng': forcePng,
+      'preserveMetadata': preserveMetadata,
+      'antiAiLevel': antiAiLevel,
+      'watermarkType': watermarkType,
+      'watermarkImageBytes': watermarkImageBytes,
+      'qrConfig': qrConfig,
+      'signingPrivateKey': signingPrivateKey != null
+          ? (kIsWeb
+              ? signingPrivateKey
+              : TransferableTypedData.fromList([signingPrivateKey]))
+          : null,
+      'signingPublicKey': signingPublicKey,
+      'useAiCloaking': useAiCloaking,
+      'digitallySign': digitallySign,
+      'steganographyPassword': steganographyPassword,
+      'useSteganography': useSteganography,
+      'useRobustSteganography': useRobustSteganography,
+      'steganographyText': steganographyText,
+      'hiddenFileName': hiddenFileName,
+      'hiddenFileBytes': hiddenFileBytes,
+      'enablePdfSecurity': enablePdfSecurity,
+      'pdfUserPassword': pdfUserPassword,
+      'pdfOwnerPassword': pdfOwnerPassword,
+      'pdfAllowPrinting': pdfAllowPrinting,
+      'pdfAllowCopying': pdfAllowCopying,
+      'pdfAllowEditing': pdfAllowEditing,
+    };
+
     try {
-      // Spawn isolate with SendPort
-      await Isolate.spawn(
-        _pdfIsolateEntry,
-        {
-          'sendPort': receivePort.sendPort,
-          'inputBytes': bytes,
-          'transparency': transparency,
-          'density': density,
-          'watermarkText': watermarkText,
-          'useRandomColor': useRandomColor,
-          'selectedColorValue': selectedColorValue,
-          'fontSize': fontSize,
-          'jpegQuality': jpegQuality,
-          'forcePng': forcePng,
-          'preserveMetadata': preserveMetadata,
-          'antiAiLevel': antiAiLevel,
-          'watermarkType': watermarkType,
-          'watermarkImageBytes': watermarkImageBytes,
-          'qrConfig': qrConfig,
-          'signingPrivateKey': signingPrivateKey != null
-              ? TransferableTypedData.fromList([signingPrivateKey])
-              : null,
-          'signingPublicKey': signingPublicKey,
-          'useAiCloaking': useAiCloaking,
-          'digitallySign': digitallySign,
-          'steganographyPassword': steganographyPassword,
-          'useSteganography': useSteganography,
-          'useRobustSteganography': useRobustSteganography,
-          'steganographyText': steganographyText,
-          'hiddenFileName': hiddenFileName,
-          'hiddenFileBytes': hiddenFileBytes,
-          'enablePdfSecurity': enablePdfSecurity,
-          'pdfUserPassword': pdfUserPassword,
-          'pdfOwnerPassword': pdfOwnerPassword,
-          'pdfAllowPrinting': pdfAllowPrinting,
-          'pdfAllowCopying': pdfAllowCopying,
-          'pdfAllowEditing': pdfAllowEditing,
-        },
-      );
+      if (kIsWeb) {
+        // The web engine has no isolates — run the same pipeline on the
+        // main isolate (see _runImagePipeline).
+        await _runPdfPipeline(params, (message) async {
+          handleMessage(message);
+          await Future<void>.delayed(Duration.zero);
+        });
+      } else {
+        // Create ReceivePort to get progress updates from isolate
+        receivePort = ReceivePort();
+        receivePort.listen(handleMessage);
+        await Isolate.spawn(
+            _pdfIsolateEntry, {'sendPort': receivePort.sendPort, ...params});
+      }
 
       outputBytes = await completer.future;
     } catch (e, stackTrace) {
@@ -1209,17 +1259,17 @@ class WatermarkProcessor {
         appliedFeatures: applied);
   }
 
-  // Isolate entry point for PDF processing with progress reporting
-  static void _pdfIsolateEntry(Map<String, dynamic> params) async {
-    final sendPort = params['sendPort'] as SendPort;
-    IdentityManager.onLog = (msg) => sendPort.send({'log': msg});
+  /// Runs the PDF pipeline, reporting through [send] with the message
+  /// protocol {'log'}, {'progress','message'}, {'result'} or {'error'}.
+  ///
+  /// On native this body runs inside a spawned isolate; on web the engine
+  /// has no isolates at all, so the same code runs on the main isolate.
+  static Future<void> _runPdfPipeline(Map<String, dynamic> params,
+      FutureOr<void> Function(Map<String, dynamic>) send) async {
+    IdentityManager.onLog = (msg) => send({'log': msg});
 
     try {
-      final signingPrivateKey = params['signingPrivateKey'] != null
-          ? (params['signingPrivateKey'] as TransferableTypedData)
-              .materialize()
-              .asUint8List()
-          : null;
+      final signingPrivateKey = _bytesFromParam(params['signingPrivateKey']);
       final signingPublicKey = params['signingPublicKey'] as Uint8List?;
 
       if (signingPrivateKey != null && signingPublicKey != null) {
@@ -1253,13 +1303,19 @@ class WatermarkProcessor {
         pdfAllowPrinting: params['pdfAllowPrinting'] as bool,
         pdfAllowCopying: params['pdfAllowCopying'] as bool,
         pdfAllowEditing: params['pdfAllowEditing'] as bool,
-        progressPort: sendPort,
+        sendProgress: send,
       );
 
-      sendPort.send({'result': result});
+      send({'result': result});
     } catch (e) {
-      sendPort.send({'error': e});
+      send({'error': e});
     }
+  }
+
+  // Isolate entry point for PDF processing with progress reporting
+  static void _pdfIsolateEntry(Map<String, dynamic> params) async {
+    final sendPort = params['sendPort'] as SendPort;
+    await _runPdfPipeline(params, sendPort.send);
   }
 
   /// PDF Rasterization Fallback - converts PDF to images and watermarks pixel-by-pixel
@@ -1576,11 +1632,12 @@ class WatermarkProcessor {
     bool pdfAllowPrinting = false,
     bool pdfAllowCopying = false,
     bool pdfAllowEditing = false,
-    SendPort? progressPort,
+    FutureOr<void> Function(Map<String, dynamic>)? sendProgress,
   }) async {
     sync.PdfDocument document;
     try {
-      progressPort?.send({'progress': 0.1, 'message': 'progressParsingPdf'});
+      await sendProgress
+          ?.call({'progress': 0.1, 'message': 'progressParsingPdf'});
       document = sync.PdfDocument(inputBytes: inputBytes);
     } catch (e) {
       throw WatermarkError(
@@ -1660,7 +1717,8 @@ class WatermarkProcessor {
       logoBitmap = sync.PdfBitmap(watermarkImageBytes);
     }
 
-    progressPort?.send({'progress': 0.2, 'message': 'progressAddingLayer'});
+    await sendProgress
+        ?.call({'progress': 0.2, 'message': 'progressAddingLayer'});
 
     for (var i = 0; i < pageCount; i++) {
       final page = document.pages[i];
@@ -1773,14 +1831,16 @@ class WatermarkProcessor {
       }
     }
 
-    progressPort?.send({'progress': 0.9, 'message': 'progressFinalizingPdf'});
+    await sendProgress
+        ?.call({'progress': 0.9, 'message': 'progressFinalizingPdf'});
 
     if (digitallySign) {
       // 1. Save the visually watermarked document to get the exact bytes for hashing.
       final bytesToHash = Uint8List.fromList(document.saveSync());
       document.dispose(); // Dispose the original document
 
-      progressPort?.send({'progress': 0.95, 'message': 'progressSigningPdf'});
+      await sendProgress
+          ?.call({'progress': 0.95, 'message': 'progressSigningPdf'});
 
       // 2. Create the signature from the hash of those bytes.
       final hashToStore = sha256.convert(bytesToHash);
