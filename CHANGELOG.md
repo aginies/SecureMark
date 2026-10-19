@@ -11,6 +11,14 @@ All notable changes to SecureMark are documented in this file.
   `securemark-files-<timestamp>.zip`. The LAN local-share dialog is hidden on
   the web, where it cannot work.
 
+### Fixed
+
+- Web file processing end to end. This Flutter SDK no longer ships the web
+  virtual filesystem — every `dart:io` file operation throws in the browser —
+  so picked files are now kept in memory and fed to the processor as bytes
+  under synthetic paths. Picking, previews, processing, saving (as download),
+  camera capture, and config export/import all work on the web now.
+
 ## 1.8.1
 
 ### Added

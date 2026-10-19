@@ -109,6 +109,10 @@ class WatermarkProcessor {
 
   static Future<ProcessResult> processFile({
     required File file,
+    // On web the browser has no filesystem, so the caller passes the input
+    // bytes in memory; on native this stays null and the file is read from
+    // disk as usual.
+    Uint8List? inputBytes,
     required double transparency,
     required double density,
     required String watermarkText,
@@ -169,7 +173,8 @@ class WatermarkProcessor {
     onProgress?.call(0.0, 'progressValidating');
     String type;
     try {
-      if (await file.length() > 100 * 1024 * 1024) {
+      final inputSize = inputBytes?.length ?? await file.length();
+      if (inputSize > 100 * 1024 * 1024) {
         throw WatermarkError(
             type: WatermarkErrorType.fileTooLarge,
             message: 'File too large',
@@ -269,6 +274,7 @@ class WatermarkProcessor {
     if (type == '.pdf') {
       result = await _processPdf(
           file: file,
+          inputBytes: inputBytes,
           transparency: transparency,
           density: density,
           watermarkText: resolvedText,
@@ -307,6 +313,7 @@ class WatermarkProcessor {
     } else {
       result = await _processImage(
           file: file,
+          inputBytes: inputBytes,
           transparency: transparency,
           density: density,
           watermarkText: resolvedText,
@@ -350,6 +357,7 @@ class WatermarkProcessor {
 
   static Future<ProcessResult> _processImage({
     required File file,
+    Uint8List? inputBytes,
     required double transparency,
     required double density,
     required String watermarkText,
@@ -386,7 +394,7 @@ class WatermarkProcessor {
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
-    final inputBytes = await file.readAsBytes();
+    final bytes = inputBytes ?? await file.readAsBytes();
     final extension = await WatermarkUtils.detectFileType(file);
 
     // Pre-render TTF stamps if using non-bitmap fonts (must be done in main thread)
@@ -450,7 +458,7 @@ class WatermarkProcessor {
         _imageIsolateEntry,
         {
           'sendPort': receivePort.sendPort,
-          'inputBytes': TransferableTypedData.fromList([inputBytes]),
+          'inputBytes': TransferableTypedData.fromList([bytes]),
           'transparency': transparency,
           'density': density,
           'watermarkText': watermarkText,
@@ -564,7 +572,7 @@ class WatermarkProcessor {
           outputPath: outPath,
           outputBytes: res['output']!,
           previewBytes: res['output']!,
-          originalBytes: inputBytes,
+          originalBytes: bytes,
           heatmapBytes: res['heatmap'],
           steganographyVerified: verified,
           robustVerified: robustVerified,
@@ -942,6 +950,7 @@ class WatermarkProcessor {
 
   static Future<ProcessResult> _processPdf({
     required File file,
+    Uint8List? inputBytes,
     required double transparency,
     required double density,
     required String watermarkText,
@@ -978,13 +987,13 @@ class WatermarkProcessor {
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
-    final inputBytes = await file.readAsBytes();
+    final bytes = inputBytes ?? await file.readAsBytes();
 
     // Use raster fallback if requested
     if (rasterizePdf) {
       onProgress?.call(0.2, 'Rasterizing PDF (flattening)...');
       return await _processPdfRasterFallback(
-          inputBytes: inputBytes,
+          inputBytes: bytes,
           file: file,
           transparency: transparency,
           density: density,
@@ -1054,7 +1063,7 @@ class WatermarkProcessor {
         _pdfIsolateEntry,
         {
           'sendPort': receivePort.sendPort,
-          'inputBytes': inputBytes,
+          'inputBytes': bytes,
           'transparency': transparency,
           'density': density,
           'watermarkText': watermarkText,
@@ -1098,7 +1107,7 @@ class WatermarkProcessor {
 
       // Fallback to raster processing
       return await _processPdfRasterFallback(
-          inputBytes: inputBytes,
+          inputBytes: bytes,
           file: file,
           transparency: transparency,
           density: density,
@@ -1141,7 +1150,7 @@ class WatermarkProcessor {
     // Rasterize the ORIGINAL first page for A/B/C comparison
     onProgress?.call(0.88, 'Rasterizing original...');
     final originalPreview =
-        await Printing.raster(inputBytes, pages: [0], dpi: 72).first;
+        await Printing.raster(bytes, pages: [0], dpi: 72).first;
     final originalBytes = await originalPreview.toPng();
 
     // Generate a preview of the first page (watermarked)

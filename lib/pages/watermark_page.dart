@@ -44,6 +44,7 @@ import '../utils/browser_download.dart';
 import '../utils/color_utils.dart';
 import '../utils/identity_manager.dart';
 import '../utils/local_server_manager.dart';
+import '../utils/web_file_store.dart';
 import '../utils/certificate_manager.dart';
 import '../steganography/encryption_utils.dart';
 import '../models/watermark_option.dart';
@@ -6646,9 +6647,15 @@ class WatermarkPageState extends State<WatermarkPage>
                                             child: isPdf
                                                 ? FutureBuilder<Uint8List>(
                                                     future: () async {
-                                                      final bytes =
-                                                          await File(path)
+                                                      final bytes = kIsWeb
+                                                          ? WebFileStore
+                                                              .bytesFor(path)
+                                                          : await File(path)
                                                               .readAsBytes();
+                                                      if (bytes == null) {
+                                                        throw StateError(
+                                                            'No in-memory bytes for $path');
+                                                      }
                                                       final preview =
                                                           await Printing.raster(
                                                                   bytes,
@@ -6679,16 +6686,45 @@ class WatermarkPageState extends State<WatermarkPage>
                                                               .error);
                                                     },
                                                   )
-                                                : Image.file(
-                                                    File(path),
-                                                    fit: BoxFit.cover,
-                                                    width: double.infinity,
-                                                    height: double.infinity,
-                                                    errorBuilder: (context,
-                                                            error,
-                                                            stackTrace) =>
-                                                        const Icon(
-                                                            Icons.broken_image),
+                                                : Builder(
+                                                    builder: (itemContext) {
+                                                      final webBytes = kIsWeb
+                                                          ? WebFileStore
+                                                              .bytesFor(path)
+                                                          : null;
+                                                      // On web the source
+                                                      // bytes come from the
+                                                      // in-memory store; an
+                                                      // empty buffer falls
+                                                      // through to the
+                                                      // errorBuilder below.
+                                                      if (webBytes != null) {
+                                                        return Image.memory(
+                                                          webBytes,
+                                                          fit: BoxFit.cover,
+                                                          width:
+                                                              double.infinity,
+                                                          height:
+                                                              double.infinity,
+                                                          errorBuilder: (context,
+                                                                  error,
+                                                                  stackTrace) =>
+                                                              const Icon(Icons
+                                                                  .broken_image),
+                                                        );
+                                                      }
+                                                      return Image.file(
+                                                        File(path),
+                                                        fit: BoxFit.cover,
+                                                        width: double.infinity,
+                                                        height: double.infinity,
+                                                        errorBuilder: (context,
+                                                                error,
+                                                                stackTrace) =>
+                                                            const Icon(Icons
+                                                                .broken_image),
+                                                      );
+                                                    },
                                                   ),
                                           ),
                                         ),
@@ -9860,7 +9896,17 @@ class WatermarkPageState extends State<WatermarkPage>
 
         _addLog('Captured photo from camera: ${photo.path}');
         setState(() => _loadingFiles = true);
-        await _selectPaths([photo.path]);
+        if (kIsWeb) {
+          // The web camera hands back in-memory bytes only — there is no
+          // filesystem path to feed the pipeline.
+          final bytes = await photo.readAsBytes();
+          final path =
+              '/picked/${DateTime.now().microsecondsSinceEpoch}/${photo.name}';
+          WebFileStore.put(path, bytes);
+          await _selectPaths([path]);
+        } else {
+          await _selectPaths([photo.path]);
+        }
         return;
       }
 
@@ -9936,17 +9982,17 @@ class WatermarkPageState extends State<WatermarkPage>
 
       final List<String> validPaths;
       if (kIsWeb) {
-        // Materialize the picked files in the browser's virtual filesystem
-        // (IndexedDB-backed) so the path-based pipeline below can read
-        // them. A unique directory per batch avoids name collisions.
+        // The web engine has no virtual filesystem — dart:io file operations
+        // throw in the browser — so the picked bytes are kept in memory,
+        // keyed by synthetic paths the path-based pipeline can use. A unique
+        // directory per batch avoids name collisions.
         final batchDir = '/picked/${DateTime.now().microsecondsSinceEpoch}';
-        await Directory(batchDir).create(recursive: true);
         validPaths = [];
         for (final f in result.files) {
           final bytes = f.bytes;
           if (bytes == null) continue;
           final path = p.join(batchDir, f.name);
-          await File(path).writeAsBytes(bytes);
+          WebFileStore.put(path, bytes);
           validPaths.add(path);
         }
       } else {
@@ -9997,16 +10043,22 @@ class WatermarkPageState extends State<WatermarkPage>
         final firstPath = allPaths.first;
         final extension = p.extension(firstPath).toLowerCase();
         if (['.jpg', '.jpeg', '.png', '.webp'].contains(extension)) {
-          final bytes = await File(firstPath).readAsBytes();
-          final completer = Completer<ui.Image>();
-          ui.decodeImageFromList(bytes, (image) {
-            completer.complete(image);
-          });
-          final image = await completer.future;
-          if (mounted) {
-            setState(() {
-              _rawImage = image;
+          // On web the source bytes live in the in-memory store (the
+          // browser has no filesystem to read them from).
+          final bytes = kIsWeb
+              ? WebFileStore.bytesFor(firstPath)
+              : await File(firstPath).readAsBytes();
+          if (bytes != null) {
+            final completer = Completer<ui.Image>();
+            ui.decodeImageFromList(bytes, (image) {
+              completer.complete(image);
             });
+            final image = await completer.future;
+            if (mounted) {
+              setState(() {
+                _rawImage = image;
+              });
+            }
           }
         }
       }
@@ -10289,6 +10341,8 @@ class WatermarkPageState extends State<WatermarkPage>
         try {
           final result = await WatermarkProcessor.processFile(
             file: File(path),
+            // On web the bytes are in memory (no filesystem in the browser).
+            inputBytes: kIsWeb ? WebFileStore.bytesFor(path) : null,
             transparency: _transparency,
             density: _density,
             watermarkText: _textController.text,
@@ -10550,6 +10604,7 @@ class WatermarkPageState extends State<WatermarkPage>
     }
 
     WatermarkProcessor.clearCache();
+    WebFileStore.clear();
     await _cleanupTempFiles();
 
     if (_previewController.hasClients) {
@@ -10718,6 +10773,13 @@ class WatermarkPageState extends State<WatermarkPage>
     final l10n = AppLocalizations.of(context)!;
 
     if (_processedFiles.isEmpty) {
+      return;
+    }
+
+    // On web there is no filesystem to save to — hand the results to the
+    // browser as a download instead.
+    if (kIsWeb) {
+      await _downloadProcessedFiles();
       return;
     }
 
@@ -11306,14 +11368,31 @@ class WatermarkPageState extends State<WatermarkPage>
       final jsonBytes = utf8.encode(jsonConfig);
       _addLog('Exporting configuration with ${configData.length} keys...');
 
-      final tempDir = await getTemporaryDirectory();
       final now = DateTime.now();
       final timestamp =
           "${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}";
       final String versionSuffix =
           _appVersion.isNotEmpty ? "_v$_appVersion" : "";
-      final zipPath = p.join(
-          tempDir.path, 'SecureMark_Backup${versionSuffix}_$timestamp.zip');
+      final fileName = 'SecureMark_Backup${versionSuffix}_$timestamp.zip';
+
+      // The web engine has no filesystem (and no temp directory) — build
+      // the encrypted zip in memory and hand it to the browser as a
+      // download.
+      if (kIsWeb) {
+        final archive = Archive();
+        archive.addFile(
+            ArchiveFile('securemark_config.json', jsonBytes.length, jsonBytes));
+        final zipBytes = Uint8List.fromList(
+            ZipEncoder(password: passwordController.text).encode(archive));
+        browserDownload(zipBytes, fileName, 'application/zip');
+        messenger.showSnackBar(
+          SnackBar(content: Text(l10n.configExportSuccess(fileName))),
+        );
+        return;
+      }
+
+      final tempDir = await getTemporaryDirectory();
+      final zipPath = p.join(tempDir.path, fileName);
 
       final encoder = ZipFileEncoder(password: passwordController.text);
       encoder.create(zipPath);
@@ -11368,9 +11447,13 @@ class WatermarkPageState extends State<WatermarkPage>
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['zip'],
+        // On web the only usable result is the in-memory bytes.
+        withData: kIsWeb,
       );
 
-      if (result == null || result.files.single.path == null) return;
+      if (result == null || result.files.isEmpty) return;
+      final pickedFile = result.files.single;
+      if (pickedFile.path == null && pickedFile.bytes == null) return;
 
       if (!mounted) return;
 
@@ -11409,8 +11492,10 @@ class WatermarkPageState extends State<WatermarkPage>
 
       if (proceed != true) return;
 
-      final zipFile = File(result.files.single.path!);
-      final bytes = await zipFile.readAsBytes();
+      // On web the picked file exists only as in-memory bytes.
+      final bytes = kIsWeb
+          ? pickedFile.bytes!
+          : await File(pickedFile.path!).readAsBytes();
       final archive =
           ZipDecoder().decodeBytes(bytes, password: passwordController.text);
 
