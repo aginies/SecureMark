@@ -7,6 +7,17 @@ import '../watermark_error.dart';
 import 'package:qr/qr.dart';
 
 class WatermarkUtils {
+  /// Strips everything a user-supplied file prefix must not contain.
+  ///
+  /// The prefix is a plain filename fragment: it must never be able to
+  /// change the directory part of the output path (path traversal via
+  /// `../`), select a drive (Windows `:`), or carry null/control
+  /// characters — whatever its origin (settings field, imported config
+  /// zip, saved profile).
+  static String sanitizeFilePrefix(String prefix) {
+    return prefix.replaceAll(RegExp(r'[/\\:\u0000-\u001f\u007f]'), '');
+  }
+
   static String outputPath(String path, String ext,
       [bool ts = false, String pref = 'securemark-']) {
     String s = '';
@@ -14,8 +25,10 @@ class WatermarkUtils {
       final n = DateTime.now();
       s = '-${n.year}${n.month.toString().padLeft(2, '0')}${n.day.toString().padLeft(2, '0')}-${n.hour.toString().padLeft(2, '0')}${n.minute.toString().padLeft(2, '0')}';
     }
-    return p.join(
-        p.dirname(path), '$pref${p.basenameWithoutExtension(path)}$s$ext');
+    // Sanitize here (not only in the UI) so every caller — including
+    // values restored from an imported config — is safe.
+    return p.join(p.dirname(path),
+        '${sanitizeFilePrefix(pref)}${p.basenameWithoutExtension(path)}$s$ext');
   }
 
   /// Resolves the watermark text by appending the current date and time.

@@ -46,6 +46,7 @@ import '../utils/identity_manager.dart';
 import '../utils/local_server_manager.dart';
 import '../utils/web_file_store.dart';
 import '../utils/certificate_manager.dart';
+import '../utils/watermark_utils.dart';
 import '../steganography/encryption_utils.dart';
 import '../models/watermark_option.dart';
 import '../widgets/option_toggle_grid.dart';
@@ -7058,10 +7059,19 @@ class WatermarkPageState extends State<WatermarkPage>
                         border: const OutlineInputBorder(),
                       ),
                       onChanged: (value) {
+                        // The prefix must stay a plain filename fragment:
+                        // strip path separators and friends so the output
+                        // can never escape its directory (see
+                        // WatermarkUtils.sanitizeFilePrefix).
+                        final sanitized =
+                            WatermarkUtils.sanitizeFilePrefix(value);
                         setState(() {
-                          _filePrefix = value;
+                          _filePrefix = sanitized;
                         });
-                        _savePreference('filePrefix', value);
+                        if (sanitized != value) {
+                          _filePrefixController.text = sanitized;
+                        }
+                        _savePreference('filePrefix', sanitized);
                       },
                       controller: _filePrefixController,
                     ),

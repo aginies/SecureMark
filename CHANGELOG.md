@@ -36,6 +36,19 @@ All notable changes to SecureMark are documented in this file.
   2-minute in-memory retention, localStorage preferences, no cookies, no
   analytics.
 
+### Security
+
+- File prefix can no longer escape the output directory. The prefix is a
+  user-controlled string (settings field, imported config zip, saved
+  profile) that was concatenated straight into the output path: a value
+  like `../../evil/` could make the app write its output outside the
+  source directory. It is now sanitized (path separators, drive colons,
+  null and control characters stripped) both in the settings field and at
+  the single choke point `WatermarkUtils.outputPath`, so every origin is
+  covered. The ZIP password was audited and needed no change: it is only
+  ever passed as an API parameter to the pure-Dart `archive` package,
+  never to a shell, path, or command line.
+
 ### Fixed
 
 - Web file processing end to end. This Flutter SDK no longer ships the web
