@@ -4,6 +4,15 @@ All notable changes to SecureMark are documented in this file.
 
 ## Unreleased
 
+### Changed
+
+- Web UI: the "Analyse File" top-bar button, the Expert mode and Digital
+  Integrity Signature settings, and the Digital Integrity Signature and Hide
+  File options in the left panel are hidden on the web. Digital signing and
+  file hiding are also forced off on the web so settings persisted on another
+  platform cannot linger invisibly. The web app defaults to French unless the
+  user explicitly chooses a language.
+
 ### Added
 
 - Web output: on the web the processed files are handed to the browser as a

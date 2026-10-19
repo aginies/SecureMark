@@ -60,6 +60,10 @@ class SecureMarkAppState extends State<SecureMarkApp> {
     final localeCode = prefs.getString('appLocale');
     if (localeCode != null) {
       _appLocale = Locale(localeCode);
+    } else if (kIsWeb) {
+      // The web deployment defaults to French unless the user has
+      // explicitly chosen a language.
+      _appLocale = const Locale('fr');
     }
 
     await _checkCameraHardware();

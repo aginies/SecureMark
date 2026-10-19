@@ -373,6 +373,13 @@ class WatermarkPageState extends State<WatermarkPage>
           }
           _hideFileWithSteganography =
               prefs.getBool('hideFileWithSteganography') ?? false;
+          // Digital signing and file hiding are not exposed in the web UI:
+          // force them off so a setting persisted on another platform
+          // cannot linger invisibly.
+          if (kIsWeb) {
+            _digitallySign = false;
+            _hideFileWithSteganography = false;
+          }
           _zipOutputs = prefs.getBool('zipOutputs') ?? false;
           _useSecureZip = prefs.getBool('useSecureZip') ?? false;
           _secureZipPasswordController.text =
@@ -1376,11 +1383,13 @@ class WatermarkPageState extends State<WatermarkPage>
               color: theme.colorScheme.primary,
             ),
             const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.search_rounded),
-              onPressed: _showFileAnalyzer,
-              tooltip: l10n.analyzeFile,
-            ),
+            // The file analyzer is not part of the web UI.
+            if (!kIsWeb)
+              IconButton(
+                icon: const Icon(Icons.search_rounded),
+                onPressed: _showFileAnalyzer,
+                tooltip: l10n.analyzeFile,
+              ),
             if (_advancedExpert) ...[
               IconButton(
                 icon: const Icon(Icons.verified_user_outlined),
@@ -6170,32 +6179,34 @@ class WatermarkPageState extends State<WatermarkPage>
                         style: theme.textTheme.bodySmall
                             ?.copyWith(fontStyle: FontStyle.italic)),
                     const SizedBox(height: 8),
-                    CheckboxListTile(
-                      title: Text(l10n.hideFileWithSteganographyTitle),
-                      subtitle: Text(l10n.hideFileWithSteganographySubtitle),
-                      value: _hideFileWithSteganography,
-                      contentPadding: EdgeInsets.zero,
-                      onChanged: (value) {
-                        final enabled = value ?? false;
-                        setDialogState(() {
-                          _hideFileWithSteganography = enabled;
-                          if (!enabled) {
-                            _hiddenFileBytes = null;
-                            _hiddenFileName = null;
-                            _savePreference('hiddenFileBytes', null);
-                            _savePreference('hiddenFileName', null);
-                          }
-                        });
-                        setState(() {
-                          _hideFileWithSteganography = enabled;
-                          if (!enabled) {
-                            _hiddenFileBytes = null;
-                            _hiddenFileName = null;
-                          }
-                        });
-                        _savePreference('hideFileWithSteganography', enabled);
-                      },
-                    ),
+                    // File hiding is not part of the web UI.
+                    if (!kIsWeb)
+                      CheckboxListTile(
+                        title: Text(l10n.hideFileWithSteganographyTitle),
+                        subtitle: Text(l10n.hideFileWithSteganographySubtitle),
+                        value: _hideFileWithSteganography,
+                        contentPadding: EdgeInsets.zero,
+                        onChanged: (value) {
+                          final enabled = value ?? false;
+                          setDialogState(() {
+                            _hideFileWithSteganography = enabled;
+                            if (!enabled) {
+                              _hiddenFileBytes = null;
+                              _hiddenFileName = null;
+                              _savePreference('hiddenFileBytes', null);
+                              _savePreference('hiddenFileName', null);
+                            }
+                          });
+                          setState(() {
+                            _hideFileWithSteganography = enabled;
+                            if (!enabled) {
+                              _hiddenFileBytes = null;
+                              _hiddenFileName = null;
+                            }
+                          });
+                          _savePreference('hideFileWithSteganography', enabled);
+                        },
+                      ),
                     if (_hideFileWithSteganography) ...[
                       const SizedBox(height: 16),
                       Container(
@@ -7080,35 +7091,38 @@ class WatermarkPageState extends State<WatermarkPage>
                         _savePreference('rasterizePdf', value ?? false);
                       },
                     ),
-                    const Divider(),
-                    const SizedBox(height: 8),
-                    CheckboxListTile(
-                      title: Text(l10n.digitallySignTitle),
-                      subtitle: Text(l10n.digitallySignSubtitle),
-                      value: _digitallySign,
-                      contentPadding: EdgeInsets.zero,
-                      onChanged: (value) {
-                        final bool enabled = value ?? false;
-                        setDialogState(() {
-                          _digitallySign = enabled;
-                          // Automatically enable ZIP when digital signature is enabled
-                          // to preserve integrity metadata
+                    // Digital signing is not part of the web UI.
+                    if (!kIsWeb) ...[
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      CheckboxListTile(
+                        title: Text(l10n.digitallySignTitle),
+                        subtitle: Text(l10n.digitallySignSubtitle),
+                        value: _digitallySign,
+                        contentPadding: EdgeInsets.zero,
+                        onChanged: (value) {
+                          final bool enabled = value ?? false;
+                          setDialogState(() {
+                            _digitallySign = enabled;
+                            // Automatically enable ZIP when digital signature is enabled
+                            // to preserve integrity metadata
+                            if (enabled) {
+                              _zipOutputs = true;
+                            }
+                          });
+                          setState(() {
+                            _digitallySign = enabled;
+                            if (enabled) {
+                              _zipOutputs = true;
+                            }
+                          });
+                          _savePreference('digitallySign', enabled);
                           if (enabled) {
-                            _zipOutputs = true;
+                            _savePreference('zipOutputs', true);
                           }
-                        });
-                        setState(() {
-                          _digitallySign = enabled;
-                          if (enabled) {
-                            _zipOutputs = true;
-                          }
-                        });
-                        _savePreference('digitallySign', enabled);
-                        if (enabled) {
-                          _savePreference('zipOutputs', true);
-                        }
-                      },
-                    ),
+                        },
+                      ),
+                    ],
                     const Divider(),
                     const SizedBox(height: 8),
                     Row(
@@ -7186,24 +7200,27 @@ class WatermarkPageState extends State<WatermarkPage>
                         _savePreference('useSecureZip', enabled);
                       },
                     ),
-                    const Divider(),
-                    const SizedBox(height: 8),
-                    CheckboxListTile(
-                      title: Text(l10n.advancedExpertTitle),
-                      subtitle: Text(l10n.advancedExpertSubtitle),
-                      value: _advancedExpert,
-                      contentPadding: EdgeInsets.zero,
-                      onChanged: (value) {
-                        final bool enabled = value ?? false;
-                        setDialogState(() {
-                          _advancedExpert = enabled;
-                        });
-                        setState(() {
-                          _advancedExpert = enabled;
-                        });
-                        _savePreference('advancedExpert', enabled);
-                      },
-                    ),
+                    // The expert-mode toggle is not part of the web UI.
+                    if (!kIsWeb) ...[
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      CheckboxListTile(
+                        title: Text(l10n.advancedExpertTitle),
+                        subtitle: Text(l10n.advancedExpertSubtitle),
+                        value: _advancedExpert,
+                        contentPadding: EdgeInsets.zero,
+                        onChanged: (value) {
+                          final bool enabled = value ?? false;
+                          setDialogState(() {
+                            _advancedExpert = enabled;
+                          });
+                          setState(() {
+                            _advancedExpert = enabled;
+                          });
+                          _savePreference('advancedExpert', enabled);
+                        },
+                      ),
+                    ],
                     /*
                     const Divider(),
                     const SizedBox(height: 8),
@@ -9485,32 +9502,33 @@ class WatermarkPageState extends State<WatermarkPage>
   /// Builds the complete list of toggleable watermark options
   List<WatermarkOption> _buildAllOptions(AppLocalizations l10n) {
     return [
-      // Digital Signature
-      WatermarkOption(
-        id: 'digital_sign',
-        label: l10n.digitallySignTitle,
-        icon: Icons.fingerprint,
-        enabledColor: Colors.blueAccent,
-        isEnabled: _digitallySign,
-        isAvailable: !_rasterizePdf,
-        unavailableReason: _rasterizePdf ? l10n.unavailableRasterPdf : null,
-        subtitle: _digitallySign ? 'Integrity protection enabled' : null,
-        onToggle: () {
-          if (!_rasterizePdf) {
-            setState(() {
-              _digitallySign = !_digitallySign;
+      // Digital Signature (not part of the web UI)
+      if (!kIsWeb)
+        WatermarkOption(
+          id: 'digital_sign',
+          label: l10n.digitallySignTitle,
+          icon: Icons.fingerprint,
+          enabledColor: Colors.blueAccent,
+          isEnabled: _digitallySign,
+          isAvailable: !_rasterizePdf,
+          unavailableReason: _rasterizePdf ? l10n.unavailableRasterPdf : null,
+          subtitle: _digitallySign ? 'Integrity protection enabled' : null,
+          onToggle: () {
+            if (!_rasterizePdf) {
+              setState(() {
+                _digitallySign = !_digitallySign;
+                if (_digitallySign) {
+                  _zipOutputs = true; // Auto-enable zip for signing
+                }
+              });
+              _savePreference('digitallySign', _digitallySign);
               if (_digitallySign) {
-                _zipOutputs = true; // Auto-enable zip for signing
+                _savePreference('zipOutputs', true);
               }
-            });
-            _savePreference('digitallySign', _digitallySign);
-            if (_digitallySign) {
-              _savePreference('zipOutputs', true);
             }
-          }
-        },
-        onConfigure: _showExpertOptions,
-      ),
+          },
+          onConfigure: _showExpertOptions,
+        ),
 
       // Steganography
       WatermarkOption(
@@ -9617,34 +9635,35 @@ class WatermarkPageState extends State<WatermarkPage>
         onConfigure: _showQrWatermarkOptions,
       ),
 
-      // Hide File (Steganography)
-      WatermarkOption(
-        id: 'hide_file',
-        label: 'Hide File',
-        icon: Icons.attachment,
-        enabledColor: Colors.brown,
-        isEnabled: _hideFileWithSteganography && _hiddenFileBytes != null,
-        isAvailable: _useSteganography && !_rasterizePdf,
-        unavailableReason: _rasterizePdf
-            ? l10n.unavailableRasterPdf
-            : (_useSteganography ? null : l10n.requiresSteganography),
-        subtitle: _hiddenFileBytes != null ? l10n.hideFileEnabledHint : null,
-        onToggle: () {
-          if (_useSteganography && !_rasterizePdf) {
-            // If no file is selected, open the steganography modal to select one
-            if (_hiddenFileBytes == null) {
-              _showSteganographyOptions();
-            } else {
-              setState(() {
-                _hideFileWithSteganography = !_hideFileWithSteganography;
-              });
-              _savePreference(
-                  'hideFileWithSteganography', _hideFileWithSteganography);
+      // Hide File (Steganography) (not part of the web UI)
+      if (!kIsWeb)
+        WatermarkOption(
+          id: 'hide_file',
+          label: 'Hide File',
+          icon: Icons.attachment,
+          enabledColor: Colors.brown,
+          isEnabled: _hideFileWithSteganography && _hiddenFileBytes != null,
+          isAvailable: _useSteganography && !_rasterizePdf,
+          unavailableReason: _rasterizePdf
+              ? l10n.unavailableRasterPdf
+              : (_useSteganography ? null : l10n.requiresSteganography),
+          subtitle: _hiddenFileBytes != null ? l10n.hideFileEnabledHint : null,
+          onToggle: () {
+            if (_useSteganography && !_rasterizePdf) {
+              // If no file is selected, open the steganography modal to select one
+              if (_hiddenFileBytes == null) {
+                _showSteganographyOptions();
+              } else {
+                setState(() {
+                  _hideFileWithSteganography = !_hideFileWithSteganography;
+                });
+                _savePreference(
+                    'hideFileWithSteganography', _hideFileWithSteganography);
+              }
             }
-          }
-        },
-        onConfigure: _showSteganographyOptions,
-      ),
+          },
+          onConfigure: _showSteganographyOptions,
+        ),
 
       // Anti-AI Protection
       WatermarkOption(
