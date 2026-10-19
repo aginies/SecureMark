@@ -8391,11 +8391,15 @@ class WatermarkPageState extends State<WatermarkPage>
                                       ),
                                     ),
                                   ),
-                                if (!kIsWeb &&
-                                    (Platform.isLinux ||
+                                // Arrows are needed on desktop (no swipe)
+                                // and on web (mouse users); mobile pages by
+                                // swipe. kIsWeb must short-circuit first:
+                                // Platform.* throws when evaluated on web.
+                                if (_processedFiles.length > 1 &&
+                                    (kIsWeb ||
+                                        Platform.isLinux ||
                                         Platform.isWindows ||
-                                        Platform.isMacOS) &&
-                                    _processedFiles.length > 1) ...[
+                                        Platform.isMacOS)) ...[
                                   Positioned(
                                     left: 8,
                                     top: 0,
