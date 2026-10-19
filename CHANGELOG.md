@@ -29,6 +29,12 @@ All notable changes to SecureMark are documented in this file.
   download — a single file directly, several files (or the zip option) as one
   `securemark-files-<timestamp>.zip`. The LAN local-share dialog is hidden on
   the web, where it cannot work.
+- Web legal pages: the footer now offers « Mentions légales » and
+  « Confidentialité » dialogs (web only, French — the French version is the
+  official one for French hosting). The privacy text documents the actual
+  web behavior: 100% client-side processing, no server-side file storage,
+  2-minute in-memory retention, localStorage preferences, no cookies, no
+  analytics.
 
 ### Fixed
 
