@@ -656,6 +656,7 @@
   "themeAmoled": "Amoled Schwarz",
   "languageLabel": "Sprache",
   "languageSystem": "Systemstandard",
+  "downloadStarted": "Download gestartet",
   "resetProfiles": "Profile zurücksetzen",
   "resetProfileConfirm": "{profile} auf Werkseinstellungen zurücksetzen?",
   "@resetProfileConfirm": {

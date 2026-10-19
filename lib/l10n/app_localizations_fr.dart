@@ -1040,6 +1040,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get languageSystem => 'Système';
 
   @override
+  String get downloadStarted => 'Téléchargement démarré';
+
+  @override
   String get resetProfiles => 'Réinitialiser les profils';
 
   @override

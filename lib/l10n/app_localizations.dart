@@ -1797,6 +1797,12 @@ abstract class AppLocalizations {
   /// **'System Default'**
   String get languageSystem;
 
+  /// No description provided for @downloadStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Download started'**
+  String get downloadStarted;
+
   /// No description provided for @resetProfiles.
   ///
   /// In en, this message translates to:

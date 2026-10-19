@@ -660,6 +660,7 @@
   "themeAmoled": "Amoled Black",
   "languageLabel": "Language",
   "languageSystem": "System Default",
+  "downloadStarted": "Download started",
   "resetProfiles": "Reset Profiles",
   "resetProfileConfirm": "Reset {profile} to factory defaults?",
   "@resetProfileConfirm": {

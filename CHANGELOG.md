@@ -2,6 +2,15 @@
 
 All notable changes to SecureMark are documented in this file.
 
+## Unreleased
+
+### Added
+
+- Web output: on the web the processed files are handed to the browser as a
+  download — a single file directly, several files (or the zip option) as one
+  `securemark-files-<timestamp>.zip`. The LAN local-share dialog is hidden on
+  the web, where it cannot work.
+
 ## 1.8.1
 
 ### Added

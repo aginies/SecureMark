@@ -40,6 +40,7 @@ import '../widgets/watermark_shader_painter.dart';
 import '../main.dart';
 import '../watermark_error.dart';
 import '../models/processor_models.dart';
+import '../utils/browser_download.dart';
 import '../utils/color_utils.dart';
 import '../utils/identity_manager.dart';
 import '../utils/local_server_manager.dart';
@@ -1390,11 +1391,15 @@ class WatermarkPageState extends State<WatermarkPage>
                 onPressed: _showIdentityDialog,
                 tooltip: l10n.myIdentityTitle,
               ),
-              IconButton(
-                icon: const Icon(Icons.sensors),
-                onPressed: _showLocalShareDialog,
-                tooltip: l10n.localShareTitle,
-              ),
+              // The local share dialog serves files over a LAN socket,
+              // which does not exist on the web: on web the output is a
+              // browser download (see _shareCurrent).
+              if (!kIsWeb)
+                IconButton(
+                  icon: const Icon(Icons.sensors),
+                  onPressed: _showLocalShareDialog,
+                  tooltip: l10n.localShareTitle,
+                ),
             ],
             IconButton(
               icon: const Icon(Icons.qr_code_2),
@@ -2773,6 +2778,38 @@ class WatermarkPageState extends State<WatermarkPage>
           fileName, file.result.outputBytes.length, file.result.outputBytes));
     }
     return Uint8List.fromList(ZipEncoder().encode(archive));
+  }
+
+  /// Web output path: a single file is downloaded directly, several files
+  /// (or the zip toggle) become one zip download.
+  Future<void> _downloadProcessedFiles() async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      if (_zipOutputs || _processedFiles.length > 1) {
+        final bytes = await _createProcessedZipBytes();
+        final now = DateTime.now();
+        final timestamp =
+            '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
+        browserDownload(
+            bytes, 'securemark-files-$timestamp.zip', 'application/zip');
+      } else {
+        final file = _processedFiles.first;
+        final name = p.basename(file.result.outputPath);
+        browserDownload(file.result.outputBytes, name, _mimeTypeForPath(name));
+      }
+      if (mounted) {
+        setState(() {
+          _statusMessage = l10n.downloadStarted;
+          _hasErrors = false;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _statusMessage = l10n.errorPrefix(e.toString());
+        _hasErrors = true;
+      });
+    }
   }
 
   Widget _buildSendTab(StateSetter setDialogState) {
@@ -10921,6 +10958,13 @@ class WatermarkPageState extends State<WatermarkPage>
         box != null ? box.localToGlobal(Offset.zero) & box.size : null;
 
     if (_processedFiles.isEmpty) {
+      return;
+    }
+
+    // Web has no share sheet and no LAN server: hand the files to the
+    // browser as a download instead.
+    if (kIsWeb) {
+      await _downloadProcessedFiles();
       return;
     }
 

@@ -1040,6 +1040,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get languageSystem => 'Systemstandard';
 
   @override
+  String get downloadStarted => 'Download gestartet';
+
+  @override
   String get resetProfiles => 'Profile zurücksetzen';
 
   @override

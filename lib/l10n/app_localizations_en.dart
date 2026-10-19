@@ -1022,6 +1022,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageSystem => 'System Default';
 
   @override
+  String get downloadStarted => 'Download started';
+
+  @override
   String get resetProfiles => 'Reset Profiles';
 
   @override

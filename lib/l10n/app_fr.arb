@@ -656,6 +656,7 @@
   "themeAmoled": "Noir Pur (AMOLED)",
   "languageLabel": "Langue",
   "languageSystem": "Système",
+  "downloadStarted": "Téléchargement démarré",
   "resetProfiles": "Réinitialiser les profils",
   "resetProfileConfirm": "Réinitialiser {profile} aux valeurs d'usine ?",
   "@resetProfileConfirm": {

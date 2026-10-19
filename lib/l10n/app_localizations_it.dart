@@ -1033,6 +1033,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get languageSystem => 'Predefinito di sistema';
 
   @override
+  String get downloadStarted => 'Download avviato';
+
+  @override
   String get resetProfiles => 'Ripristina profili';
 
   @override
