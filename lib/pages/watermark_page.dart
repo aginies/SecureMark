@@ -8621,20 +8621,24 @@ class WatermarkPageState extends State<WatermarkPage>
   }
 
   Widget _buildAuthorFooter(ThemeData theme) {
+    final l10n = AppLocalizations.of(context)!;
+    // One compact line: author · version · (guide) · legal links.
+    // Plain Inkwells instead of buttons: no minimum touch height, so the
+    // footer stays a single slim row even under the narrow controls column.
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      // Wrap (not Row): on web the legal links can overflow the narrow
-      // controls column, and wrapping is the graceful failure mode.
+      padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
+      // Wrap (not Row): if the line ever overflows the narrow controls
+      // column, wrapping is the graceful failure mode.
       child: Wrap(
         alignment: WrapAlignment.center,
-        spacing: 4,
-        runSpacing: 4,
+        spacing: 2,
+        runSpacing: 0,
         children: [
           InkWell(
             onTap: _showAboutDialog,
             borderRadius: BorderRadius.circular(8),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -8645,7 +8649,7 @@ class WatermarkPageState extends State<WatermarkPage>
                     style: theme.textTheme.bodySmall,
                   ),
                   if (_appVersion.isNotEmpty) ...[
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Text(
                       'v$_appVersion',
                       style: theme.textTheme.labelSmall?.copyWith(
@@ -8657,28 +8661,38 @@ class WatermarkPageState extends State<WatermarkPage>
               ),
             ),
           ),
-          const SizedBox(width: 4),
-          IconButton(
-            onPressed: _showGuide,
-            icon: Icon(
-              Icons.help_outline,
-              size: 16,
-              color: theme.hintColor,
+          Tooltip(
+            message: l10n.showGuide,
+            child: InkWell(
+              onTap: _showGuide,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child:
+                    Icon(Icons.help_outline, size: 14, color: theme.hintColor),
+              ),
             ),
-            visualDensity: VisualDensity.compact,
-            tooltip: AppLocalizations.of(context)!.showGuide,
           ),
           // Web-only legal links (French legal requirement). The texts are
           // French-only on purpose: the French version is the official one.
           if (kIsWeb) ...[
-            TextButton(
-              onPressed: _showWebMentionsLegales,
-              child:
-                  Text('Mentions légales', style: theme.textTheme.labelSmall),
+            InkWell(
+              onTap: _showWebConfidentialite,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child:
+                    Text('Confidentialité', style: theme.textTheme.labelSmall),
+              ),
             ),
-            TextButton(
-              onPressed: _showWebConfidentialite,
-              child: Text('Confidentialité', style: theme.textTheme.labelSmall),
+            InkWell(
+              onTap: _showWebMentionsLegales,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child:
+                    Text('Mentions légales', style: theme.textTheme.labelSmall),
+              ),
             ),
           ],
         ],
