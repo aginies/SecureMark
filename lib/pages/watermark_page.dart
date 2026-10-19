@@ -1718,7 +1718,9 @@ class WatermarkPageState extends State<WatermarkPage>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(l10n.appLogs),
-              if (_logs.isNotEmpty)
+              // The log export is not part of the web UI (it would write
+              // processing details to a downloaded file).
+              if (!kIsWeb && _logs.isNotEmpty)
                 IconButton(
                   icon: const Icon(Icons.save_alt),
                   tooltip: l10n.saveLogs,
@@ -7704,50 +7706,58 @@ class WatermarkPageState extends State<WatermarkPage>
                         foregroundColor: theme.colorScheme.error,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        _showLogs();
-                      },
-                      icon: const Icon(Icons.list_alt),
-                      label: Text(l10n.viewLogs),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 44),
+                    // Log export and config backup/restore are not part of
+                    // the web UI: the backup contains the identity private
+                    // key, and handing it (or a log) to the browser as a
+                    // downloaded file is an unnecessary exposure on a
+                    // shared machine. The in-app log dialog stays reachable
+                    // from the error banner for on-screen diagnostics.
+                    if (!kIsWeb) ...[
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _showLogs();
+                        },
+                        icon: const Icon(Icons.list_alt),
+                        label: Text(l10n.viewLogs),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 44),
+                        ),
                       ),
-                    ),
-                    const Divider(height: 32),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              _exportConfiguration();
-                            },
-                            icon: const Icon(Icons.upload_file),
-                            label: Text(l10n.exportConfigButton),
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(0, 44),
+                      const Divider(height: 32),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _exportConfiguration();
+                              },
+                              icon: const Icon(Icons.upload_file),
+                              label: Text(l10n.exportConfigButton),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(0, 44),
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              _importConfiguration();
-                            },
-                            icon: const Icon(Icons.download),
-                            label: Text(l10n.importConfigButton),
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(0, 44),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _importConfiguration();
+                              },
+                              icon: const Icon(Icons.download),
+                              label: Text(l10n.importConfigButton),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(0, 44),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 8),
                   ],
                 ),

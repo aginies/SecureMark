@@ -12,6 +12,11 @@ All notable changes to SecureMark are documented in this file.
   file hiding are also forced off on the web so settings persisted on another
   platform cannot linger invisibly. The web app defaults to French unless the
   user explicitly chooses a language.
+- Web UI (security): config Export/Import and the View Logs / Save Logs
+  entries are hidden on the web. The backup zip contains the identity
+  private key, and handing it or the log to the browser as a downloaded
+  file is an unnecessary exposure on a shared machine. The in-app log
+  dialog stays reachable from the error banner for on-screen diagnostics.
 
 ### Added
 
