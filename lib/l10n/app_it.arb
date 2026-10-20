@@ -13,6 +13,7 @@
   },
   "clickApplyToPreview": "Clicca su \"Applica SecureMark\" per generare le anteprime",
   "previewUnavailable": "Anteprima non disponibile",
+  "pdfNoPreviewHint": "Nessuna anteprima disponibile per i file PDF. Clicca su \"Salva\" per aprire il PDF modificato.",
   "swipeHint": "Scorri a sinistra per il successivo, a destra per il precedente ({current}/{total})",
   "@swipeHint": {
     "placeholders": {

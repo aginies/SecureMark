@@ -13,6 +13,7 @@
   },
   "clickApplyToPreview": "Click \"Apply SecureMark\" to generate previews",
   "previewUnavailable": "Preview unavailable",
+  "pdfNoPreviewHint": "No preview is available for PDF files. Click \"Save\" to open the watermarked PDF.",
   "swipeHint": "Swipe left for next, right for previous ({current}/{total})",
   "@swipeHint": {
     "placeholders": {

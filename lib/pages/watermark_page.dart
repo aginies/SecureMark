@@ -901,6 +901,9 @@ class WatermarkPageState extends State<WatermarkPage>
           break;
 
         case SettingsProfile.onlineImage:
+          // ZIP output is on by default only for the Identity/Integrity
+          // profiles; keep it off here.
+          _zipOutputs = false;
           if (!prefs.containsKey('${pKey}useSteganography')) {
             _useSteganography = false;
           }
@@ -935,6 +938,9 @@ class WatermarkPageState extends State<WatermarkPage>
           break;
 
         case SettingsProfile.qrCode:
+          // ZIP output is on by default only for the Identity/Integrity
+          // profiles; keep it off here.
+          _zipOutputs = false;
           if (!prefs.containsKey('${pKey}qrVisible')) {
             _qrVisible = true;
           }
@@ -969,6 +975,9 @@ class WatermarkPageState extends State<WatermarkPage>
           break;
 
         case SettingsProfile.integrity:
+          // Integrity signs documents, so ZIP output is required (as with the
+          // Identity profile); keep it on by default.
+          _zipOutputs = true;
           if (!prefs.containsKey('${pKey}targetSize')) _targetSize = 1280;
           if (!prefs.containsKey('${pKey}transparency')) _transparency = 50;
           if (!prefs.containsKey('${pKey}density')) _density = 50;
@@ -995,6 +1004,9 @@ class WatermarkPageState extends State<WatermarkPage>
           break;
 
         case SettingsProfile.shareDocument:
+          // ZIP output is on by default only for the Identity/Integrity
+          // profiles; keep it off here.
+          _zipOutputs = false;
           if (!prefs.containsKey('${pKey}targetSize')) _targetSize = 1280;
           // Clean document: the visible watermark stays fully transparent
           // (same convention as the QR profile) and steganography is off.
@@ -1016,6 +1028,9 @@ class WatermarkPageState extends State<WatermarkPage>
           break;
 
         case SettingsProfile.p1:
+          // ZIP output is on by default only for the Identity/Integrity
+          // profiles; keep it off here.
+          _zipOutputs = false;
           if (!prefs.containsKey('${pKey}targetSize')) {
             _targetSize = 1280;
           }
@@ -1041,6 +1056,9 @@ class WatermarkPageState extends State<WatermarkPage>
           break;
 
         case SettingsProfile.p2:
+          // ZIP output is on by default only for the Identity/Integrity
+          // profiles; keep it off here.
+          _zipOutputs = false;
           if (!prefs.containsKey('${pKey}targetSize')) {
             _targetSize = 1280;
           }
@@ -8257,10 +8275,36 @@ class WatermarkPageState extends State<WatermarkPage>
                             final previewBytes =
                                 _processedFiles[index].result.previewBytes;
                             if (previewBytes == null) {
+                              // A PDF preview needs the rasterizer, which is
+                              // not reachable on every platform (web). Tell the
+                              // user where to find the result instead of
+                              // showing an empty box.
+                              final resultIsPdf =
+                                  _processedFiles[index].result.isPdf;
                               return Center(
-                                child: Text(
-                                  l10n.previewUnavailable,
-                                  style: theme.textTheme.bodyMedium,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        resultIsPdf
+                                            ? Icons.picture_as_pdf_outlined
+                                            : Icons
+                                                .image_not_supported_outlined,
+                                        size: 56,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        resultIsPdf
+                                            ? l10n.pdfNoPreviewHint
+                                            : l10n.previewUnavailable,
+                                        style: theme.textTheme.bodyMedium,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               );
                             }
@@ -9076,7 +9120,7 @@ class WatermarkPageState extends State<WatermarkPage>
                                   // French-only on purpose, like the footer
                                   // links: the French text is the official
                                   // legal version.
-                                  Text('Confidentialité', style: linkStyle),
+                                  Text('(Confidentialité)', style: linkStyle),
                                 ],
                               ),
                           ],

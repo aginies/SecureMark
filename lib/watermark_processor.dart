@@ -1197,28 +1197,44 @@ class WatermarkProcessor {
     final outPath = WatermarkUtils.outputPath(
         file.path, '.pdf', includeTimestamp, filePrefix);
 
-    // Rasterize the ORIGINAL first page for A/B/C comparison
-    onProgress?.call(0.88, 'Rasterizing original...');
-    final originalPreview =
-        await Printing.raster(bytes, pages: [0], dpi: 72).first;
-    final originalBytes = await originalPreview.toPng();
+    // Rasterize the ORIGINAL first page, then the watermarked one, for the
+    // preview and the A/B/C comparison. Rasterization is delegated to a plugin
+    // (pdf.js on web) that is not always available: failing to build a preview
+    // must not throw away the PDF that was already produced.
+    Uint8List? originalBytes;
+    Uint8List? previewBytes;
+    int? firstPageWidth;
+    int? firstPageHeight;
+    try {
+      onProgress?.call(0.88, 'Rasterizing original...');
+      final originalPreview =
+          await Printing.raster(bytes, pages: [0], dpi: 72).first;
+      originalBytes = await originalPreview.toPng();
+      firstPageWidth = originalPreview.width.round();
+      firstPageHeight = originalPreview.height.round();
 
-    // Generate a preview of the first page (watermarked)
-    onProgress?.call(0.92, 'Generating preview...');
-    final preview =
-        await Printing.raster(outputBytes, pages: [0], dpi: 72).first;
-    final previewBytes = await preview.toPng();
+      // Generate a preview of the first page (watermarked)
+      onProgress?.call(0.92, 'Generating preview...');
+      final preview =
+          await Printing.raster(outputBytes, pages: [0], dpi: 72).first;
+      previewBytes = await preview.toPng();
+    } catch (e) {
+      debugPrint('PDF preview rasterization failed: $e');
+    }
 
     // Generate heatmap for A/B/C comparison
     onProgress?.call(0.95, 'Generating heatmap...');
     Uint8List? heatmapBytes;
-    final originalImage = img.decodeImage(originalBytes);
-    final previewImage = img.decodeImage(previewBytes);
-    if (originalImage != null && previewImage != null) {
-      final heatmap =
-          WatermarkUtils.generateHeatmapImage(originalImage, previewImage);
-      if (heatmap != null) {
-        heatmapBytes = Uint8List.fromList(img.encodeJpg(heatmap, quality: 85));
+    if (originalBytes != null && previewBytes != null) {
+      final originalImage = img.decodeImage(originalBytes);
+      final previewImage = img.decodeImage(previewBytes);
+      if (originalImage != null && previewImage != null) {
+        final heatmap =
+            WatermarkUtils.generateHeatmapImage(originalImage, previewImage);
+        if (heatmap != null) {
+          heatmapBytes =
+              Uint8List.fromList(img.encodeJpg(heatmap, quality: 85));
+        }
       }
     }
 
@@ -1254,8 +1270,8 @@ class WatermarkProcessor {
             analysis.integrityVerified,
         robustVerified: robustVerified,
         isPdf: true,
-        width: originalPreview.width.round(),
-        height: originalPreview.height.round(),
+        width: firstPageWidth,
+        height: firstPageHeight,
         appliedFeatures: applied);
   }
 

@@ -32,6 +32,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get previewUnavailable => 'Vista previa no disponible';
 
   @override
+  String get pdfNoPreviewHint =>
+      'No hay vista previa para los archivos PDF. Haz clic en \"Guardar\" para abrir el PDF modificado.';
+
+  @override
   String swipeHint(int current, int total) {
     return 'Desliza a la izquierda para el siguiente, a la derecha para el anterior ($current/$total)';
   }

@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -74,7 +73,6 @@ class _OptionTileState extends State<_OptionTile>
     with TickerProviderStateMixin {
   late AnimationController _scaleController;
   late Animation<double> _scaleAnimation;
-  late AnimationController _burstController;
 
   @override
   void initState() {
@@ -86,25 +84,12 @@ class _OptionTileState extends State<_OptionTile>
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.92).animate(
       CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
     );
-    _burstController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
   }
 
   @override
   void dispose() {
     _scaleController.dispose();
-    _burstController.dispose();
     super.dispose();
-  }
-
-  @override
-  void didUpdateWidget(_OptionTile oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!oldWidget.option.isEnabled && widget.option.isEnabled) {
-      _burstController.forward(from: 0.0);
-    }
   }
 
   void _handleTap() {
@@ -301,16 +286,6 @@ class _OptionTileState extends State<_OptionTile>
                           size: widget.iconSize * 0.9,
                         ),
                 ),
-                // Burst effect
-                IgnorePointer(
-                  child: _IconBurst(
-                    controller: _burstController,
-                    icon: widget.option.icon,
-                    customIcon: widget.option.customIcon,
-                    color: widget.option.enabledColor,
-                    size: widget.iconSize * 0.9,
-                  ),
-                ),
                 // Lock overlay for unavailable
                 if (!isAvailable)
                   Positioned(
@@ -396,100 +371,5 @@ class _OptionTileState extends State<_OptionTile>
     }
 
     return parts.join('\n');
-  }
-}
-
-class _IconBurst extends StatelessWidget {
-  final AnimationController controller;
-  final IconData icon;
-  final Widget? customIcon;
-  final Color color;
-  final double size;
-
-  const _IconBurst({
-    required this.controller,
-    required this.icon,
-    this.customIcon,
-    required this.color,
-    required this.size,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, child) {
-        if (controller.value == 0.0 || controller.value == 1.0) {
-          return const SizedBox.shrink();
-        }
-
-        return Stack(
-          alignment: Alignment.center,
-          children: List.generate(12, (index) {
-            return _BurstParticle(
-              progress: controller.value,
-              index: index,
-              count: 12,
-              icon: icon,
-              customIcon: customIcon,
-              color: color,
-              baseSize: size,
-            );
-          }),
-        );
-      },
-    );
-  }
-}
-
-class _BurstParticle extends StatelessWidget {
-  final double progress;
-  final int index;
-  final int count;
-  final IconData icon;
-  final Widget? customIcon;
-  final Color color;
-  final double baseSize;
-
-  const _BurstParticle({
-    required this.progress,
-    required this.index,
-    required this.count,
-    required this.icon,
-    this.customIcon,
-    required this.color,
-    required this.baseSize,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final double angle = (index * (360 / count)) * (math.pi / 180);
-    final double distance = 120 * progress;
-    final double opacity = 1.0 - progress;
-    final double scale = 0.4 + (0.4 * progress);
-
-    return Transform.translate(
-      offset: Offset(
-        math.cos(angle) * distance,
-        math.sin(angle) * distance,
-      ),
-      child: Transform.scale(
-        scale: scale,
-        child: Opacity(
-          opacity: opacity,
-          child: customIcon != null
-              ? SizedBox(
-                  width: baseSize * 1.2,
-                  height: baseSize * 1.2,
-                  child: customIcon,
-                )
-              : Icon(
-                  icon,
-                  color: color.withValues(alpha: 0.9),
-                  size: baseSize * 1.2,
-                ),
-        ),
-      ),
-    );
   }
 }

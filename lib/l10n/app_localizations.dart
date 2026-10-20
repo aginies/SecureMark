@@ -140,6 +140,12 @@ abstract class AppLocalizations {
   /// **'Preview unavailable'**
   String get previewUnavailable;
 
+  /// No description provided for @pdfNoPreviewHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No preview is available for PDF files. Click \"Save\" to open the watermarked PDF.'**
+  String get pdfNoPreviewHint;
+
   /// No description provided for @swipeHint.
   ///
   /// In en, this message translates to:

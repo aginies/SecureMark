@@ -13,6 +13,7 @@
   },
   "clickApplyToPreview": "Cliquez sur \"Appliquer SecureMark\" pour générer les aperçus",
   "previewUnavailable": "Aperçu indisponible",
+  "pdfNoPreviewHint": "Aperçu indisponible pour les fichiers PDF. Cliquez sur \"Enregistrer\" pour ouvrir le PDF filigrané.",
   "swipeHint": "Glissez à gauche pour le suivant, à droite pour le précédent ({current}/{total})",
   "@swipeHint": {
     "placeholders": {

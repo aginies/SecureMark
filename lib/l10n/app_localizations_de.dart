@@ -32,6 +32,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get previewUnavailable => 'Vorschau nicht verfügbar';
 
   @override
+  String get pdfNoPreviewHint =>
+      'Für PDF-Dateien ist keine Vorschau verfügbar. Klicken Sie auf \"Speichern\", um das markierte PDF zu öffnen.';
+
+  @override
   String swipeHint(int current, int total) {
     return 'Nach links für nächste, nach rechts für vorherige wischen ($current/$total)';
   }
