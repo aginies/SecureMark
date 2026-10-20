@@ -728,6 +728,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bookmarkSaved => 'Identity bookmarked successfully';
 
   @override
+  String get qrIdentityHint =>
+      'Recipients can scan this to verify your documents.';
+
+  @override
+  String identityAdded(Object name) {
+    return 'Identity \'$name\' added to your trusted senders';
+  }
+
+  @override
+  String get autoVerifyVerified =>
+      'Integrity verified — sender signature is authentic';
+
+  @override
+  String get autoVerifyTampered =>
+      'Integrity check failed — document was modified';
+
+  @override
+  String get autoVerifyHasMarks =>
+      'SecureMark content detected — tap for details';
+
+  @override
+  String get autoVerifyNoMarks => 'No SecureMark signature found in this file';
+
+  @override
+  String get viewDetails => 'Details';
+
+  @override
   String get signatureVerified => '✅ Integrity Verified: Document is authentic';
 
   @override

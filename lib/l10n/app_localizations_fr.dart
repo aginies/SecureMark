@@ -739,6 +739,34 @@ class AppLocalizationsFr extends AppLocalizations {
   String get bookmarkSaved => 'Identité ajoutée aux signets avec succès';
 
   @override
+  String get qrIdentityHint =>
+      'Les destinataires peuvent scanner ceci pour vérifier vos documents.';
+
+  @override
+  String identityAdded(Object name) {
+    return 'Identité « $name » ajoutée à vos expéditeurs de confiance';
+  }
+
+  @override
+  String get autoVerifyVerified =>
+      'Intégrité vérifiée — signature de l\'expéditeur authentique';
+
+  @override
+  String get autoVerifyTampered =>
+      'Échec de la vérification d\'intégrité — document modifié';
+
+  @override
+  String get autoVerifyHasMarks =>
+      'Contenu SecureMark détecté — appuyez pour les détails';
+
+  @override
+  String get autoVerifyNoMarks =>
+      'Aucune signature SecureMark trouvée dans ce fichier';
+
+  @override
+  String get viewDetails => 'Détails';
+
+  @override
   String get signatureVerified =>
       '✅ Intégrité vérifiée : le document est authentique';
 

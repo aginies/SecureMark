@@ -737,6 +737,34 @@ class AppLocalizationsEs extends AppLocalizations {
   String get bookmarkSaved => 'Identidad guardada en marcadores con éxito';
 
   @override
+  String get qrIdentityHint =>
+      'Los destinatarios pueden escanear esto para verificar sus documentos.';
+
+  @override
+  String identityAdded(Object name) {
+    return 'Identidad \'$name\' añadida a sus remitentes de confianza';
+  }
+
+  @override
+  String get autoVerifyVerified =>
+      'Integridad verificada — la firma del remitente es auténtica';
+
+  @override
+  String get autoVerifyTampered =>
+      'Fallo en la verificación de integridad — el documento fue modificado';
+
+  @override
+  String get autoVerifyHasMarks =>
+      'Contenido SecureMark detectado — toque para ver detalles';
+
+  @override
+  String get autoVerifyNoMarks =>
+      'No se encontró ninguna firma SecureMark en este archivo';
+
+  @override
+  String get viewDetails => 'Detalles';
+
+  @override
   String get signatureVerified =>
       '✅ Integrität verificada: El documento es auténtico';
 

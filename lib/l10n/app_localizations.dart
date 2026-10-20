@@ -1298,6 +1298,48 @@ abstract class AppLocalizations {
   /// **'Identity bookmarked successfully'**
   String get bookmarkSaved;
 
+  /// No description provided for @qrIdentityHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipients can scan this to verify your documents.'**
+  String get qrIdentityHint;
+
+  /// No description provided for @identityAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Identity \'{name}\' added to your trusted senders'**
+  String identityAdded(Object name);
+
+  /// No description provided for @autoVerifyVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Integrity verified — sender signature is authentic'**
+  String get autoVerifyVerified;
+
+  /// No description provided for @autoVerifyTampered.
+  ///
+  /// In en, this message translates to:
+  /// **'Integrity check failed — document was modified'**
+  String get autoVerifyTampered;
+
+  /// No description provided for @autoVerifyHasMarks.
+  ///
+  /// In en, this message translates to:
+  /// **'SecureMark content detected — tap for details'**
+  String get autoVerifyHasMarks;
+
+  /// No description provided for @autoVerifyNoMarks.
+  ///
+  /// In en, this message translates to:
+  /// **'No SecureMark signature found in this file'**
+  String get autoVerifyNoMarks;
+
+  /// No description provided for @viewDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get viewDetails;
+
   /// No description provided for @signatureVerified.
   ///
   /// In en, this message translates to:

@@ -48,6 +48,7 @@ import '../utils/web_file_store.dart';
 import '../utils/certificate_manager.dart';
 import '../utils/watermark_utils.dart';
 import '../steganography/encryption_utils.dart';
+import '../steganography/forensic_utils.dart';
 import '../models/watermark_option.dart';
 import '../widgets/option_toggle_grid.dart';
 import 'onboarding_page.dart';
@@ -89,6 +90,27 @@ bool _isConfigBackupKey(String key) {
     'identity_bookmarks',
   }.contains(key);
 }
+
+/// Preference keys that must be stored as ints, because they are read back
+/// with [SharedPreferences.getInt]. Profile-scoped keys reuse the same
+/// suffixes (e.g. `profile_watermark_jpegQuality`), so match on suffixes.
+const Set<String> _intPreferenceKeySuffixes = {
+  'jpegQuality',
+  'targetSize',
+  'selectedColor',
+  'selectedProfile',
+  'qrType',
+  'qrPosition',
+  'watermarkType',
+};
+
+/// Whether [key] is persisted as an int rather than a double.
+///
+/// On Web every number is a double, so `value is int` / `value is double`
+/// cannot reliably pick the right typed setter. The expected type of each
+/// preference key is fixed, so dispatch on the key instead.
+bool _isIntPreferenceKey(String key) =>
+    _intPreferenceKeySuffixes.any((suffix) => key.endsWith(suffix));
 
 class WatermarkPage extends StatefulWidget {
   final bool hasCamera;
@@ -171,6 +193,12 @@ class WatermarkPageState extends State<WatermarkPage>
   String? _outputDirectory;
   String? _logoDirectory;
   List<IdentityBookmark> _identityBookmarks = [];
+
+  /// Last file received over the local network, kept so the auto-verify
+  /// badge can re-open the full analysis on demand.
+  Uint8List? _receivedFileBytes;
+  String? _receivedFileName;
+
   ui.Image? _rawImage;
   final List<String> _logs = <String>[];
   final List<String> _tempFiles = <String>[];
@@ -527,13 +555,15 @@ class WatermarkPageState extends State<WatermarkPage>
   Future<void> _savePreference(String key, dynamic value) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      if (value is double) {
-        await prefs.setDouble(key, value);
-      } else if (value is int) {
-        await prefs.setInt(key, value);
-        // Clear the null flag if we're setting a value for targetSize
-        if (key == 'targetSize') {
-          await prefs.remove('targetSizeIsNull');
+      if (value is num) {
+        if (_isIntPreferenceKey(key)) {
+          await prefs.setInt(key, value.toInt());
+          // Clear the null flag if we're setting a value for targetSize
+          if (key == 'targetSize') {
+            await prefs.remove('targetSizeIsNull');
+          }
+        } else {
+          await prefs.setDouble(key, value.toDouble());
         }
       } else if (value is bool) {
         await prefs.setBool(key, value);
@@ -1469,19 +1499,20 @@ class WatermarkPageState extends State<WatermarkPage>
                 _toolMenuItem(
                     'font', Icons.image_outlined, l10n.fontConfigTitle),
                 _toolMenuItem('qr', Icons.qr_code_2, l10n.qrWatermarkTitle),
-                // Device identity, local share, steganography and the file
-                // analyzer are not part of the web UI: on web the output is
-                // a browser download (see _shareCurrent) and there is no
-                // LAN socket.
+                // Device identity, local share and the file analyzer are not
+                // part of the web UI: on web the output is a browser
+                // download (see _shareCurrent), there is no LAN socket, and
+                // the identity key material is deliberately not exposed in
+                // the browser (see 1.9.0). Steganography runs fully in the
+                // WASM isolate, so it is available on web.
                 if (!kIsWeb)
                   _toolMenuItem('identity', Icons.person_pin_outlined,
                       l10n.myIdentityTitle),
                 if (!kIsWeb)
                   _toolMenuItem(
                       'localShare', Icons.sensors, l10n.localShareTitle),
-                if (!kIsWeb)
-                  _toolMenuItem('steganography', Icons.verified_user_outlined,
-                      l10n.steganographyTitle),
+                _toolMenuItem('steganography', Icons.verified_user_outlined,
+                    l10n.steganographyTitle),
                 if (!kIsWeb)
                   _toolMenuItem(
                       'analyze', Icons.search_rounded, l10n.analyzeFile),
@@ -2021,7 +2052,8 @@ class WatermarkPageState extends State<WatermarkPage>
     }
   }
 
-  void _showFileAnalyzer() {
+  void _showFileAnalyzer(
+      {Uint8List? autoAnalyzeBytes, String? autoAnalyzeName}) {
     final l10n = AppLocalizations.of(context)!;
 
     setState(() {
@@ -2043,9 +2075,22 @@ class WatermarkPageState extends State<WatermarkPage>
       context: context,
       builder: (context) {
         bool isDragging = false;
+        bool autoAnalyzeStarted = false;
         return StatefulBuilder(
           builder: (context, setDialogState) {
             final theme = Theme.of(context);
+
+            // Auto-verify entry point: run the analysis once the dialog is
+            // on screen (used by the received-file badge).
+            if (!autoAnalyzeStarted &&
+                autoAnalyzeBytes != null &&
+                autoAnalyzeName != null) {
+              autoAnalyzeStarted = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _performFileAnalysis(
+                    autoAnalyzeBytes, autoAnalyzeName, setDialogState);
+              });
+            }
 
             Widget dialogContent = SingleChildScrollView(
               child: Column(
@@ -3745,6 +3790,11 @@ class WatermarkPageState extends State<WatermarkPage>
                     SnackBar(content: Text(l10n.fileReceived(remoteAddr))),
                   );
                 }
+
+                // Run a background integrity check on the received file;
+                // the result appears as a badge with a tap-to-open details
+                // card. Never blocks the receive flow.
+                _autoVerifyReceivedFile(filePath, fileName);
               } catch (e, stackTrace) {
                 _addLog('❌ Error handling received file: $e');
                 _addLog('Stack trace: $stackTrace');
@@ -5057,29 +5107,24 @@ class WatermarkPageState extends State<WatermarkPage>
                     if (barcodes.isNotEmpty) {
                       final String? code = barcodes.first.rawValue;
                       if (code != null) {
-                        String name = 'New Identity';
-                        String pubKey = code;
-
-                        // Try to parse as JSON first (for name + key combo)
-                        try {
-                          final data = jsonDecode(code);
-                          if (data is Map) {
-                            name = data['name'] ?? 'New Identity';
-                            pubKey = data['publicKey'] ?? code;
-                          }
-                        } catch (_) {
-                          // Not JSON, assume raw public key
-                        }
-
-                        if (_isValidEd25519PublicKey(pubKey)) {
+                        final messenger = ScaffoldMessenger.of(context);
+                        // Accepts the identity-card URI, the legacy JSON
+                        // format and bare keys (see parseIdentityCard).
+                        final card = ForensicUtils.parseIdentityCard(code);
+                        if (card != null &&
+                            _isValidEd25519PublicKey(card.publicKey)) {
                           Navigator.pop(context);
                           setParentDialogState(() {
                             _identityBookmarks.add(IdentityBookmark(
-                                name: name, publicKey: pubKey));
+                                name: card.name, publicKey: card.publicKey));
                           });
                           _saveBookmarks();
+                          messenger.showSnackBar(
+                            SnackBar(
+                                content: Text(l10n.identityAdded(card.name))),
+                          );
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             SnackBar(content: Text(l10n.invalidQrCode)),
                           );
                         }
@@ -5096,6 +5141,68 @@ class WatermarkPageState extends State<WatermarkPage>
         ],
       ),
     );
+  }
+
+  /// Background integrity check for files received over the local network.
+  /// Shows a short badge; the full verification card opens on demand via
+  /// the badge's details action.
+  Future<void> _autoVerifyReceivedFile(
+      String sourcePath, String fileName) async {
+    try {
+      final source = File(sourcePath);
+      if (!await source.exists()) return;
+      final bytes = await source.readAsBytes();
+      final analysis =
+          await WatermarkProcessor.analyzeFileAsync(bytes, fileName);
+      if (!mounted) return;
+
+      _receivedFileBytes = bytes;
+      _receivedFileName = fileName;
+
+      final l10n = AppLocalizations.of(context)!;
+      final Color badgeColor;
+      final String message;
+      if (analysis.senderPublicKey != null) {
+        if (analysis.integrityVerified) {
+          badgeColor = Colors.green;
+          message = l10n.autoVerifyVerified;
+        } else {
+          badgeColor = Colors.red;
+          message = l10n.autoVerifyTampered;
+        }
+      } else if (analysis.signature != null ||
+          analysis.robustSignature != null ||
+          analysis.file != null) {
+        badgeColor = Colors.blue;
+        message = l10n.autoVerifyHasMarks;
+      } else {
+        badgeColor = Colors.orange;
+        message = l10n.autoVerifyNoMarks;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: badgeColor,
+          duration: const Duration(seconds: 8),
+          action: SnackBarAction(
+            label: l10n.viewDetails,
+            onPressed: _showReceivedFileDetails,
+          ),
+        ),
+      );
+    } catch (e) {
+      _addLog('Auto-verify failed for $fileName: $e');
+    }
+  }
+
+  /// Re-opens the file analyzer and runs the full analysis on the last
+  /// received file, showing the complete verification card.
+  void _showReceivedFileDetails() {
+    final bytes = _receivedFileBytes;
+    final name = _receivedFileName;
+    if (bytes == null || name == null) return;
+    _showFileAnalyzer(autoAnalyzeBytes: bytes, autoAnalyzeName: name);
   }
 
   Future<void> _performFileAnalysis(
@@ -11923,10 +12030,14 @@ class WatermarkPageState extends State<WatermarkPage>
 
             if (value is bool) {
               await prefs.setBool(key, value);
-            } else if (value is int) {
-              await prefs.setInt(key, value);
-            } else if (value is double) {
-              await prefs.setDouble(key, value);
+            } else if (value is num) {
+              // On Web, JSON numbers decode as int even when the source had
+              // a decimal point, so store by key type rather than runtime type.
+              if (_isIntPreferenceKey(key)) {
+                await prefs.setInt(key, value.toInt());
+              } else {
+                await prefs.setDouble(key, value.toDouble());
+              }
             } else if (value is String) {
               await prefs.setString(key, value);
             } else if (value is List) {
@@ -12070,13 +12181,13 @@ class WatermarkPageState extends State<WatermarkPage>
                   ),
                   TextButton.icon(
                     onPressed: () {
-                      final shareData = jsonEncode({
-                        'name': _deviceNameController.text,
-                        'publicKey': publicKey,
-                      });
+                      // Share the self-describing identity-card URI so the
+                      // receiver's app can import the key directly.
+                      final card = ForensicUtils.generateIdentityCard(
+                          _deviceNameController.text, publicKey, fingerprint);
                       SharePlus.instance.share(
                         ShareParams(
-                          text: shareData,
+                          text: card,
                           subject: l10n.myIdentityTitle,
                         ),
                       );
@@ -12086,11 +12197,9 @@ class WatermarkPageState extends State<WatermarkPage>
                   ),
                   TextButton.icon(
                     onPressed: () {
-                      final qrData = jsonEncode({
-                        'name': _deviceNameController.text,
-                        'publicKey': publicKey,
-                      });
-                      _showQrIdentityDialog(qrData);
+                      final card = ForensicUtils.generateIdentityCard(
+                          _deviceNameController.text, publicKey, fingerprint);
+                      _showQrIdentityDialog(card);
                     },
                     icon: const Icon(Icons.qr_code, size: 18),
                     label: Text(l10n.generateQrKey),
@@ -12130,10 +12239,10 @@ class WatermarkPageState extends State<WatermarkPage>
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              "Recipients can scan this to verify your documents.",
+            Text(
+              l10n.qrIdentityHint,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12),
+              style: const TextStyle(fontSize: 12),
             ),
           ],
         ),

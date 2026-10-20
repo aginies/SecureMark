@@ -738,6 +738,34 @@ class AppLocalizationsDe extends AppLocalizations {
       'Identität erfolgreich als Lesezeichen gespeichert';
 
   @override
+  String get qrIdentityHint =>
+      'Empfänger können dies scannen, um Ihre Dokumente zu verifizieren.';
+
+  @override
+  String identityAdded(Object name) {
+    return 'Identität \'$name\' zu Ihren vertrauenswürdigen Absendern hinzugefügt';
+  }
+
+  @override
+  String get autoVerifyVerified =>
+      'Integrität verifiziert — Absendersignatur ist authentisch';
+
+  @override
+  String get autoVerifyTampered =>
+      'Integritätsprüfung fehlgeschlagen — Dokument wurde verändert';
+
+  @override
+  String get autoVerifyHasMarks =>
+      'SecureMark-Inhalt erkannt — für Details tippen';
+
+  @override
+  String get autoVerifyNoMarks =>
+      'Keine SecureMark-Signatur in dieser Datei gefunden';
+
+  @override
+  String get viewDetails => 'Details';
+
+  @override
   String get signatureVerified =>
       '✅ Integrität verifiziert: Dokument ist authentisch';
 
