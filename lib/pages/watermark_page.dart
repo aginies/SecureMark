@@ -1462,82 +1462,25 @@ class WatermarkPageState extends State<WatermarkPage>
               itemBuilder: (context) => [
                 // The file analyzer is not part of the web UI.
                 if (!kIsWeb)
-                  PopupMenuItem(
-                    value: 'analyze',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.search_rounded),
-                        const SizedBox(width: 8),
-                        Text(l10n.analyzeFile),
-                      ],
-                    ),
-                  ),
+                  _toolMenuItem(
+                      'analyze', Icons.search_rounded, l10n.analyzeFile),
                 // Steganography, device identity and local share are not
                 // part of the web UI: on web the output is a browser
                 // download (see _shareCurrent) and there is no LAN socket.
                 if (!kIsWeb)
-                  PopupMenuItem(
-                    value: 'steganography',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.verified_user_outlined),
-                        const SizedBox(width: 8),
-                        Text(l10n.steganographyTitle),
-                      ],
-                    ),
-                  ),
+                  _toolMenuItem('steganography', Icons.verified_user_outlined,
+                      l10n.steganographyTitle),
                 if (!kIsWeb)
-                  PopupMenuItem(
-                    value: 'identity',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.person_pin_outlined),
-                        const SizedBox(width: 8),
-                        Text(l10n.myIdentityTitle),
-                      ],
-                    ),
-                  ),
+                  _toolMenuItem('identity', Icons.person_pin_outlined,
+                      l10n.myIdentityTitle),
                 if (!kIsWeb)
-                  PopupMenuItem(
-                    value: 'localShare',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.sensors),
-                        const SizedBox(width: 8),
-                        Text(l10n.localShareTitle),
-                      ],
-                    ),
-                  ),
-                PopupMenuItem(
-                  value: 'qr',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.qr_code_2),
-                      const SizedBox(width: 8),
-                      Text(l10n.qrWatermarkTitle),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'font',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.image_outlined),
-                      const SizedBox(width: 8),
-                      Text(l10n.fontConfigTitle),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'expert',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.settings_suggest_outlined),
-                      const SizedBox(width: 8),
-                      Text(l10n.expertOptions),
-                    ],
-                  ),
-                ),
+                  _toolMenuItem(
+                      'localShare', Icons.sensors, l10n.localShareTitle),
+                _toolMenuItem('qr', Icons.qr_code_2, l10n.qrWatermarkTitle),
+                _toolMenuItem(
+                    'font', Icons.image_outlined, l10n.fontConfigTitle),
+                _toolMenuItem('expert', Icons.settings_suggest_outlined,
+                    l10n.expertOptions),
               ],
             ),
           ],
@@ -1600,6 +1543,27 @@ class WatermarkPageState extends State<WatermarkPage>
             );
           },
         ),
+      ),
+    );
+  }
+
+  /// Labeled overflow-menu entry: fixed icon, ellipsized text so long
+  /// localized labels (e.g. FR steganography) cannot overflow the menu.
+  PopupMenuItem<String> _toolMenuItem(
+    String value,
+    IconData icon,
+    String label,
+  ) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(label, overflow: TextOverflow.ellipsis),
+          ),
+        ],
       ),
     );
   }
