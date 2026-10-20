@@ -856,11 +856,13 @@ class WatermarkPageState extends State<WatermarkPage>
           if (!prefs.containsKey('${pKey}targetSize')) {
             _targetSize = 1280;
           }
-          // Signed document: no visible watermark (fully transparent,
-          // same convention as the QR profile) and no steganography;
-          // integrity comes from the Ed25519 digital signature.
+          // Signed document: a subtle visible watermark carrying the device
+          // identity (drawn in _applyWatermark when signing) in a random
+          // color — less visible than the Image profile (transparency 50) —
+          // backed by the Ed25519 digital signature for integrity. No
+          // steganography.
           if (!prefs.containsKey('${pKey}transparency')) {
-            _transparency = 100;
+            _transparency = 75;
           }
           if (!prefs.containsKey('${pKey}density')) {
             _density = 50;
