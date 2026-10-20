@@ -214,14 +214,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get expertOptions => 'Opzioni esperte';
 
   @override
-  String get advancedExpertTitle => 'Esperto Avanzato';
-
-  @override
-  String get advancedExpertSubtitle =>
-      'Sblocca Steganografia, Identità del Mio Dispositivo e Condivisione Rete Locale';
-
-  @override
-  String get requiresAdvancedExpert => 'Disponibile in Esperto Avanzato';
+  String get moreOptions => 'Altre opzioni';
 
   @override
   String fontSizeValue(int value) {
@@ -332,10 +325,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get filePrefixHint => 'es. filigrana-';
-
-  @override
-  String get resetExpertHint =>
-      'Questo ripristinerà tutte le impostazioni esperte e il prefisso del file ai valori predefiniti.';
 
   @override
   String get fontConfigTitle => 'Configurazione carattere/immagine';
@@ -1120,12 +1109,6 @@ class AppLocalizationsIt extends AppLocalizations {
   String get onboardingStep4 => '4. Condividi o salva i risultati.';
 
   @override
-  String get onboardingExpertTitle => 'Profili e Opzioni';
-
-  @override
-  String get onboardingExpertModeTitle => 'Modalità Esperto';
-
-  @override
   String get onboardingSaveProfileTitle => 'Salva Preset';
 
   @override
@@ -1137,10 +1120,6 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get onboardingProfileSave =>
       'Premi a lungo su un profilo per salvare la configurazione corrente come predefinita.';
-
-  @override
-  String get onboardingExpertNote =>
-      'La modalità esperto (in alto a destra) sblocca impostazioni avanzate';
 
   @override
   String get onboardingOptionsNote =>

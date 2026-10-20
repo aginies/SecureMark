@@ -214,14 +214,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get expertOptions => 'Expert Options';
 
   @override
-  String get advancedExpertTitle => 'Advanced Expert';
-
-  @override
-  String get advancedExpertSubtitle =>
-      'Unlocks Steganography, My Device Identity, and Local Network Share';
-
-  @override
-  String get requiresAdvancedExpert => 'Available in Advanced Expert';
+  String get moreOptions => 'More options';
 
   @override
   String fontSizeValue(int value) {
@@ -326,10 +319,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get filePrefixHint => 'e.g., watermark-';
-
-  @override
-  String get resetExpertHint =>
-      'This will reset all expert settings and file prefix to defaults.';
 
   @override
   String get fontConfigTitle => 'Font/Image Configuration';
@@ -1106,12 +1095,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingStep4 => '4. Share or Save the results.';
 
   @override
-  String get onboardingExpertTitle => 'Profiles & Options';
-
-  @override
-  String get onboardingExpertModeTitle => 'Expert Mode';
-
-  @override
   String get onboardingSaveProfileTitle => 'Save Presets';
 
   @override
@@ -1123,10 +1106,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get onboardingProfileSave =>
       'Long-press any profile to save your current configuration as the default for that preset.';
-
-  @override
-  String get onboardingExpertNote =>
-      'Expert mode (top right) unlocks advanced settings';
 
   @override
   String get onboardingOptionsNote =>

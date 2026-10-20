@@ -416,23 +416,11 @@ abstract class AppLocalizations {
   /// **'Expert Options'**
   String get expertOptions;
 
-  /// No description provided for @advancedExpertTitle.
+  /// No description provided for @moreOptions.
   ///
   /// In en, this message translates to:
-  /// **'Advanced Expert'**
-  String get advancedExpertTitle;
-
-  /// No description provided for @advancedExpertSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Unlocks Steganography, My Device Identity, and Local Network Share'**
-  String get advancedExpertSubtitle;
-
-  /// No description provided for @requiresAdvancedExpert.
-  ///
-  /// In en, this message translates to:
-  /// **'Available in Advanced Expert'**
-  String get requiresAdvancedExpert;
+  /// **'More options'**
+  String get moreOptions;
 
   /// No description provided for @fontSizeValue.
   ///
@@ -613,12 +601,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'e.g., watermark-'**
   String get filePrefixHint;
-
-  /// No description provided for @resetExpertHint.
-  ///
-  /// In en, this message translates to:
-  /// **'This will reset all expert settings and file prefix to defaults.'**
-  String get resetExpertHint;
 
   /// No description provided for @fontConfigTitle.
   ///
@@ -1947,18 +1929,6 @@ abstract class AppLocalizations {
   /// **'4. Share or Save the results.'**
   String get onboardingStep4;
 
-  /// No description provided for @onboardingExpertTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Profiles & Options'**
-  String get onboardingExpertTitle;
-
-  /// No description provided for @onboardingExpertModeTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Expert Mode'**
-  String get onboardingExpertModeTitle;
-
   /// No description provided for @onboardingSaveProfileTitle.
   ///
   /// In en, this message translates to:
@@ -1982,12 +1952,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Long-press any profile to save your current configuration as the default for that preset.'**
   String get onboardingProfileSave;
-
-  /// No description provided for @onboardingExpertNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Expert mode (top right) unlocks advanced settings'**
-  String get onboardingExpertNote;
 
   /// No description provided for @onboardingOptionsNote.
   ///

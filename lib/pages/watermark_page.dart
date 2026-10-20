@@ -162,7 +162,6 @@ class WatermarkPageState extends State<WatermarkPage>
   double _progress = 0.0;
   bool _obscureHidingPassword = true;
   bool _obscureSecureZipPassword = true;
-  bool _advancedExpert = false;
   bool _obscureExtractionPassword = true;
   String _statusMessage = '';
   String _modalProgressStatus = '';
@@ -434,7 +433,6 @@ class WatermarkPageState extends State<WatermarkPage>
           _secureZipPasswordController.text =
               prefs.getString('secureZipPassword') ?? '';
           _useRandomColor = prefs.getBool('useRandomColor') ?? true;
-          _advancedExpert = prefs.getBool('advancedExpert') ?? false;
           _filePrefix = prefs.getString('filePrefix') ?? 'securemark-';
           _filePrefixController.text = _filePrefix;
 
@@ -1438,53 +1436,112 @@ class WatermarkPageState extends State<WatermarkPage>
               color: theme.colorScheme.primary,
             ),
             const SizedBox(width: 8),
-            // The file analyzer is not part of the web UI.
-            if (!kIsWeb)
-              IconButton(
-                icon: const Icon(Icons.search_rounded),
-                onPressed: _showFileAnalyzer,
-                tooltip: l10n.analyzeFile,
-              ),
-            if (_advancedExpert) ...[
-              IconButton(
-                icon: const Icon(Icons.verified_user_outlined),
-                onPressed: _showSteganographyOptions,
-                tooltip: l10n.steganographyTitle,
-              ),
-              IconButton(
-                icon: const Icon(Icons.person_pin_outlined),
-                onPressed: _showIdentityDialog,
-                tooltip: l10n.myIdentityTitle,
-              ),
-              // The local share dialog serves files over a LAN socket,
-              // which does not exist on the web: on web the output is a
-              // browser download (see _shareCurrent).
-              if (!kIsWeb)
-                IconButton(
-                  icon: const Icon(Icons.sensors),
-                  onPressed: _showLocalShareDialog,
-                  tooltip: l10n.localShareTitle,
+            // Secondary tools live in a labeled overflow menu: the old
+            // row of icon-only buttons overflowed narrow app bars and was
+            // the main source of "where is that feature?" confusion.
+            PopupMenuButton<String>(
+              tooltip: l10n.moreOptions,
+              onSelected: (value) {
+                switch (value) {
+                  case 'analyze':
+                    _showFileAnalyzer();
+                  case 'steganography':
+                    _showSteganographyOptions();
+                  case 'identity':
+                    _showIdentityDialog();
+                  case 'localShare':
+                    _showLocalShareDialog();
+                  case 'qr':
+                    _showQrWatermarkOptions();
+                  case 'font':
+                    _showFontOptions();
+                  case 'expert':
+                    _showExpertOptions();
+                }
+              },
+              itemBuilder: (context) => [
+                // The file analyzer is not part of the web UI.
+                if (!kIsWeb)
+                  PopupMenuItem(
+                    value: 'analyze',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.search_rounded),
+                        const SizedBox(width: 8),
+                        Text(l10n.analyzeFile),
+                      ],
+                    ),
+                  ),
+                // Steganography, device identity and local share are not
+                // part of the web UI: on web the output is a browser
+                // download (see _shareCurrent) and there is no LAN socket.
+                if (!kIsWeb)
+                  PopupMenuItem(
+                    value: 'steganography',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.verified_user_outlined),
+                        const SizedBox(width: 8),
+                        Text(l10n.steganographyTitle),
+                      ],
+                    ),
+                  ),
+                if (!kIsWeb)
+                  PopupMenuItem(
+                    value: 'identity',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_pin_outlined),
+                        const SizedBox(width: 8),
+                        Text(l10n.myIdentityTitle),
+                      ],
+                    ),
+                  ),
+                if (!kIsWeb)
+                  PopupMenuItem(
+                    value: 'localShare',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.sensors),
+                        const SizedBox(width: 8),
+                        Text(l10n.localShareTitle),
+                      ],
+                    ),
+                  ),
+                PopupMenuItem(
+                  value: 'qr',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.qr_code_2),
+                      const SizedBox(width: 8),
+                      Text(l10n.qrWatermarkTitle),
+                    ],
+                  ),
                 ),
-            ],
-            IconButton(
-              icon: const Icon(Icons.qr_code_2),
-              onPressed: _showQrWatermarkOptions,
-              tooltip: l10n.qrWatermarkTitle,
-            ),
-            IconButton(
-              icon: const Icon(Icons.image_outlined),
-              onPressed: _showFontOptions,
-              tooltip: l10n.fontConfigTitle,
+                PopupMenuItem(
+                  value: 'font',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.image_outlined),
+                      const SizedBox(width: 8),
+                      Text(l10n.fontConfigTitle),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'expert',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.settings_suggest_outlined),
+                      const SizedBox(width: 8),
+                      Text(l10n.expertOptions),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_suggest_outlined),
-            onPressed: _showExpertOptions,
-            tooltip: l10n.expertOptions,
-          ),
-        ],
         centerTitle: false,
       ),
       body: SafeArea(
@@ -1548,13 +1605,7 @@ class WatermarkPageState extends State<WatermarkPage>
   }
 
   Widget _buildProfileSelector(ThemeData theme, AppLocalizations l10n) {
-    final availableProfiles = _advancedExpert
-        ? SettingsProfile.values
-        : SettingsProfile.values
-            .where((p) =>
-                p != SettingsProfile.secureIdentity &&
-                p != SettingsProfile.integrity)
-            .toList();
+    final availableProfiles = SettingsProfile.values.toList();
 
     return GridView.count(
       shrinkWrap: true,
@@ -7266,27 +7317,6 @@ class WatermarkPageState extends State<WatermarkPage>
                         _savePreference('useSecureZip', enabled);
                       },
                     ),
-                    // The expert-mode toggle is not part of the web UI.
-                    if (!kIsWeb) ...[
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      CheckboxListTile(
-                        title: Text(l10n.advancedExpertTitle),
-                        subtitle: Text(l10n.advancedExpertSubtitle),
-                        value: _advancedExpert,
-                        contentPadding: EdgeInsets.zero,
-                        onChanged: (value) {
-                          final bool enabled = value ?? false;
-                          setDialogState(() {
-                            _advancedExpert = enabled;
-                          });
-                          setState(() {
-                            _advancedExpert = enabled;
-                          });
-                          _savePreference('advancedExpert', enabled);
-                        },
-                      ),
-                    ],
                     /*
                     const Divider(),
                     const SizedBox(height: 8),
@@ -9818,12 +9848,8 @@ class WatermarkPageState extends State<WatermarkPage>
         enabledColor:
             _steganographyVerificationFailed ? Colors.red : Colors.green,
         isEnabled: _useSteganography,
-        isAvailable: !_rasterizePdf && _advancedExpert,
-        unavailableReason: _rasterizePdf
-            ? l10n.unavailableRasterPdf
-            : _advancedExpert
-                ? null
-                : l10n.requiresAdvancedExpert,
+        isAvailable: !_rasterizePdf,
+        unavailableReason: _rasterizePdf ? l10n.unavailableRasterPdf : null,
         subtitle: _steganographyVerificationFailed
             ? l10n.steganographyVerificationFailed
             : (_useSteganography ? l10n.steganographyEnabledHint : null),
@@ -10102,8 +10128,10 @@ class WatermarkPageState extends State<WatermarkPage>
         },
         onConfigure: null, // No settings dialog
       ),
+      // Steganography stays hidden in the web UI (behavior unchanged): the
+      // old expert-mode gate was never reachable there.
     ].where((option) {
-      if (!_advancedExpert &&
+      if (kIsWeb &&
           (option.id == 'steganography' || option.id == 'robust_stego')) {
         return false;
       }
@@ -11630,14 +11658,7 @@ class WatermarkPageState extends State<WatermarkPage>
           title: Text(l10n.resetProfiles),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            children: (_advancedExpert
-                    ? SettingsProfile.values
-                    : SettingsProfile.values
-                        .where((p) =>
-                            p != SettingsProfile.secureIdentity &&
-                            p != SettingsProfile.integrity)
-                        .toList())
-                .map((profile) {
+            children: SettingsProfile.values.map((profile) {
               String label = '';
               IconData icon;
               switch (profile) {
