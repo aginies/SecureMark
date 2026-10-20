@@ -1460,25 +1460,25 @@ class WatermarkPageState extends State<WatermarkPage>
                 }
               },
               itemBuilder: (context) => [
-                // The file analyzer is not part of the web UI.
-                if (!kIsWeb)
-                  _toolMenuItem(
-                      'analyze', Icons.search_rounded, l10n.analyzeFile),
-                // Steganography, device identity and local share are not
-                // part of the web UI: on web the output is a browser
-                // download (see _shareCurrent) and there is no LAN socket.
-                if (!kIsWeb)
-                  _toolMenuItem('steganography', Icons.verified_user_outlined,
-                      l10n.steganographyTitle),
+                _toolMenuItem(
+                    'font', Icons.image_outlined, l10n.fontConfigTitle),
+                _toolMenuItem('qr', Icons.qr_code_2, l10n.qrWatermarkTitle),
+                // Device identity, local share, steganography and the file
+                // analyzer are not part of the web UI: on web the output is
+                // a browser download (see _shareCurrent) and there is no
+                // LAN socket.
                 if (!kIsWeb)
                   _toolMenuItem('identity', Icons.person_pin_outlined,
                       l10n.myIdentityTitle),
                 if (!kIsWeb)
                   _toolMenuItem(
                       'localShare', Icons.sensors, l10n.localShareTitle),
-                _toolMenuItem('qr', Icons.qr_code_2, l10n.qrWatermarkTitle),
-                _toolMenuItem(
-                    'font', Icons.image_outlined, l10n.fontConfigTitle),
+                if (!kIsWeb)
+                  _toolMenuItem('steganography', Icons.verified_user_outlined,
+                      l10n.steganographyTitle),
+                if (!kIsWeb)
+                  _toolMenuItem(
+                      'analyze', Icons.search_rounded, l10n.analyzeFile),
                 _toolMenuItem('expert', Icons.settings_suggest_outlined,
                     l10n.expertOptions),
               ],
