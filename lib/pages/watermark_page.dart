@@ -449,11 +449,9 @@ class WatermarkPageState extends State<WatermarkPage>
           }
           _hideFileWithSteganography =
               prefs.getBool('hideFileWithSteganography') ?? false;
-          // Digital signing and file hiding are not exposed in the web UI:
-          // force them off so a setting persisted on another platform
-          // cannot linger invisibly.
+          // File hiding is not exposed in the web UI: force it off so a
+          // setting persisted on another platform cannot linger invisibly.
           if (kIsWeb) {
-            _digitallySign = false;
             _hideFileWithSteganography = false;
           }
           _zipOutputs = prefs.getBool('zipOutputs') ?? false;
@@ -1499,15 +1497,13 @@ class WatermarkPageState extends State<WatermarkPage>
                 _toolMenuItem(
                     'font', Icons.image_outlined, l10n.fontConfigTitle),
                 _toolMenuItem('qr', Icons.qr_code_2, l10n.qrWatermarkTitle),
-                // Device identity, local share and the file analyzer are not
-                // part of the web UI: on web the output is a browser
-                // download (see _shareCurrent), there is no LAN socket, and
-                // the identity key material is deliberately not exposed in
-                // the browser (see 1.9.0). Steganography runs fully in the
-                // WASM isolate, so it is available on web.
-                if (!kIsWeb)
-                  _toolMenuItem('identity', Icons.person_pin_outlined,
-                      l10n.myIdentityTitle),
+                // Local share and the file analyzer are not part of the web
+                // UI: on web the output is a browser download (see
+                // _shareCurrent) and there is no LAN socket. Device identity
+                // and steganography run fully on-device (WASM isolate), so
+                // they are available on web.
+                _toolMenuItem('identity', Icons.person_pin_outlined,
+                    l10n.myIdentityTitle),
                 if (!kIsWeb)
                   _toolMenuItem(
                       'localShare', Icons.sensors, l10n.localShareTitle),
@@ -7296,38 +7292,35 @@ class WatermarkPageState extends State<WatermarkPage>
                         _savePreference('rasterizePdf', value ?? false);
                       },
                     ),
-                    // Digital signing is not part of the web UI.
-                    if (!kIsWeb) ...[
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      CheckboxListTile(
-                        title: Text(l10n.digitallySignTitle),
-                        subtitle: Text(l10n.digitallySignSubtitle),
-                        value: _digitallySign,
-                        contentPadding: EdgeInsets.zero,
-                        onChanged: (value) {
-                          final bool enabled = value ?? false;
-                          setDialogState(() {
-                            _digitallySign = enabled;
-                            // Automatically enable ZIP when digital signature is enabled
-                            // to preserve integrity metadata
-                            if (enabled) {
-                              _zipOutputs = true;
-                            }
-                          });
-                          setState(() {
-                            _digitallySign = enabled;
-                            if (enabled) {
-                              _zipOutputs = true;
-                            }
-                          });
-                          _savePreference('digitallySign', enabled);
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      title: Text(l10n.digitallySignTitle),
+                      subtitle: Text(l10n.digitallySignSubtitle),
+                      value: _digitallySign,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (value) {
+                        final bool enabled = value ?? false;
+                        setDialogState(() {
+                          _digitallySign = enabled;
+                          // Automatically enable ZIP when digital signature is enabled
+                          // to preserve integrity metadata
                           if (enabled) {
-                            _savePreference('zipOutputs', true);
+                            _zipOutputs = true;
                           }
-                        },
-                      ),
-                    ],
+                        });
+                        setState(() {
+                          _digitallySign = enabled;
+                          if (enabled) {
+                            _zipOutputs = true;
+                          }
+                        });
+                        _savePreference('digitallySign', enabled);
+                        if (enabled) {
+                          _savePreference('zipOutputs', true);
+                        }
+                      },
+                    ),
                     const Divider(),
                     const SizedBox(height: 8),
                     Row(
@@ -9898,33 +9891,32 @@ class WatermarkPageState extends State<WatermarkPage>
   /// Builds the complete list of toggleable watermark options
   List<WatermarkOption> _buildAllOptions(AppLocalizations l10n) {
     return [
-      // Digital Signature (not part of the web UI)
-      if (!kIsWeb)
-        WatermarkOption(
-          id: 'digital_sign',
-          label: l10n.digitallySignTitle,
-          icon: Icons.fingerprint,
-          enabledColor: Colors.blueAccent,
-          isEnabled: _digitallySign,
-          isAvailable: !_rasterizePdf,
-          unavailableReason: _rasterizePdf ? l10n.unavailableRasterPdf : null,
-          subtitle: _digitallySign ? 'Integrity protection enabled' : null,
-          onToggle: () {
-            if (!_rasterizePdf) {
-              setState(() {
-                _digitallySign = !_digitallySign;
-                if (_digitallySign) {
-                  _zipOutputs = true; // Auto-enable zip for signing
-                }
-              });
-              _savePreference('digitallySign', _digitallySign);
+      // Digital Signature
+      WatermarkOption(
+        id: 'digital_sign',
+        label: l10n.digitallySignTitle,
+        icon: Icons.fingerprint,
+        enabledColor: Colors.blueAccent,
+        isEnabled: _digitallySign,
+        isAvailable: !_rasterizePdf,
+        unavailableReason: _rasterizePdf ? l10n.unavailableRasterPdf : null,
+        subtitle: _digitallySign ? 'Integrity protection enabled' : null,
+        onToggle: () {
+          if (!_rasterizePdf) {
+            setState(() {
+              _digitallySign = !_digitallySign;
               if (_digitallySign) {
-                _savePreference('zipOutputs', true);
+                _zipOutputs = true; // Auto-enable zip for signing
               }
+            });
+            _savePreference('digitallySign', _digitallySign);
+            if (_digitallySign) {
+              _savePreference('zipOutputs', true);
             }
-          },
-          onConfigure: _showExpertOptions,
-        ),
+          }
+        },
+        onConfigure: _showExpertOptions,
+      ),
 
       // Steganography
       WatermarkOption(
@@ -10870,6 +10862,20 @@ class WatermarkPageState extends State<WatermarkPage>
         final bool shouldApplyStegano = _useSteganography ||
             (_hideFileWithSteganography && _hiddenFileBytes != null);
 
+        // When signing with the device identity, the identity (device name)
+        // is drawn as a visible watermark in a random color, so the signature
+        // is apparent on the image and not only cryptographically embedded.
+        final identityName = _deviceName.trim();
+        final bool applyIdentityWatermark =
+            _digitallySign && identityName.isNotEmpty;
+        final String effectiveWatermarkText = applyIdentityWatermark
+            ? (_textController.text.trim().isEmpty
+                ? identityName
+                : '${_textController.text.trim()} — $identityName')
+            : _textController.text;
+        final bool effectiveRandomColor =
+            applyIdentityWatermark || _useRandomColor;
+
         _addLog(
             'Processing with: useSteganography=$shouldApplyStegano, hideFile=$_hideFileWithSteganography, hiddenFile=$_hiddenFileName (${_hiddenFileBytes?.length ?? 0} bytes), digitallySign=$_digitallySign');
 
@@ -10880,8 +10886,8 @@ class WatermarkPageState extends State<WatermarkPage>
             inputBytes: kIsWeb ? WebFileStore.bytesFor(path) : null,
             transparency: _transparency,
             density: _density,
-            watermarkText: _textController.text,
-            useRandomColor: _useRandomColor,
+            watermarkText: effectiveWatermarkText,
+            useRandomColor: effectiveRandomColor,
             selectedColorValue: _selectedColor.toARGB32(),
             fontSize:
                 _watermarkType == WatermarkType.text ? _fontSize : _logoSize,
