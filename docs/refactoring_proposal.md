@@ -1,7 +1,22 @@
 # SecureMark — Large-File Split Proposal
 
-> Status: **proposal** — no code has been changed. This document records a plan
-> only.
+> Status: **Proposal A implemented** (widget extraction + `WatermarkPageState` split).
+> Proposal B (`watermark_processor.dart`) remains a plan — no processor code has
+> been changed.
+>
+> Implementation notes:
+> - Dart `part` files cannot add members to a class, so the moved methods live in
+>   **private extensions** (`extension _...Part on WatermarkPageState`) inside
+>   each part file — same library, so `_private` members and the public API are
+>   exactly preserved. Refs: §9.
+> - Class-level `static` declarations used in multiple parts (`_platform`,
+>   `_encryptBytesTask`, `_decryptBytesTask`, `_isValidEd25519PublicKey`,
+>   `_uiColorSchemes`, `_webMaxFiles`, `_webMaxFileSizeBytes`,
+>   `_webRetentionWindow`) became library-private top-level declarations in
+>   their part files.
+> - All call sites remained unqualified/unchanged.
+
+## 9. Implementation status
 
 ## 1. Context
 
