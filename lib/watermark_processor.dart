@@ -1152,6 +1152,18 @@ class WatermarkProcessor {
     } catch (e, stackTrace) {
       debugPrint('Vector PDF engine error: $e');
       debugPrint('Stack trace: $stackTrace');
+      // The raster engine needs a PDF rasterizer, which the web build does not
+      // have: report the vector failure instead of chaining a second one.
+      if (kIsWeb) {
+        if (e is WatermarkError) rethrow;
+        throw WatermarkError(
+          type: WatermarkErrorType.invalidPdfData,
+          message: 'Failed to process PDF',
+          filePath: file.path,
+          originalError: e,
+        );
+      }
+
       onProgress?.call(
           0.3, 'Vector engine failed ($e), falling back to raster engine...');
 
@@ -1198,28 +1210,30 @@ class WatermarkProcessor {
         file.path, '.pdf', includeTimestamp, filePrefix);
 
     // Rasterize the ORIGINAL first page, then the watermarked one, for the
-    // preview and the A/B/C comparison. Rasterization is delegated to a plugin
-    // (pdf.js on web) that is not always available: failing to build a preview
-    // must not throw away the PDF that was already produced.
+    // preview and the A/B/C comparison. Only the native engines can rasterize a
+    // PDF (the web build ships no rasterizer), and a preview failure must never
+    // throw away the PDF that was already produced.
     Uint8List? originalBytes;
     Uint8List? previewBytes;
     int? firstPageWidth;
     int? firstPageHeight;
-    try {
-      onProgress?.call(0.88, 'Rasterizing original...');
-      final originalPreview =
-          await Printing.raster(bytes, pages: [0], dpi: 72).first;
-      originalBytes = await originalPreview.toPng();
-      firstPageWidth = originalPreview.width.round();
-      firstPageHeight = originalPreview.height.round();
+    if (!kIsWeb) {
+      try {
+        onProgress?.call(0.88, 'Rasterizing original...');
+        final originalPreview =
+            await Printing.raster(bytes, pages: [0], dpi: 72).first;
+        originalBytes = await originalPreview.toPng();
+        firstPageWidth = originalPreview.width.round();
+        firstPageHeight = originalPreview.height.round();
 
-      // Generate a preview of the first page (watermarked)
-      onProgress?.call(0.92, 'Generating preview...');
-      final preview =
-          await Printing.raster(outputBytes, pages: [0], dpi: 72).first;
-      previewBytes = await preview.toPng();
-    } catch (e) {
-      debugPrint('PDF preview rasterization failed: $e');
+        // Generate a preview of the first page (watermarked)
+        onProgress?.call(0.92, 'Generating preview...');
+        final preview =
+            await Printing.raster(outputBytes, pages: [0], dpi: 72).first;
+        previewBytes = await preview.toPng();
+      } catch (e) {
+        debugPrint('PDF preview rasterization failed: $e');
+      }
     }
 
     // Generate heatmap for A/B/C comparison
@@ -1375,6 +1389,15 @@ class WatermarkProcessor {
     ProgressCallback? onProgress,
     CancellationToken? cancellationToken,
   }) async {
+    // Flattening means rasterizing every page, impossible without a PDF
+    // rasterizer (see the web guard in _processPdfFile).
+    if (kIsWeb) {
+      throw const WatermarkError(
+        type: WatermarkErrorType.unsupportedFileType,
+        message: 'PDF rasterization (flatten) is not available on the web',
+      );
+    }
+
     final List<String> applied = [];
     applied.add('rasterizePdfTitle');
     if (useSteganography) applied.add('steganographyTitle');

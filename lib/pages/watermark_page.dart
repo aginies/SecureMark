@@ -1008,10 +1008,11 @@ class WatermarkPageState extends State<WatermarkPage>
           // profiles; keep it off here.
           _zipOutputs = false;
           if (!prefs.containsKey('${pKey}targetSize')) _targetSize = 1280;
-          // Clean document: the visible watermark stays fully transparent
-          // (same convention as the QR profile) and steganography is off.
-          if (!prefs.containsKey('${pKey}transparency')) _transparency = 100;
-          if (!prefs.containsKey('${pKey}density')) _density = 40;
+          // The visible watermark uses the same subtle opacity/density as the
+          // Identity profile (transparency 75, density 50), so a Doc carries a
+          // light, visible mark; steganography is off.
+          if (!prefs.containsKey('${pKey}transparency')) _transparency = 75;
+          if (!prefs.containsKey('${pKey}density')) _density = 50;
           if (!prefs.containsKey('${pKey}jpegQuality')) _jpegQuality = 80;
           if (!prefs.containsKey('${pKey}antiAiLevel')) _antiAiLevel = 75;
           if (!prefs.containsKey('${pKey}useAiCloaking')) _useAiCloaking = true;
@@ -6900,47 +6901,65 @@ class WatermarkPageState extends State<WatermarkPage>
                                           clipBehavior: Clip.antiAlias,
                                           child: Center(
                                             child: isPdf
-                                                ? FutureBuilder<Uint8List>(
-                                                    future: () async {
-                                                      final bytes = kIsWeb
-                                                          ? WebFileStore
-                                                              .bytesFor(path)
-                                                          : await File(path)
-                                                              .readAsBytes();
-                                                      if (bytes == null) {
-                                                        throw StateError(
-                                                            'No in-memory bytes for $path');
-                                                      }
-                                                      final preview =
-                                                          await Printing.raster(
-                                                                  bytes,
-                                                                  pages: [0],
-                                                                  dpi: 72)
-                                                              .first;
-                                                      return await preview
-                                                          .toPng();
-                                                    }(),
-                                                    builder:
-                                                        (context, snapshot) {
-                                                      if (snapshot.hasData) {
-                                                        return Image.memory(
-                                                          snapshot.data!,
-                                                          fit: BoxFit.cover,
-                                                          width:
-                                                              double.infinity,
-                                                          height:
-                                                              double.infinity,
-                                                        );
-                                                      }
+                                                ? (kIsWeb
+                                                    // The web build ships no PDF
+                                                    // rasterizer: show the document
+                                                    // icon instead of attempting a
+                                                    // page render.
+                                                    ? Icon(
+                                                        Icons.picture_as_pdf,
+                                                        size: 40,
+                                                        color: theme.colorScheme
+                                                            .outlineVariant,
+                                                      )
+                                                    : FutureBuilder<Uint8List>(
+                                                        future: () async {
+                                                          final bytes = kIsWeb
+                                                              ? WebFileStore
+                                                                  .bytesFor(
+                                                                      path)
+                                                              : await File(path)
+                                                                  .readAsBytes();
+                                                          if (bytes == null) {
+                                                            throw StateError(
+                                                                'No in-memory bytes for $path');
+                                                          }
+                                                          final preview =
+                                                              await Printing
+                                                                      .raster(
+                                                                          bytes,
+                                                                          pages: [
+                                                                            0
+                                                                          ],
+                                                                          dpi:
+                                                                              72)
+                                                                  .first;
+                                                          return await preview
+                                                              .toPng();
+                                                        }(),
+                                                        builder: (context,
+                                                            snapshot) {
+                                                          if (snapshot
+                                                              .hasData) {
+                                                            return Image.memory(
+                                                              snapshot.data!,
+                                                              fit: BoxFit.cover,
+                                                              width: double
+                                                                  .infinity,
+                                                              height: double
+                                                                  .infinity,
+                                                            );
+                                                          }
 
-                                                      return Icon(
-                                                          Icons.picture_as_pdf,
-                                                          size: 40,
-                                                          color: theme
-                                                              .colorScheme
-                                                              .error);
-                                                    },
-                                                  )
+                                                          return Icon(
+                                                              Icons
+                                                                  .picture_as_pdf,
+                                                              size: 40,
+                                                              color: theme
+                                                                  .colorScheme
+                                                                  .error);
+                                                        },
+                                                      ))
                                                 : Builder(
                                                     builder: (itemContext) {
                                                       final webBytes = kIsWeb
@@ -7312,21 +7331,24 @@ class WatermarkPageState extends State<WatermarkPage>
                         _savePreference('preserveMetadata', value ?? false);
                       },
                     ),
-                    CheckboxListTile(
-                      title: Text(l10n.rasterizePdfTitle),
-                      subtitle: Text(l10n.rasterizePdfSubtitle),
-                      value: _rasterizePdf,
-                      contentPadding: EdgeInsets.zero,
-                      onChanged: (value) {
-                        setDialogState(() {
-                          _rasterizePdf = value ?? false;
-                        });
-                        setState(() {
-                          _rasterizePdf = value ?? false;
-                        });
-                        _savePreference('rasterizePdf', value ?? false);
-                      },
-                    ),
+                    // Flattening rasterizes every page, which the web build
+                    // cannot do: keep the option out of the web UI.
+                    if (!kIsWeb)
+                      CheckboxListTile(
+                        title: Text(l10n.rasterizePdfTitle),
+                        subtitle: Text(l10n.rasterizePdfSubtitle),
+                        value: _rasterizePdf,
+                        contentPadding: EdgeInsets.zero,
+                        onChanged: (value) {
+                          setDialogState(() {
+                            _rasterizePdf = value ?? false;
+                          });
+                          setState(() {
+                            _rasterizePdf = value ?? false;
+                          });
+                          _savePreference('rasterizePdf', value ?? false);
+                        },
+                      ),
                     const Divider(),
                     const SizedBox(height: 8),
                     CheckboxListTile(
@@ -8275,10 +8297,10 @@ class WatermarkPageState extends State<WatermarkPage>
                             final previewBytes =
                                 _processedFiles[index].result.previewBytes;
                             if (previewBytes == null) {
-                              // A PDF preview needs the rasterizer, which is
-                              // not reachable on every platform (web). Tell the
-                              // user where to find the result instead of
-                              // showing an empty box.
+                              // Only the native engines rasterize a PDF, so a
+                              // processed PDF has no preview on the web. Tell the
+                              // user where to find the result instead of showing
+                              // an empty box.
                               final resultIsPdf =
                                   _processedFiles[index].result.isPdf;
                               return Center(
