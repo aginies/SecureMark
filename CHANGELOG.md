@@ -2,6 +2,36 @@
 
 All notable changes to SecureMark are documented in this file.
 
+## 2.0.0
+
+### Changed
+
+- UX: the buried "Advanced Expert" gate is gone. Steganography, robust
+  steganography, device identity and local network share are now available to
+  everyone. The eight icon-only app-bar buttons are replaced by
+  "Apply SecureMark" + a labeled "More options" overflow menu (Font/Image
+  configuration, QR Code Watermark, My Device Identity, Local Network Share,
+  Steganography, Analyze file), with Expert Options pinned top-right.
+- Profiles: the "Doc" profile no longer enables the visible watermark or
+  steganography — it produces a clean document (AI cloaking + anti-AI only).
+- Profiles: the "Identity" profile now enables the Ed25519 digital integrity
+  signature (with the required ZIP output) and no longer enables steganography
+  or the visible watermark.
+- Profiles: the P1/P2 custom profiles use a "tune" icon (custom configuration)
+  instead of a person.
+
+### Fixed
+
+- Overflow of the French "Stéganographie (signature invisible)" label in the
+  overflow menu; menu labels are now ellipsized in every language.
+- Hardcoded English strings ("Hide File", "Network Interface", "QR Scanning
+  not yet supported") are now localized in all 5 languages.
+
+### Removed
+
+- The "Advanced Expert" toggle and its now-dead strings (onboarding slide,
+  gating hints).
+
 ## 1.9.0
 
 ### Changed
