@@ -2576,6 +2576,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Files were erased from memory'**
   String get webDataExpired;
+
+  /// No description provided for @webPrivacyBadgeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing is stored on a server'**
+  String get webPrivacyBadgeTitle;
+
+  /// No description provided for @webPrivacyBadgeSub.
+  ///
+  /// In en, this message translates to:
+  /// **'All processing happens in your browser'**
+  String get webPrivacyBadgeSub;
 }
 
 class _AppLocalizationsDelegate

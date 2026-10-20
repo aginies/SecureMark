@@ -2,6 +2,32 @@
 
 All notable changes to SecureMark are documented in this file.
 
+## 2.1.1
+
+### Added
+
+- **Web privacy badge**: the web top bar now shows a shield badge reassuring
+  users that nothing is stored on a server and all processing happens in the
+  browser, with a link to the confidentiality page. Localized in all 5
+  languages.
+
+### Changed
+
+- **Android build**: upgraded to the canonical Flutter 3.47.6 toolchain —
+  Gradle 8.14.0 → 9.3.1, Kotlin 2.2.20 → 2.4.0, AGP 8.11.1 → 9.1.0 — to clear
+  the "support will soon be dropped" warnings. The app module now relies on
+  the Flutter plugin's built-in Kotlin and uses the modern
+  `kotlin { compilerOptions }` block instead of the deprecated
+  `kotlinOptions`.
+- **Apply button**: the floating "Apply SecureMark" button now greys out
+  (disabled) until it can actually run — no files selected, an image watermark
+  without an image loaded, or a run in progress.
+
+### Removed
+
+- **UI**: the particle/icon burst animation on the profile and color-picker
+  tiles. The press-down "click" effect is kept; only the burst is gone.
+
 ## 2.1.0
 
 ### Added

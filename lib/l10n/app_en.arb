@@ -820,5 +820,7 @@
   },
   "webRetentionWarning": "Files never leave your browser: they are kept in memory only and will be erased in {time}. Download them before then.",
   "@webRetentionWarning": {"placeholders": {"time": {"type": "String"}}},
-  "webDataExpired": "Files were erased from memory"
+  "webDataExpired": "Files were erased from memory",
+  "webPrivacyBadgeTitle": "Nothing is stored on a server",
+  "webPrivacyBadgeSub": "All processing happens in your browser"
 }

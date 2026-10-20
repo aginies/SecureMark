@@ -1445,6 +1445,13 @@ class WatermarkPageState extends State<WatermarkPage>
   bool get _supportsDesktopDrop =>
       !kIsWeb && (Platform.isMacOS || Platform.isLinux || Platform.isWindows);
 
+  /// Guards for the apply action: nothing to run while a job is in flight,
+  /// before a file is picked, or when the image watermark has no logo loaded.
+  bool get _canApplyWatermark =>
+      !_processing &&
+      _selectedPaths.isNotEmpty &&
+      !(_watermarkType == WatermarkType.image && _watermarkImageBytes == null);
+
   ProcessedFile? get _currentProcessedFile {
     if (_processedFiles.isEmpty) {
       return null;
@@ -1462,14 +1469,11 @@ class WatermarkPageState extends State<WatermarkPage>
       appBar: AppBar(
         title: Row(
           children: [
+            // The "magic wand" stays pinned top-left: one click to run
+            // SecureMark on the current selection, whatever the screen size.
             IconButton(
               icon: const Icon(Icons.auto_fix_high),
-              onPressed: _processing ||
-                      _selectedPaths.isEmpty ||
-                      (_watermarkType == WatermarkType.image &&
-                          _watermarkImageBytes == null)
-                  ? null
-                  : _applyWatermark,
+              onPressed: _canApplyWatermark ? _applyWatermark : null,
               tooltip: l10n.applyWatermark,
               color: theme.colorScheme.primary,
             ),
@@ -1493,6 +1497,8 @@ class WatermarkPageState extends State<WatermarkPage>
                     _showQrWatermarkOptions();
                   case 'font':
                     _showFontOptions();
+                  case 'expertOptions':
+                    _showExpertOptions();
                 }
               },
               itemBuilder: (context) => [
@@ -1514,22 +1520,29 @@ class WatermarkPageState extends State<WatermarkPage>
                 if (!kIsWeb)
                   _toolMenuItem(
                       'analyze', Icons.search_rounded, l10n.analyzeFile),
+                // Expert Options (file naming, PDF and security settings) sits
+                // last: it is the least-used panel, so it no longer claims a
+                // permanent spot in the bar.
+                _toolMenuItem('expertOptions', Icons.settings_suggest_outlined,
+                    l10n.expertOptions),
               ],
             ),
+            // The zero-server promise belongs in the app bar of the web build:
+            // a document tool served over the network has to say "nothing is
+            // uploaded" before the user picks a file, not in a footer below
+            // the fold. Tap opens « Confidentialité ».
+            if (kIsWeb) ...[
+              const SizedBox(width: 4),
+              Expanded(child: _buildWebPrivacyBadge(theme, l10n)),
+            ],
           ],
         ),
-        // Expert Options stays pinned top-right: it is the entry point to
-        // file naming, PDF and security settings, used often enough to
-        // deserve a permanent spot.
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_suggest_outlined),
-            onPressed: _showExpertOptions,
-            tooltip: l10n.expertOptions,
-          ),
-        ],
         centerTitle: false,
       ),
+      // Apply is the one primary action of the page: it floats over the
+      // preview panel at bottom-right, where the eye lands after picking a
+      // file, and stays reachable while the controls column scrolls.
+      floatingActionButton: _buildApplyFloatingButton(l10n, theme),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -1684,9 +1697,11 @@ class WatermarkPageState extends State<WatermarkPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildProfileSelector(theme, l10n),
-        const SizedBox(height: 16),
+        // Upload comes first: choosing a file is step 1, the preset profiles
+        // only re-shape the options of whatever is loaded.
         _buildPrimaryActionCard(),
+        const SizedBox(height: 16),
+        _buildProfileSelector(theme, l10n),
         const SizedBox(height: 16),
         _buildCombinedWatermarkCard(),
         const SizedBox(height: 16),
@@ -8642,7 +8657,9 @@ class WatermarkPageState extends State<WatermarkPage>
                                     }
 
                                     return Positioned(
-                                      bottom: 8,
+                                      // Top-right: the bottom-right corner of
+                                      // the preview belongs to the Apply FAB.
+                                      top: 8,
                                       right: 8,
                                       child: FloatingActionButton.small(
                                         heroTag: "zoom_reset_$index",
@@ -8995,6 +9012,87 @@ class WatermarkPageState extends State<WatermarkPage>
     ]);
   }
 
+  /// (Web only) App-bar badge: nothing is stored on a server, everything is
+  /// processed in the browser. Tapping it opens the « Confidentialité » dialog.
+  ///
+  /// Adaptive: the secondary line drops out on narrow bars, and once even the
+  /// headline would be truncated to an ellipsis only the shield remains (the
+  /// tooltip carries the message and the tap still works).
+  Widget _buildWebPrivacyBadge(ThemeData theme, AppLocalizations l10n) {
+    final linkStyle = theme.textTheme.labelSmall?.copyWith(
+      color: theme.colorScheme.primary,
+      decoration: TextDecoration.underline,
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final showText = constraints.maxWidth >= 200;
+        final showSubline = constraints.maxWidth >= 400;
+        // The badge lives in an Expanded (tight width) in the app bar. Align
+        // relaxes that to a loose constraint and the min-sized Row shrinks to
+        // the icon + text, so the InkWell tap target is only the content —
+        // not the whole remaining bar width.
+        return Align(
+          alignment: Alignment.centerLeft,
+          child: Tooltip(
+            message: l10n.privacyPolicy,
+            child: InkWell(
+              onTap: _showWebConfidentialite,
+              borderRadius: BorderRadius.circular(10),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.shield_outlined,
+                        size: 18, color: theme.colorScheme.primary),
+                    if (showText) ...[
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.webPrivacyBadgeTitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            if (showSubline)
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      l10n.webPrivacyBadgeSub,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(color: theme.hintColor),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  // French-only on purpose, like the footer
+                                  // links: the French text is the official
+                                  // legal version.
+                                  Text('Confidentialité', style: linkStyle),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showGuide() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -9188,7 +9286,9 @@ class WatermarkPageState extends State<WatermarkPage>
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      // 4px = Card's default margin: this keeps the import CTA flush with the
+      // profile grid and the cards below it instead of sitting 12px narrower.
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -9240,14 +9340,30 @@ class WatermarkPageState extends State<WatermarkPage>
     );
   }
 
+  /// Floating Apply button over the preview panel (Scaffold.floatingActionButton
+  /// at the default endFloat location). Guarded by [_canApplyWatermark], so it
+  /// greys out under the same conditions as the app-bar magic wand.
+  Widget _buildApplyFloatingButton(AppLocalizations l10n, ThemeData theme) {
+    final enabled = _canApplyWatermark;
+    final colorScheme = theme.colorScheme;
+    return FloatingActionButton.extended(
+      heroTag: 'applyWatermark',
+      onPressed: enabled ? _applyWatermark : null,
+      icon: const Icon(Icons.auto_fix_high),
+      label: Text(l10n.applyWatermark),
+      // Grey the whole button out until it can actually be pressed, so the
+      // "nothing to apply yet" state is obvious regardless of theme defaults
+      // (no files selected, image watermark without an image, or a run in
+      // progress). Null keeps the theme's normal color once enabled.
+      backgroundColor: enabled ? null : colorScheme.surfaceContainerHighest,
+      foregroundColor:
+          enabled ? null : colorScheme.onSurface.withValues(alpha: 0.38),
+    );
+  }
+
   Widget _buildActionButtons() {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-
-    final bool canApply = !(_processing ||
-        _selectedPaths.isEmpty ||
-        (_watermarkType == WatermarkType.image &&
-            _watermarkImageBytes == null));
 
     return Card(
       elevation: 6,
@@ -9258,54 +9374,8 @@ class WatermarkPageState extends State<WatermarkPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Primary "Apply SecureMark" Button
-            Container(
-              decoration: BoxDecoration(
-                gradient: canApply
-                    ? LinearGradient(
-                        colors: [
-                          theme.colorScheme.primary,
-                          theme.colorScheme.secondary,
-                        ],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      )
-                    : null,
-                color:
-                    canApply ? null : theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: _PushDownWrapper(
-                enabled: canApply,
-                child: FilledButton.icon(
-                  onPressed: canApply ? _applyWatermark : null,
-                  icon: const Icon(Icons.auto_fix_high, size: 24),
-                  label: Text(
-                    l10n.applyWatermark,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.1,
-                    ),
-                  ),
-                  style: ButtonStyle(
-                    backgroundColor:
-                        WidgetStateProperty.all(Colors.transparent),
-                    foregroundColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.disabled)) {
-                        return theme.colorScheme.onSurfaceVariant;
-                      }
-                      return Colors.white;
-                    }),
-                    padding: WidgetStateProperty.all(
-                        const EdgeInsets.symmetric(vertical: 20)),
-                    shape: WidgetStateProperty.all(RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16))),
-                    elevation: WidgetStateProperty.all(0),
-                  ),
-                ),
-              ),
-            ),
+            // The apply CTA itself moved to the floating button; this card
+            // keeps the error strip and the output / save / share actions.
             if (_hasErrors && _statusMessage.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
@@ -9515,9 +9585,7 @@ class WatermarkPageState extends State<WatermarkPage>
                   children: [
                     // Random Color Rectangle
                     _ColorTile(
-                      isSelected: _useRandomColor,
                       processing: _processing,
-                      burstColor: theme.colorScheme.primary,
                       isCircle: false,
                       onTap: () => _updateColorMode(true),
                       child: AnimatedOpacity(
@@ -9572,9 +9640,7 @@ class WatermarkPageState extends State<WatermarkPage>
                       final isSelected = !_useRandomColor &&
                           color.toARGB32() == _selectedColor.toARGB32();
                       return _ColorTile(
-                        isSelected: isSelected,
                         processing: _processing,
-                        burstColor: color,
                         onTap: () {
                           _updateColorMode(false);
                           _selectColor(color);
@@ -12392,18 +12458,14 @@ class _XYPadPainter extends CustomPainter {
 
 class _ColorTile extends StatefulWidget {
   final Widget child;
-  final bool isSelected;
   final VoidCallback onTap;
   final bool processing;
-  final Color burstColor;
   final bool isCircle;
 
   const _ColorTile({
     required this.child,
-    required this.isSelected,
     required this.onTap,
     required this.processing,
-    required this.burstColor,
     this.isCircle = true,
   });
 
@@ -12411,33 +12473,7 @@ class _ColorTile extends StatefulWidget {
   State<_ColorTile> createState() => _ColorTileState();
 }
 
-class _ColorTileState extends State<_ColorTile>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _burstController;
-
-  @override
-  void initState() {
-    super.initState();
-    _burstController = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    );
-  }
-
-  @override
-  void didUpdateWidget(_ColorTile oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!oldWidget.isSelected && widget.isSelected) {
-      _burstController.forward(from: 0.0);
-    }
-  }
-
-  @override
-  void dispose() {
-    _burstController.dispose();
-    super.dispose();
-  }
-
+class _ColorTileState extends State<_ColorTile> {
   @override
   Widget build(BuildContext context) {
     return _PushDownWrapper(
@@ -12447,73 +12483,9 @@ class _ColorTileState extends State<_ColorTile>
         child: InkWell(
           onTap: widget.processing ? null : widget.onTap,
           borderRadius: BorderRadius.circular(widget.isCircle ? 999 : 4),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              widget.child,
-              IgnorePointer(
-                child: _ColorBurst(
-                  controller: _burstController,
-                  color: widget.burstColor,
-                ),
-              ),
-            ],
-          ),
+          child: widget.child,
         ),
       ),
-    );
-  }
-}
-
-class _ColorBurst extends StatelessWidget {
-  final AnimationController controller;
-  final Color color;
-
-  const _ColorBurst({
-    required this.controller,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, child) {
-        if (controller.value == 0.0 || controller.value == 1.0) {
-          return const SizedBox.shrink();
-        }
-
-        return Stack(
-          alignment: Alignment.center,
-          children: List.generate(8, (index) {
-            final double angle = (index * 45) * (math.pi / 180);
-            final double distance = 60 * controller.value;
-            final double opacity = 1.0 - controller.value;
-            final double scale = 0.2 + (0.5 * controller.value);
-
-            return Transform.translate(
-              offset: Offset(
-                math.cos(angle) * distance,
-                math.sin(angle) * distance,
-              ),
-              child: Transform.scale(
-                scale: scale,
-                child: Opacity(
-                  opacity: opacity,
-                  child: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.8),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }),
-        );
-      },
     );
   }
 }
@@ -12543,33 +12515,7 @@ class _ProfileTile extends StatefulWidget {
   State<_ProfileTile> createState() => _ProfileTileState();
 }
 
-class _ProfileTileState extends State<_ProfileTile>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _burstController;
-
-  @override
-  void initState() {
-    super.initState();
-    _burstController = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    );
-  }
-
-  @override
-  void didUpdateWidget(_ProfileTile oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!oldWidget.isSelected && widget.isSelected) {
-      _burstController.forward(from: 0.0);
-    }
-  }
-
-  @override
-  void dispose() {
-    _burstController.dispose();
-    super.dispose();
-  }
-
+class _ProfileTileState extends State<_ProfileTile> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = widget.theme.colorScheme;
@@ -12648,73 +12594,11 @@ class _ProfileTileState extends State<_ProfileTile>
                     ),
                   ],
                 ),
-                IgnorePointer(
-                  child: _ProfileIconBurst(
-                    controller: _burstController,
-                    icon: widget.icon,
-                    color: colorScheme.primary,
-                    size: 22,
-                  ),
-                ),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-}
-
-class _ProfileIconBurst extends StatelessWidget {
-  final AnimationController controller;
-  final IconData icon;
-  final Color color;
-  final double size;
-
-  const _ProfileIconBurst({
-    required this.controller,
-    required this.icon,
-    required this.color,
-    required this.size,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, child) {
-        if (controller.value == 0.0 || controller.value == 1.0) {
-          return const SizedBox.shrink();
-        }
-
-        return Stack(
-          alignment: Alignment.center,
-          children: List.generate(8, (index) {
-            final double angle = (index * 45) * (3.14159 / 180);
-            final double distance = 200 * controller.value;
-            final double opacity = 1.0 - controller.value;
-            final double scale = 0.2 + (0.8 * controller.value);
-
-            return Transform.translate(
-              offset: Offset(
-                math.cos(angle) * distance,
-                math.sin(angle) * distance,
-              ),
-              child: Transform.scale(
-                scale: scale,
-                child: Opacity(
-                  opacity: opacity,
-                  child: Icon(
-                    icon,
-                    color: color.withValues(alpha: 0.8),
-                    size: size * 3.2,
-                  ),
-                ),
-              ),
-            );
-          }),
-        );
-      },
     );
   }
 }

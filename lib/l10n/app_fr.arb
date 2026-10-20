@@ -818,5 +818,7 @@
   },
   "webRetentionWarning": "Les fichiers ne quittent jamais votre navigateur : ils sont conservés en mémoire uniquement et seront effacés dans {time}. Téléchargez-les avant.",
   "@webRetentionWarning": {"placeholders": {"time": {"type": "String"}}},
-  "webDataExpired": "Les fichiers ont été effacés de la mémoire"
+  "webDataExpired": "Les fichiers ont été effacés de la mémoire",
+  "webPrivacyBadgeTitle": "Rien n'est stocké sur le serveur",
+  "webPrivacyBadgeSub": "Tout le traitement se fait dans votre navigateur"
 }

@@ -818,5 +818,7 @@
   },
   "webRetentionWarning": "I file non lasciano mai il browser: sono conservati solo in memoria e verranno eliminati tra {time}. Scaricali prima.",
   "@webRetentionWarning": {"placeholders": {"time": {"type": "String"}}},
-  "webDataExpired": "I file sono stati eliminati dalla memoria"
+  "webDataExpired": "I file sono stati eliminati dalla memoria",
+  "webPrivacyBadgeTitle": "Nulla viene archiviato su un server",
+  "webPrivacyBadgeSub": "Tutto il trattamento avviene nel tuo browser"
 }

@@ -818,5 +818,7 @@
   },
   "webRetentionWarning": "Dateien verlassen Ihren Browser nie: Sie werden nur im Speicher gehalten und in {time} gelöscht. Laden Sie sie vorher herunter.",
   "@webRetentionWarning": {"placeholders": {"time": {"type": "String"}}},
-  "webDataExpired": "Dateien wurden aus dem Speicher gelöscht"
+  "webDataExpired": "Dateien wurden aus dem Speicher gelöscht",
+  "webPrivacyBadgeTitle": "Es wird nichts auf einem Server gespeichert",
+  "webPrivacyBadgeSub": "Die gesamte Verarbeitung läuft in Ihrem Browser"
 }

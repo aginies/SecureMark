@@ -818,5 +818,7 @@
   },
   "webRetentionWarning": "Los archivos nunca salen de su navegador: se guardan solo en memoria y se borrarán en {time}. Descárguelos antes.",
   "@webRetentionWarning": {"placeholders": {"time": {"type": "String"}}},
-  "webDataExpired": "Los archivos fueron borrados de la memoria"
+  "webDataExpired": "Los archivos fueron borrados de la memoria",
+  "webPrivacyBadgeTitle": "No se almacena nada en ningún servidor",
+  "webPrivacyBadgeSub": "Todo el procesamiento se realiza en su navegador"
 }

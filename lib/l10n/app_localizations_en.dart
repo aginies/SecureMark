@@ -1465,4 +1465,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get webDataExpired => 'Files were erased from memory';
+
+  @override
+  String get webPrivacyBadgeTitle => 'Nothing is stored on a server';
+
+  @override
+  String get webPrivacyBadgeSub => 'All processing happens in your browser';
 }
