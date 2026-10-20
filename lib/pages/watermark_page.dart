@@ -1455,8 +1455,6 @@ class WatermarkPageState extends State<WatermarkPage>
                     _showQrWatermarkOptions();
                   case 'font':
                     _showFontOptions();
-                  case 'expert':
-                    _showExpertOptions();
                 }
               },
               itemBuilder: (context) => [
@@ -1479,12 +1477,20 @@ class WatermarkPageState extends State<WatermarkPage>
                 if (!kIsWeb)
                   _toolMenuItem(
                       'analyze', Icons.search_rounded, l10n.analyzeFile),
-                _toolMenuItem('expert', Icons.settings_suggest_outlined,
-                    l10n.expertOptions),
               ],
             ),
           ],
         ),
+        // Expert Options stays pinned top-right: it is the entry point to
+        // file naming, PDF and security settings, used often enough to
+        // deserve a permanent spot.
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_suggest_outlined),
+            onPressed: _showExpertOptions,
+            tooltip: l10n.expertOptions,
+          ),
+        ],
         centerTitle: false,
       ),
       body: SafeArea(
