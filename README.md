@@ -252,7 +252,7 @@ Pre-bundled in application assets:
 
 - **Background Isolation**: All heavy processing runs in Dart Isolates (separate threads) using `SendPort` for safe communication.
 - **Linear Progress Tracking**: Completely redesigned progress bar showing granular steps (Loading, Anti-AI, Watermarking, etc.).
-- **Multilingual Support**: All progress status messages are fully localized (EN, FR, DE, IT).
+- **Multilingual Support**: All progress status messages are fully localized (EN, FR, DE, ES, IT).
 - **Cancellation Token**: Graceful cancellation support during processing.
 - **Result Caching**: LRU cache (max 10 results) to avoid reprocessing identical requests.
 
@@ -379,6 +379,23 @@ SecureMark registers as a share target for image and PDF files:
 - **HEIC / HEIF** - Native support for modern mobile photo formats
 - **PDF** - Vector or rasterized (flattened) processing
 
+## Project Structure
+
+The UI lives in a single page whose state is split into **library-private part files** —
+Dart `part` files cannot add members to a class, so each part declares a private
+extension on the page state. Private members and the public API are unchanged.
+
+- `lib/watermark_processor.dart` — core processing engine (all public processing APIs)
+- `lib/pages/watermark_page.dart` — page widget + state (fields, lifecycle, `build()`)
+- `lib/pages/parts/` — state extensions: `state.builders.dart`, `state.preferences.dart`,
+  `state.processing.dart`, `state.forensics.dart`, `state.local_share.dart`,
+  `state.steganography.dialogs.dart`, `state.web.dart`, `state.file_picking.dart`,
+  `state.watermark_editing.dart`, `state.misc_dialogs.dart`, `state.config_backup.dart`
+- `lib/widgets/` — small reusable widgets (color tiles, gradient buttons, painters, clippers)
+- `lib/steganography/` — LSB, DCT, and encryption helpers
+- `lib/utils/` — identity, certificates, local server, image/watermark utilities
+- `lib/models/` — settings profiles, processed files, watermark options
+
 ## Development & Testing
 
 Install dependencies:
@@ -389,6 +406,16 @@ flutter pub get
 Run the application:
 ```bash
 flutter run
+```
+
+Run all tests:
+```bash
+flutter test
+```
+
+Run the full quality gate (format check + static analysis + tests):
+```bash
+./build_and_verify.sh quality_checks
 ```
 
 Run security & steganography tests:
