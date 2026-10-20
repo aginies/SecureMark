@@ -50,6 +50,11 @@ android {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
+            // AGP 9 enables R8 minification by default, which obfuscates
+            // kotlin.coroutines.Continuation and breaks Pigeon plugin dispatch
+            // (e.g. shared_preferences). Disable until keep rules are added.
+            isMinifyEnabled = false
+            isShrinkResources = false
             val isSigningConfigured = keystoreProperties.getProperty("storeFile") != null
             signingConfig =
                 if (isSigningConfigured) {
