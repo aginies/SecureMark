@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -36,6 +35,12 @@ import '../qr_config.dart';
 import '../models/processed_file.dart';
 import '../models/settings_profile.dart';
 import '../models/identity_bookmark.dart';
+import '../widgets/color_tile.dart';
+import '../widgets/comparison_clipper.dart';
+import '../widgets/density_painter.dart';
+import '../widgets/gradient_button.dart';
+import '../widgets/profile_tile.dart';
+import '../widgets/xy_pad_painter.dart';
 import '../widgets/watermark_shader_painter.dart';
 import '../main.dart';
 import '../watermark_error.dart';
@@ -1654,7 +1659,7 @@ class WatermarkPageState extends State<WatermarkPage>
       crossAxisSpacing: 8,
       childAspectRatio: 2.0,
       children: availableProfiles.map((profile) {
-        return _ProfileTile(
+        return ProfileTile(
           profile: profile,
           label: _getProfileLabel(profile, l10n),
           icon: _getProfileIcon(profile),
@@ -8417,7 +8422,7 @@ class WatermarkPageState extends State<WatermarkPage>
                                                       ),
                                                       // A (Original) - Top with Clip
                                                       ClipRect(
-                                                        clipper: _ComparisonClipper(
+                                                        clipper: ComparisonClipper(
                                                             _comparisonSliderValue,
                                                             isVertical: false),
                                                         child: Image.memory(
@@ -9182,7 +9187,7 @@ class WatermarkPageState extends State<WatermarkPage>
         if (!widget.hasCamera) {
           return SizedBox(
             width: double.infinity,
-            child: _GradientButton(
+            child: GradientButton(
               onTap: _pickFile,
               enabled: !_processing,
               gradientColors: [
@@ -9221,7 +9226,7 @@ class WatermarkPageState extends State<WatermarkPage>
             Row(
               children: [
                 Expanded(
-                  child: _GradientButton(
+                  child: GradientButton(
                     onTap: _pickFile,
                     enabled: !_processing,
                     gradientColors: [
@@ -9255,7 +9260,7 @@ class WatermarkPageState extends State<WatermarkPage>
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _GradientButton(
+                  child: GradientButton(
                     onTap: _takePhoto,
                     enabled: !_processing,
                     gradientColors: [
@@ -9290,7 +9295,7 @@ class WatermarkPageState extends State<WatermarkPage>
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
-              child: _GradientButton(
+              child: GradientButton(
                 onTap: _scanDocument,
                 enabled: !_processing,
                 gradientColors: [
@@ -9320,7 +9325,7 @@ class WatermarkPageState extends State<WatermarkPage>
         );
       }
 
-      return _GradientButton(
+      return GradientButton(
         onTap: _pickFile,
         enabled: !_processing,
         gradientColors: [
@@ -9532,7 +9537,7 @@ class WatermarkPageState extends State<WatermarkPage>
               runSpacing: 12,
               alignment: WrapAlignment.center,
               children: [
-                _PushDownWrapper(
+                PushDownWrapper(
                   enabled: !_processing && _processedFiles.isNotEmpty,
                   child: FilledButton.tonalIcon(
                     onPressed: _processing || _processedFiles.isEmpty
@@ -9549,7 +9554,7 @@ class WatermarkPageState extends State<WatermarkPage>
                     ),
                   ),
                 ),
-                _PushDownWrapper(
+                PushDownWrapper(
                   enabled: !_processing && _processedFiles.isNotEmpty,
                   child: FilledButton.tonalIcon(
                     onPressed: _processing || _processedFiles.isEmpty
@@ -9566,7 +9571,7 @@ class WatermarkPageState extends State<WatermarkPage>
                     ),
                   ),
                 ),
-                _PushDownWrapper(
+                PushDownWrapper(
                   enabled: !_processing,
                   child: OutlinedButton.icon(
                     onPressed: _processing ? null : _reset,
@@ -9676,7 +9681,7 @@ class WatermarkPageState extends State<WatermarkPage>
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     // Random Color Rectangle
-                    _ColorTile(
+                    ColorTile(
                       processing: _processing,
                       isCircle: false,
                       onTap: () => _updateColorMode(true),
@@ -9731,7 +9736,7 @@ class WatermarkPageState extends State<WatermarkPage>
                     ...palette.map((color) {
                       final isSelected = !_useRandomColor &&
                           color.toARGB32() == _selectedColor.toARGB32();
-                      return _ColorTile(
+                      return ColorTile(
                         processing: _processing,
                         onTap: () {
                           _updateColorMode(false);
@@ -9870,7 +9875,7 @@ class WatermarkPageState extends State<WatermarkPage>
               child: Opacity(
                 opacity: (100 - _transparency) / 100,
                 child: CustomPaint(
-                  painter: _DensityPainter(
+                  painter: DensityPainter(
                     density: _density,
                     color: baseColor,
                     isPreview: true,
@@ -9907,7 +9912,7 @@ class WatermarkPageState extends State<WatermarkPage>
             // 3. Interactive Cross-hair Layer
             Positioned.fill(
               child: CustomPaint(
-                painter: _XYPadPainter(
+                painter: XYPadPainter(
                   x: x,
                   y: y,
                   color: theme.colorScheme.primary.withValues(alpha: 0.3),
@@ -12418,416 +12423,6 @@ class WatermarkPageState extends State<WatermarkPage>
             child: Text(l10n.close),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _DensityPainter extends CustomPainter {
-  final double density;
-  final Color color;
-  final bool isPreview;
-  final bool useRandomColor;
-
-  _DensityPainter({
-    required this.density,
-    required this.color,
-    this.isPreview = false,
-    this.useRandomColor = false,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final List<Color> randomPalette = [
-      Colors.red,
-      Colors.blue,
-      Colors.green,
-      Colors.orange,
-      Colors.purple,
-      Colors.pink,
-      Colors.teal,
-      Colors.amber,
-    ];
-    final math.Random random =
-        math.Random(42); // Seed for consistent randomness per frame
-
-    final paint = Paint()
-      ..color = color.withValues(alpha: 0.6)
-      ..style = PaintingStyle.fill;
-
-    // Map density (10-90) to grid count (2-8)
-    final count = ((density / 100) * 7 + 2).round();
-    final stepX = size.width / (count + 1);
-    final stepY = size.height / (count + 1);
-
-    for (int i = 1; i <= count; i++) {
-      for (int j = 1; j <= count; j++) {
-        if (useRandomColor) {
-          paint.color = randomPalette[random.nextInt(randomPalette.length)]
-              .withValues(alpha: 0.6);
-        }
-        canvas.drawCircle(Offset(i * stepX, j * stepY), 3.0, paint);
-      }
-    }
-
-    if (isPreview) {
-      InlineSpan textSpan;
-      if (useRandomColor) {
-        // Each letter with a random color
-        final String text = 'SecureMark';
-        textSpan = TextSpan(
-          children: text.split('').map((char) {
-            return TextSpan(
-              text: char,
-              style: TextStyle(
-                color: randomPalette[random.nextInt(randomPalette.length)],
-                fontSize: 21,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 4,
-              ),
-            );
-          }).toList(),
-        );
-      } else {
-        textSpan = TextSpan(
-          text: 'SecureMark',
-          style: TextStyle(
-            color: color,
-            fontSize: 21,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 4,
-          ),
-        );
-      }
-
-      final textPainter = TextPainter(
-        text: textSpan,
-        textDirection: TextDirection.ltr,
-      )..layout();
-
-      textPainter.paint(
-        canvas,
-        Offset((size.width - textPainter.width) / 2,
-            (size.height - textPainter.height) / 2),
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DensityPainter oldDelegate) {
-    return oldDelegate.density != density ||
-        oldDelegate.color != color ||
-        oldDelegate.isPreview != isPreview ||
-        oldDelegate.useRandomColor != useRandomColor;
-  }
-}
-
-class _XYPadPainter extends CustomPainter {
-  final double x;
-  final double y;
-  final Color color;
-
-  _XYPadPainter({required this.x, required this.y, required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.0;
-
-    // Vertical line
-    canvas.drawLine(
-        Offset(x * size.width, 0), Offset(x * size.width, size.height), paint);
-    // Horizontal line
-    canvas.drawLine(
-        Offset(0, y * size.height), Offset(size.width, y * size.height), paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _XYPadPainter oldDelegate) =>
-      oldDelegate.x != x || oldDelegate.y != y || oldDelegate.color != color;
-}
-
-class _ColorTile extends StatefulWidget {
-  final Widget child;
-  final VoidCallback onTap;
-  final bool processing;
-  final bool isCircle;
-
-  const _ColorTile({
-    required this.child,
-    required this.onTap,
-    required this.processing,
-    this.isCircle = true,
-  });
-
-  @override
-  State<_ColorTile> createState() => _ColorTileState();
-}
-
-class _ColorTileState extends State<_ColorTile> {
-  @override
-  Widget build(BuildContext context) {
-    return _PushDownWrapper(
-      enabled: !widget.processing,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: widget.processing ? null : widget.onTap,
-          borderRadius: BorderRadius.circular(widget.isCircle ? 999 : 4),
-          child: widget.child,
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfileTile extends StatefulWidget {
-  final SettingsProfile profile;
-  final String label;
-  final IconData icon;
-  final bool isSelected;
-  final ThemeData theme;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
-  final bool processing;
-
-  const _ProfileTile({
-    required this.profile,
-    required this.label,
-    required this.icon,
-    required this.isSelected,
-    required this.theme,
-    required this.onTap,
-    required this.onLongPress,
-    required this.processing,
-  });
-
-  @override
-  State<_ProfileTile> createState() => _ProfileTileState();
-}
-
-class _ProfileTileState extends State<_ProfileTile> {
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = widget.theme.colorScheme;
-
-    return _PushDownWrapper(
-      enabled: !widget.processing,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: widget.processing ? null : widget.onTap,
-          onLongPress: widget.processing ? null : widget.onLongPress,
-          borderRadius: BorderRadius.circular(16),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            decoration: BoxDecoration(
-              color: widget.isSelected
-                  ? colorScheme.primaryContainer.withValues(alpha: 0.7)
-                  : colorScheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: widget.isSelected
-                    ? colorScheme.primary
-                    : colorScheme.outlineVariant,
-                width: widget.isSelected ? 2 : 1,
-              ),
-              boxShadow: widget.isSelected
-                  ? [
-                      BoxShadow(
-                        color: ColorUtils.getAdaptiveShadowColor(widget.theme,
-                            color: colorScheme.primary),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      )
-                    ]
-                  : [],
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ShaderMask(
-                      shaderCallback: (bounds) => LinearGradient(
-                        colors: widget.isSelected
-                            ? [colorScheme.primary, colorScheme.secondary]
-                            : [
-                                colorScheme.onSurfaceVariant,
-                                colorScheme.onSurfaceVariant
-                                    .withValues(alpha: 0.7)
-                              ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ).createShader(bounds),
-                      child: Icon(
-                        widget.icon,
-                        size: 22,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.label,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: widget.theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 11,
-                        fontWeight: widget.isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                        color: widget.isSelected
-                            ? colorScheme.primary
-                            : colorScheme.onSurface,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ComparisonClipper extends CustomClipper<Rect> {
-  final double value;
-  final bool
-      isVertical; // true for vertical line (left-right drag), false for horizontal line (up-down drag)
-
-  _ComparisonClipper(this.value, {this.isVertical = true});
-
-  @override
-  Rect getClip(Size size) {
-    if (isVertical) {
-      return Rect.fromLTRB(0, 0, size.width * value, size.height);
-    } else {
-      return Rect.fromLTRB(0, 0, size.width, size.height * value);
-    }
-  }
-
-  @override
-  bool shouldReclip(_ComparisonClipper oldClipper) =>
-      oldClipper.value != value || oldClipper.isVertical != isVertical;
-}
-
-class _GradientButton extends StatefulWidget {
-  final Widget child;
-  final VoidCallback? onTap;
-  final List<Color> gradientColors;
-  final bool enabled;
-
-  const _GradientButton({
-    required this.child,
-    this.onTap,
-    required this.gradientColors,
-    this.enabled = true,
-  });
-
-  @override
-  State<_GradientButton> createState() => _GradientButtonState();
-}
-
-class _GradientButtonState extends State<_GradientButton> {
-  bool _isPressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Listener(
-      onPointerDown:
-          widget.enabled ? (_) => setState(() => _isPressed = true) : null,
-      onPointerUp:
-          widget.enabled ? (_) => setState(() => _isPressed = false) : null,
-      onPointerCancel:
-          widget.enabled ? (_) => setState(() => _isPressed = false) : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.easeOut,
-        transform: Matrix4.translationValues(0, _isPressed ? 4.0 : 0.0, 0),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: widget.enabled
-              ? LinearGradient(
-                  colors: widget.gradientColors,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color:
-              widget.enabled ? null : theme.colorScheme.surfaceContainerHighest,
-          boxShadow: (widget.enabled && !_isPressed)
-              ? [
-                  BoxShadow(
-                    color: ColorUtils.getAdaptiveShadowColor(theme,
-                        color: widget.gradientColors.first, alpha: 0.4),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  )
-                ]
-              : [],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: widget.enabled ? widget.onTap : null,
-            borderRadius: BorderRadius.circular(16),
-            child: widget.child,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PushDownWrapper extends StatefulWidget {
-  final Widget child;
-  final bool enabled;
-
-  const _PushDownWrapper({required this.child, this.enabled = true});
-
-  @override
-  State<_PushDownWrapper> createState() => _PushDownWrapperState();
-}
-
-class _PushDownWrapperState extends State<_PushDownWrapper> {
-  bool _isPressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Listener(
-      onPointerDown:
-          widget.enabled ? (_) => setState(() => _isPressed = true) : null,
-      onPointerUp:
-          widget.enabled ? (_) => setState(() => _isPressed = false) : null,
-      onPointerCancel:
-          widget.enabled ? (_) => setState(() => _isPressed = false) : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.easeOut,
-        transform: Matrix4.translationValues(0, _isPressed ? 4.0 : 0.0, 0),
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: (widget.enabled && !_isPressed)
-              ? [
-                  BoxShadow(
-                    color:
-                        ColorUtils.getAdaptiveShadowColor(theme, alpha: 0.25),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  )
-                ]
-              : [],
-        ),
-        child: widget.child,
       ),
     );
   }
