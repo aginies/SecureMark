@@ -9076,7 +9076,7 @@ class WatermarkPageState extends State<WatermarkPage>
                                   // French-only on purpose, like the footer
                                   // links: the French text is the official
                                   // legal version.
-                                  Text('Confidentialité', style: linkStyle),
+                                  Text('(Confidentialité)', style: linkStyle),
                                 ],
                               ),
                           ],
