@@ -54,6 +54,7 @@
       }
     }
   },
+  "apply": "Anwenden",
   "applyWatermark": "SecureMark anwenden",
   "saveAll": "Speichern",
   "delete": "Löschen",

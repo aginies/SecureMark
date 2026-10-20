@@ -242,6 +242,12 @@ abstract class AppLocalizations {
   /// **'Selected files: {count}'**
   String selectedFiles(int count);
 
+  /// No description provided for @apply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get apply;
+
   /// No description provided for @applyWatermark.
   ///
   /// In en, this message translates to:

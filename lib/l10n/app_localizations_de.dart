@@ -89,6 +89,9 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get apply => 'Anwenden';
+
+  @override
   String get applyWatermark => 'SecureMark anwenden';
 
   @override

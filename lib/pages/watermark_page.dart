@@ -9346,18 +9346,44 @@ class WatermarkPageState extends State<WatermarkPage>
   Widget _buildApplyFloatingButton(AppLocalizations l10n, ThemeData theme) {
     final enabled = _canApplyWatermark;
     final colorScheme = theme.colorScheme;
-    return FloatingActionButton.extended(
-      heroTag: 'applyWatermark',
-      onPressed: enabled ? _applyWatermark : null,
-      icon: const Icon(Icons.auto_fix_high),
-      label: Text(l10n.applyWatermark),
-      // Grey the whole button out until it can actually be pressed, so the
-      // "nothing to apply yet" state is obvious regardless of theme defaults
-      // (no files selected, image watermark without an image, or a run in
-      // progress). Null keeps the theme's normal color once enabled.
-      backgroundColor: enabled ? null : colorScheme.surfaceContainerHighest,
-      foregroundColor:
-          enabled ? null : colorScheme.onSurface.withValues(alpha: 0.38),
+    // Match the default Material 3 FAB when enabled; grey the whole button out
+    // when it can't run yet (no files selected, image watermark without an
+    // image, or a run in progress) so the "nothing to apply" state is obvious.
+    final background =
+        enabled ? colorScheme.primary : colorScheme.surfaceContainerHighest;
+    final foreground = enabled
+        ? colorScheme.onPrimary
+        : colorScheme.onSurface.withValues(alpha: 0.38);
+    const radius = BorderRadius.all(Radius.circular(16));
+
+    // Lift the button above the author footer ("Antoine Giniès vX.X.X"), which
+    // otherwise sits under it at the bottom of the mobile scroll view.
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 48),
+      child: Material(
+        elevation: 6,
+        color: background,
+        shape: RoundedRectangleBorder(borderRadius: radius),
+        child: InkWell(
+          onTap: enabled ? _applyWatermark : null,
+          borderRadius: radius,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.auto_fix_high, color: foreground),
+                const SizedBox(width: 12),
+                Text(
+                  l10n.apply,
+                  style:
+                      theme.textTheme.titleMedium?.copyWith(color: foreground),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

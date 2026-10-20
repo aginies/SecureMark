@@ -54,6 +54,7 @@
       }
     }
   },
+  "apply": "Applica",
   "applyWatermark": "Applica SecureMark",
   "saveAll": "Salva",
   "delete": "Elimina",
