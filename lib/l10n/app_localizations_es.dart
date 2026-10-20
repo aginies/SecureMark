@@ -504,6 +504,9 @@ class AppLocalizationsEs extends AppLocalizations {
       'La esteganografía está habilitada y será aplicada';
 
   @override
+  String get hideFileOption => 'Ocultar archivo';
+
+  @override
   String get hideFileWithSteganographyTitle =>
       'Ocultar un archivo (experimental)';
 
@@ -1343,6 +1346,19 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get noCameraOption => '¿Sin cámara? Mostrar QR para recibir';
+
+  @override
+  String get networkInterfaceLabel => 'Interfaz de red';
+
+  @override
+  String qrScanningUnsupported(Object platform) {
+    return 'El escaneo QR aún no es compatible con $platform.';
+  }
+
+  @override
+  String qrScanningUnsupportedUseShowQr(Object platform) {
+    return 'El escaneo QR aún no es compatible con $platform.\nUse \'Mostrar QR para recibir\' en el otro dispositivo.';
+  }
 
   @override
   String get showQrToReceive =>

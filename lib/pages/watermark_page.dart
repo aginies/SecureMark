@@ -3061,7 +3061,7 @@ class WatermarkPageState extends State<WatermarkPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Network Interface',
+                      l10n.networkInterfaceLabel,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -3542,7 +3542,8 @@ class WatermarkPageState extends State<WatermarkPage>
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24),
                           child: Text(
-                            "QR Scanning not yet supported on ${Platform.isLinux ? 'Linux' : 'Windows'}.\nPlease use 'Show QR to receive' on the other device.",
+                            l10n.qrScanningUnsupportedUseShowQr(
+                                Platform.isLinux ? 'Linux' : 'Windows'),
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 13),
                           ),
@@ -3626,7 +3627,7 @@ class WatermarkPageState extends State<WatermarkPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Network Interface',
+                  l10n.networkInterfaceLabel,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -4974,7 +4975,8 @@ class WatermarkPageState extends State<WatermarkPage>
                           size: 48, color: theme.colorScheme.primary),
                       const SizedBox(height: 16),
                       Text(
-                        "QR Scanning not yet supported on ${Platform.isLinux ? 'Linux' : 'Windows'}.",
+                        l10n.qrScanningUnsupported(
+                            Platform.isLinux ? 'Linux' : 'Windows'),
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 13),
                       ),
@@ -5041,7 +5043,8 @@ class WatermarkPageState extends State<WatermarkPage>
                           color: Theme.of(context).colorScheme.primary),
                       const SizedBox(height: 16),
                       Text(
-                        "QR Scanning not yet supported on ${Platform.isLinux ? 'Linux' : 'Windows'}.",
+                        l10n.qrScanningUnsupported(
+                            Platform.isLinux ? 'Linux' : 'Windows'),
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 13),
                       ),
@@ -9921,7 +9924,7 @@ class WatermarkPageState extends State<WatermarkPage>
       if (!kIsWeb)
         WatermarkOption(
           id: 'hide_file',
-          label: 'Hide File',
+          label: l10n.hideFileOption,
           icon: Icons.attachment,
           enabledColor: Colors.brown,
           isEnabled: _hideFileWithSteganography && _hiddenFileBytes != null,

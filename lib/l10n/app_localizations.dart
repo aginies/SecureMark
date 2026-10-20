@@ -890,6 +890,12 @@ abstract class AppLocalizations {
   /// **'Steganography is enabled and will be applied'**
   String get steganographyEnabledHint;
 
+  /// No description provided for @hideFileOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide File'**
+  String get hideFileOption;
+
   /// No description provided for @hideFileWithSteganographyTitle.
   ///
   /// In en, this message translates to:
@@ -2354,6 +2360,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No camera? Show QR to receive'**
   String get noCameraOption;
+
+  /// No description provided for @networkInterfaceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Network Interface'**
+  String get networkInterfaceLabel;
+
+  /// No description provided for @qrScanningUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'QR scanning is not yet supported on {platform}.'**
+  String qrScanningUnsupported(Object platform);
+
+  /// No description provided for @qrScanningUnsupportedUseShowQr.
+  ///
+  /// In en, this message translates to:
+  /// **'QR scanning is not yet supported on {platform}.\nPlease use \'Show QR to receive\' on the other device.'**
+  String qrScanningUnsupportedUseShowQr(Object platform);
 
   /// No description provided for @showQrToReceive.
   ///
