@@ -17,7 +17,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=directory, **kwargs)
 
     def version_string(self):
-        return "JKDApp HTTP Server/1.0"
+        return "HTTP Server/1.0"
 
     def log_message(self, format, *args):
         print(f"[{datetime.now().strftime('%H:%M:%S')}] {args[0]}")
@@ -153,7 +153,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     </style>
 </head>
 <body>
-    <h1>📱 JKDApp APK Downloads</h1>
+    <h1>📱 APK Downloads</h1>
     <div class="file-list">
         {
             "".join(
@@ -197,7 +197,7 @@ def main():
     local_ip = get_local_ip()
 
     print(f"\n{'=' * 60}")
-    print(f"🚀 Starting JKDApp APK Server")
+    print(f"🚀 Starting APK Server")
     print(f"{'=' * 60}")
     print(f"📁 Directory: {DIRECTORY}")
     print(f"🌐 Local URL: http://{local_ip}:{PORT}")
