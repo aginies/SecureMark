@@ -2,6 +2,19 @@
 
 All notable changes to SecureMark are documented in this file.
 
+## 2.2.1
+
+### Fixed
+
+- **Web PDF processing**: the first-page preview is now rasterized inside a
+  try/catch. `Printing.raster` (pdf.js) is not reachable on the web, so the
+  failure used to propagate out of the pipeline and discard a PDF that had
+  already been watermarked and signed — only the preview can be missing now.
+- **Preview panel**: when a PDF has no rasterized preview, the box shows a
+  PDF icon and a localized hint telling the user to click "Save" to open the
+  watermarked document, instead of a bare "Preview unavailable". Added to all
+  5 languages.
+
 ## 2.2.0
 
 ### Added
