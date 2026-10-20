@@ -2,6 +2,80 @@
 
 All notable changes to SecureMark are documented in this file.
 
+## 2.1.1
+
+### Added
+
+- **Web privacy badge**: the web top bar now shows a shield badge reassuring
+  users that nothing is stored on a server and all processing happens in the
+  browser, with a link to the confidentiality page. Localized in all 5
+  languages.
+
+### Changed
+
+- **Android build**: upgraded to the canonical Flutter 3.47.6 toolchain —
+  Gradle 8.14.0 → 9.3.1, Kotlin 2.2.20 → 2.4.0, AGP 8.11.1 → 9.1.0 — to clear
+  the "support will soon be dropped" warnings. The app module now relies on
+  the Flutter plugin's built-in Kotlin and uses the modern
+  `kotlin { compilerOptions }` block instead of the deprecated
+  `kotlinOptions`.
+- **Apply button**: the floating "Apply SecureMark" button now greys out
+  (disabled) until it can actually run — no files selected, an image watermark
+  without an image loaded, or a run in progress.
+
+### Removed
+
+- **UI**: the particle/icon burst animation on the profile and color-picker
+  tiles. The press-down "click" effect is kept; only the burst is gone.
+
+## 2.1.0
+
+### Added
+
+- **Web identity & digital signing**: Device identity and the Digital Integrity
+  Signature are now available in the browser. Users can set their name, view
+  their personal public key, and sign documents on web — key material stays
+  on-device via secure storage and signing runs in the WASM isolate.
+
+### Changed
+
+- **Identity watermark**: When signing, the device identity (name) is drawn as
+  a subtle visible watermark in a random color, so a signed document carries an
+  apparent, hard-to-strip mark in addition to the cryptographic signature.
+- **Identity profile**: the Identity (`secureIdentity`) profile now uses a
+  transparency of 75 for that watermark (less visible than the Image profile's
+  50) instead of being fully invisible.
+
+## 2.0.0
+
+### Changed
+
+- UX: the buried "Advanced Expert" gate is gone. Steganography, robust
+  steganography, device identity and local network share are now available to
+  everyone. The eight icon-only app-bar buttons are replaced by
+  "Apply SecureMark" + a labeled "More options" overflow menu (Font/Image
+  configuration, QR Code Watermark, My Device Identity, Local Network Share,
+  Steganography, Analyze file), with Expert Options pinned top-right.
+- Profiles: the "Doc" profile no longer enables the visible watermark or
+  steganography — it produces a clean document (AI cloaking + anti-AI only).
+- Profiles: the "Identity" profile now enables the Ed25519 digital integrity
+  signature (with the required ZIP output) and no longer enables steganography
+  or the visible watermark.
+- Profiles: the P1/P2 custom profiles use a "tune" icon (custom configuration)
+  instead of a person.
+
+### Fixed
+
+- Overflow of the French "Stéganographie (signature invisible)" label in the
+  overflow menu; menu labels are now ellipsized in every language.
+- Hardcoded English strings ("Hide File", "Network Interface", "QR Scanning
+  not yet supported") are now localized in all 5 languages.
+
+### Removed
+
+- The "Advanced Expert" toggle and its now-dead strings (onboarding slide,
+  gating hints).
+
 ## 1.9.0
 
 ### Changed

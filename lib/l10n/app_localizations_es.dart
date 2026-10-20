@@ -215,14 +215,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get expertOptions => 'Opciones de experto';
 
   @override
-  String get advancedExpertTitle => 'Experto Avanzado';
-
-  @override
-  String get advancedExpertSubtitle =>
-      'Desbloquea Esteganografía, Identidad de Mi Dispositivo y Compartición de Red Local';
-
-  @override
-  String get requiresAdvancedExpert => 'Disponible en Experto Avanzado';
+  String get moreOptions => 'Más opciones';
 
   @override
   String fontSizeValue(int value) {
@@ -333,10 +326,6 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get filePrefixHint => 'ej. marca-de-agua-';
-
-  @override
-  String get resetExpertHint =>
-      'Esto reiniciará todas las opciones de experto y el prefijo de archivo a valores predeterminados.';
 
   @override
   String get fontConfigTitle => 'Configuración de fuente/imagen';
@@ -513,6 +502,9 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get steganographyEnabledHint =>
       'La esteganografía está habilitada y será aplicada';
+
+  @override
+  String get hideFileOption => 'Ocultar archivo';
 
   @override
   String get hideFileWithSteganographyTitle =>
@@ -743,6 +735,34 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get bookmarkSaved => 'Identidad guardada en marcadores con éxito';
+
+  @override
+  String get qrIdentityHint =>
+      'Los destinatarios pueden escanear esto para verificar sus documentos.';
+
+  @override
+  String identityAdded(Object name) {
+    return 'Identidad \'$name\' añadida a sus remitentes de confianza';
+  }
+
+  @override
+  String get autoVerifyVerified =>
+      'Integridad verificada — la firma del remitente es auténtica';
+
+  @override
+  String get autoVerifyTampered =>
+      'Fallo en la verificación de integridad — el documento fue modificado';
+
+  @override
+  String get autoVerifyHasMarks =>
+      'Contenido SecureMark detectado — toque para ver detalles';
+
+  @override
+  String get autoVerifyNoMarks =>
+      'No se encontró ninguna firma SecureMark en este archivo';
+
+  @override
+  String get viewDetails => 'Detalles';
 
   @override
   String get signatureVerified =>
@@ -1121,12 +1141,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get onboardingStep4 => '4. Comparte o guarda los resultados.';
 
   @override
-  String get onboardingExpertTitle => 'Perfiles y Opciones';
-
-  @override
-  String get onboardingExpertModeTitle => 'Modo Experto';
-
-  @override
   String get onboardingSaveProfileTitle => 'Guardar Ajustes';
 
   @override
@@ -1138,10 +1152,6 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get onboardingProfileSave =>
       'Mantén presionado un perfil para guardar la configuración actual como predeterminada.';
-
-  @override
-  String get onboardingExpertNote =>
-      'El modo experto (arriba a la derecha) desbloquea ajustes avanzados';
 
   @override
   String get onboardingOptionsNote =>
@@ -1366,6 +1376,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noCameraOption => '¿Sin cámara? Mostrar QR para recibir';
 
   @override
+  String get networkInterfaceLabel => 'Interfaz de red';
+
+  @override
+  String qrScanningUnsupported(Object platform) {
+    return 'El escaneo QR aún no es compatible con $platform.';
+  }
+
+  @override
+  String qrScanningUnsupportedUseShowQr(Object platform) {
+    return 'El escaneo QR aún no es compatible con $platform.\nUse \'Mostrar QR para recibir\' en el otro dispositivo.';
+  }
+
+  @override
   String get showQrToReceive =>
       'Escanea esto desde el dispositivo de envío para enviar un archivo aquí.';
 
@@ -1460,4 +1483,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get webDataExpired => 'Los archivos fueron borrados de la memoria';
+
+  @override
+  String get webPrivacyBadgeTitle => 'No se almacena nada en ningún servidor';
+
+  @override
+  String get webPrivacyBadgeSub =>
+      'Todo el procesamiento se realiza en su navegador';
 }

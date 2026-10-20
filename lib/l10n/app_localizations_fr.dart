@@ -215,14 +215,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get expertOptions => 'Options d\'expert';
 
   @override
-  String get advancedExpertTitle => 'Expert Avancé';
-
-  @override
-  String get advancedExpertSubtitle =>
-      'Débloque Stéganographie, Mon Appareil Identité et Partage Réseau Local';
-
-  @override
-  String get requiresAdvancedExpert => 'Disponible dans Expert Avancé';
+  String get moreOptions => 'Plus d\'options';
 
   @override
   String fontSizeValue(int value) {
@@ -332,10 +325,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get filePrefixHint => 'ex: filigrane-';
-
-  @override
-  String get resetExpertHint =>
-      'Cela réinitialisera tous les réglages experts et le préfixe de fichier aux valeurs par défaut.';
 
   @override
   String get fontConfigTitle => 'Configuration Police/Image';
@@ -512,6 +501,9 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get steganographyEnabledHint =>
       'La stéganographie est activée et sera appliquée';
+
+  @override
+  String get hideFileOption => 'Masquer un fichier';
 
   @override
   String get hideFileWithSteganographyTitle =>
@@ -745,6 +737,34 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get bookmarkSaved => 'Identité ajoutée aux signets avec succès';
+
+  @override
+  String get qrIdentityHint =>
+      'Les destinataires peuvent scanner ceci pour vérifier vos documents.';
+
+  @override
+  String identityAdded(Object name) {
+    return 'Identité « $name » ajoutée à vos expéditeurs de confiance';
+  }
+
+  @override
+  String get autoVerifyVerified =>
+      'Intégrité vérifiée — signature de l\'expéditeur authentique';
+
+  @override
+  String get autoVerifyTampered =>
+      'Échec de la vérification d\'intégrité — document modifié';
+
+  @override
+  String get autoVerifyHasMarks =>
+      'Contenu SecureMark détecté — appuyez pour les détails';
+
+  @override
+  String get autoVerifyNoMarks =>
+      'Aucune signature SecureMark trouvée dans ce fichier';
+
+  @override
+  String get viewDetails => 'Détails';
 
   @override
   String get signatureVerified =>
@@ -1127,12 +1147,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get onboardingStep4 => '4. Partagez ou Sauvegardez les résultats.';
 
   @override
-  String get onboardingExpertTitle => 'Profils & Options';
-
-  @override
-  String get onboardingExpertModeTitle => 'Mode Expert';
-
-  @override
   String get onboardingSaveProfileTitle => 'Sauvegarder les Presets';
 
   @override
@@ -1144,10 +1158,6 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get onboardingProfileSave =>
       'Appuyez longuement sur un profil pour enregistrer votre configuration actuelle par défaut pour ce preset.';
-
-  @override
-  String get onboardingExpertNote =>
-      'Mode expert (en haut à droite) pour les réglages avancés';
 
   @override
   String get onboardingOptionsNote =>
@@ -1371,6 +1381,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noCameraOption => 'Pas de caméra ? Afficher QR pour recevoir';
 
   @override
+  String get networkInterfaceLabel => 'Interface réseau';
+
+  @override
+  String qrScanningUnsupported(Object platform) {
+    return 'Le scan QR n\'est pas encore pris en charge sur $platform.';
+  }
+
+  @override
+  String qrScanningUnsupportedUseShowQr(Object platform) {
+    return 'Le scan QR n\'est pas encore pris en charge sur $platform.\nUtilisez « Afficher le QR pour recevoir » sur l\'autre appareil.';
+  }
+
+  @override
   String get showQrToReceive =>
       'Scannez ceci depuis l\'appareil d\'envoi pour pousser un fichier ici.';
 
@@ -1466,4 +1489,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get webDataExpired => 'Les fichiers ont été effacés de la mémoire';
+
+  @override
+  String get webPrivacyBadgeTitle => 'Rien n\'est stocké sur le serveur';
+
+  @override
+  String get webPrivacyBadgeSub =>
+      'Tout le traitement se fait dans votre navigateur';
 }

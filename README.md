@@ -8,9 +8,10 @@ The project is designed for high-security document distribution: choose files, a
 
 ## Core Features Overview
 
-- **Settings Profiles**: One-tap presets (**Custom, Identity, Image, Doc, QR Code**) for instant workflow configuration.
-- **AI Protection Suite**: 
-    - **Anti-AI Removal Protection**: Position and alpha jitter to prevent AI from learning and erasing watermarks.
+- **Settings Profiles**: One-tap presets (**Custom, Identity, Image, Doc, QR Code, Integrity**) for instant workflow configuration.
+- **Digital Identity & Signatures**: On-device Ed25519 identity, document signing, scannable identity cards, and verification of received documents.
+- **AI Protection Suite**:
+    - **Anti-AI Removal Protection**: Position, angle, and alpha jitter to prevent AI from learning and erasing watermarks.
     - **AI Cloaking (Adversarial)**: Injects invisible noise to disrupt AI style extraction and block OCR scrapers.
 - **Multi-layer Steganography**: 3 independent invisible methods (LSB text, hidden file, and robust DCT).
 - **Advanced File Management**: Manage large batches with a dedicated selection modal featuring PDF first-page previews and easy removal.
@@ -110,7 +111,39 @@ SecureMark implements three independent invisible protection layers.
 
 ### Unified File Analyzer
 
-The File Analyzer scans to find Steganography.
+The File Analyzer scans to find Steganography and verifies digital signatures.
+
+## Digital Identity & Signatures
+
+SecureMark turns each device into a cryptographic identity, giving recipients a way to prove a document is authentic and unmodified.
+
+### On-Device Identity
+
+- **Ed25519 keys**: A key pair is generated locally on the device — the private key never leaves it.
+- **Secure storage**: The private key is stored in the platform secure store (Keychain on iOS/macOS, Keystore-backed AES-GCM on Android, libsecret on Linux, Credential Manager on Windows), with a plaintext fallback for headless environments.
+- **Public key**: The non-secret public key is kept in `SharedPreferences` for quick access.
+- **Fingerprint**: A short, human-readable fingerprint of the public key is shown for manual trust confirmation.
+- **Reset**: The identity can be reset at any time; derived cached results are invalidated when it changes.
+
+### Digital Integrity Signature
+
+- **Purpose**: Sign a document with the device key to prove it has not been modified since signing.
+- **Automatic ZIP**: Enabling the signature turns on ZIP compression to preserve embedded metadata integrity.
+- **Cache-aware**: The signing identity is resolved before result caching, so an identity switch or reset never serves a stale signature back.
+- **Output**: The signature and the signer's public key are embedded in the protected output.
+- **Visible Identity Watermark**: When signing, the device identity (name) is drawn as a subtle visible watermark in a random color, so the signature is apparent on the document, not only cryptographically embedded. The Identity profile uses a transparency of 75 (less visible than the Image profile's 50) for this mark.
+
+### Identity Cards (QR Code)
+
+- **Purpose**: Share your public identity out-of-band so recipients can trust your signatures before they receive a document.
+- **Format**: A `securemark://identity` URI carrying your name, public key, and fingerprint, rendered as a scannable QR code and saved as an identity bookmark.
+- **Cross-version**: The scanner also accepts the legacy JSON format and bare public keys.
+
+### Verifying Received Documents
+
+- **Deep-link verification**: Received files carry a `securemark://verify` link; parsing it compares the current content/source hashes against the originals.
+- **Auto-verify**: Files received over the local network are analyzed in the background, with a colored badge snackbar reporting the outcome — *verified*, *tampered*, *marks found*, or *none* — and a Details action that re-opens the file analyzer with the full verification card.
+- **Outcome states**: Distinguishes *valid* (authentic), *invalid* (well-formed but tampered/different key), and *error* (corrupt input, no conclusion) so corrupt data is never presented as proof of tampering.
 
 ## QR Code Integration
 
@@ -336,7 +369,7 @@ SecureMark registers as a share target for image and PDF files:
 - **Fully client-side**: all processing runs in the browser — no server-side code, user files never leave the device
 - **Build**: `./build_and_verify.sh build_web` (or `flutter build web --release` plus `--wasm`) — both bundles land in `build/web/`
 - **Deploy**: copy the *contents* of `build/web/` to any static web server; see [docs/apache-vhost.example.conf](docs/apache-vhost.example.conf) for a tested Apache vhost (TLS, wasm/mjs MIME types, compression)
-- **Web-specific behavior**: outputs are handed to the browser as downloads; picking is limited to 10 MB per file and 5 files per session; in-memory file data is auto-erased 2 minutes after the last import or processing; the analyzer, expert mode, digital signing, file hiding and config export/import are hidden
+- **Web-specific behavior**: outputs are handed to the browser as downloads; picking is limited to 10 MB per file and 5 files per session; in-memory file data is auto-erased 2 minutes after the last import or processing; the analyzer, expert mode, local share and config export/import are hidden. Device identity and digital signing are available on web — keys stay on-device via secure storage and signing runs in the WASM isolate
 
 ## Supported Input Formats
 

@@ -214,14 +214,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get expertOptions => 'Opzioni esperte';
 
   @override
-  String get advancedExpertTitle => 'Esperto Avanzato';
-
-  @override
-  String get advancedExpertSubtitle =>
-      'Sblocca Steganografia, Identità del Mio Dispositivo e Condivisione Rete Locale';
-
-  @override
-  String get requiresAdvancedExpert => 'Disponibile in Esperto Avanzato';
+  String get moreOptions => 'Altre opzioni';
 
   @override
   String fontSizeValue(int value) {
@@ -332,10 +325,6 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get filePrefixHint => 'es. filigrana-';
-
-  @override
-  String get resetExpertHint =>
-      'Questo ripristinerà tutte le impostazioni esperte e il prefisso del file ai valori predefiniti.';
 
   @override
   String get fontConfigTitle => 'Configurazione carattere/immagine';
@@ -512,6 +501,9 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get steganographyEnabledHint =>
       'La steganografia è abilitata e sarà applicata';
+
+  @override
+  String get hideFileOption => 'Nascondi file';
 
   @override
   String get hideFileWithSteganographyTitle =>
@@ -741,6 +733,34 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get bookmarkSaved => 'Identità salvata nei segnalibri con successo';
+
+  @override
+  String get qrIdentityHint =>
+      'I destinatari possono scansionare questo per verificare i tuoi documenti.';
+
+  @override
+  String identityAdded(Object name) {
+    return 'Identità \'$name\' aggiunta ai tuoi mittenti di fiducia';
+  }
+
+  @override
+  String get autoVerifyVerified =>
+      'Integrità verificata — la firma del mittente è autentica';
+
+  @override
+  String get autoVerifyTampered =>
+      'Verifica di integrità fallita — il documento è stato modificato';
+
+  @override
+  String get autoVerifyHasMarks =>
+      'Contenuto SecureMark rilevato — tocca per i dettagli';
+
+  @override
+  String get autoVerifyNoMarks =>
+      'Nessuna firma SecureMark trovata in questo file';
+
+  @override
+  String get viewDetails => 'Dettagli';
 
   @override
   String get signatureVerified =>
@@ -1120,12 +1140,6 @@ class AppLocalizationsIt extends AppLocalizations {
   String get onboardingStep4 => '4. Condividi o salva i risultati.';
 
   @override
-  String get onboardingExpertTitle => 'Profili e Opzioni';
-
-  @override
-  String get onboardingExpertModeTitle => 'Modalità Esperto';
-
-  @override
   String get onboardingSaveProfileTitle => 'Salva Preset';
 
   @override
@@ -1137,10 +1151,6 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get onboardingProfileSave =>
       'Premi a lungo su un profilo per salvare la configurazione corrente come predefinita.';
-
-  @override
-  String get onboardingExpertNote =>
-      'La modalità esperto (in alto a destra) sblocca impostazioni avanzate';
 
   @override
   String get onboardingOptionsNote =>
@@ -1364,6 +1374,19 @@ class AppLocalizationsIt extends AppLocalizations {
   String get noCameraOption => 'Niente fotocamera? Mostra QR per ricevere';
 
   @override
+  String get networkInterfaceLabel => 'Interfaccia di rete';
+
+  @override
+  String qrScanningUnsupported(Object platform) {
+    return 'La scansione QR non è ancora supportata su $platform.';
+  }
+
+  @override
+  String qrScanningUnsupportedUseShowQr(Object platform) {
+    return 'La scansione QR non è ancora supportata su $platform.\nUsa \'Mostra QR per ricevere\' sull\'altro dispositivo.';
+  }
+
+  @override
   String get showQrToReceive =>
       'Scansiona questo dal dispositivo di invio per trasferire un file qui.';
 
@@ -1459,4 +1482,11 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get webDataExpired => 'I file sono stati eliminati dalla memoria';
+
+  @override
+  String get webPrivacyBadgeTitle => 'Nulla viene archiviato su un server';
+
+  @override
+  String get webPrivacyBadgeSub =>
+      'Tutto il trattamento avviene nel tuo browser';
 }

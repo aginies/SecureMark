@@ -416,23 +416,11 @@ abstract class AppLocalizations {
   /// **'Expert Options'**
   String get expertOptions;
 
-  /// No description provided for @advancedExpertTitle.
+  /// No description provided for @moreOptions.
   ///
   /// In en, this message translates to:
-  /// **'Advanced Expert'**
-  String get advancedExpertTitle;
-
-  /// No description provided for @advancedExpertSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Unlocks Steganography, My Device Identity, and Local Network Share'**
-  String get advancedExpertSubtitle;
-
-  /// No description provided for @requiresAdvancedExpert.
-  ///
-  /// In en, this message translates to:
-  /// **'Available in Advanced Expert'**
-  String get requiresAdvancedExpert;
+  /// **'More options'**
+  String get moreOptions;
 
   /// No description provided for @fontSizeValue.
   ///
@@ -613,12 +601,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'e.g., watermark-'**
   String get filePrefixHint;
-
-  /// No description provided for @resetExpertHint.
-  ///
-  /// In en, this message translates to:
-  /// **'This will reset all expert settings and file prefix to defaults.'**
-  String get resetExpertHint;
 
   /// No description provided for @fontConfigTitle.
   ///
@@ -907,6 +889,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Steganography is enabled and will be applied'**
   String get steganographyEnabledHint;
+
+  /// No description provided for @hideFileOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide File'**
+  String get hideFileOption;
 
   /// No description provided for @hideFileWithSteganographyTitle.
   ///
@@ -1309,6 +1297,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Identity bookmarked successfully'**
   String get bookmarkSaved;
+
+  /// No description provided for @qrIdentityHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipients can scan this to verify your documents.'**
+  String get qrIdentityHint;
+
+  /// No description provided for @identityAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Identity \'{name}\' added to your trusted senders'**
+  String identityAdded(Object name);
+
+  /// No description provided for @autoVerifyVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Integrity verified — sender signature is authentic'**
+  String get autoVerifyVerified;
+
+  /// No description provided for @autoVerifyTampered.
+  ///
+  /// In en, this message translates to:
+  /// **'Integrity check failed — document was modified'**
+  String get autoVerifyTampered;
+
+  /// No description provided for @autoVerifyHasMarks.
+  ///
+  /// In en, this message translates to:
+  /// **'SecureMark content detected — tap for details'**
+  String get autoVerifyHasMarks;
+
+  /// No description provided for @autoVerifyNoMarks.
+  ///
+  /// In en, this message translates to:
+  /// **'No SecureMark signature found in this file'**
+  String get autoVerifyNoMarks;
+
+  /// No description provided for @viewDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get viewDetails;
 
   /// No description provided for @signatureVerified.
   ///
@@ -1947,18 +1977,6 @@ abstract class AppLocalizations {
   /// **'4. Share or Save the results.'**
   String get onboardingStep4;
 
-  /// No description provided for @onboardingExpertTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Profiles & Options'**
-  String get onboardingExpertTitle;
-
-  /// No description provided for @onboardingExpertModeTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Expert Mode'**
-  String get onboardingExpertModeTitle;
-
   /// No description provided for @onboardingSaveProfileTitle.
   ///
   /// In en, this message translates to:
@@ -1982,12 +2000,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Long-press any profile to save your current configuration as the default for that preset.'**
   String get onboardingProfileSave;
-
-  /// No description provided for @onboardingExpertNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Expert mode (top right) unlocks advanced settings'**
-  String get onboardingExpertNote;
 
   /// No description provided for @onboardingOptionsNote.
   ///
@@ -2391,6 +2403,24 @@ abstract class AppLocalizations {
   /// **'No camera? Show QR to receive'**
   String get noCameraOption;
 
+  /// No description provided for @networkInterfaceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Network Interface'**
+  String get networkInterfaceLabel;
+
+  /// No description provided for @qrScanningUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'QR scanning is not yet supported on {platform}.'**
+  String qrScanningUnsupported(Object platform);
+
+  /// No description provided for @qrScanningUnsupportedUseShowQr.
+  ///
+  /// In en, this message translates to:
+  /// **'QR scanning is not yet supported on {platform}.\nPlease use \'Show QR to receive\' on the other device.'**
+  String qrScanningUnsupportedUseShowQr(Object platform);
+
   /// No description provided for @showQrToReceive.
   ///
   /// In en, this message translates to:
@@ -2546,6 +2576,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Files were erased from memory'**
   String get webDataExpired;
+
+  /// No description provided for @webPrivacyBadgeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing is stored on a server'**
+  String get webPrivacyBadgeTitle;
+
+  /// No description provided for @webPrivacyBadgeSub.
+  ///
+  /// In en, this message translates to:
+  /// **'All processing happens in your browser'**
+  String get webPrivacyBadgeSub;
 }
 
 class _AppLocalizationsDelegate

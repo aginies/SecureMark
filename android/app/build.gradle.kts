@@ -3,8 +3,9 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // The Kotlin Android plugin is applied automatically by the Flutter Gradle Plugin
+    // (built-in Kotlin is disabled via android.builtInKotlin=false in gradle.properties).
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -22,10 +23,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
     }
 
     defaultConfig {
@@ -53,6 +50,11 @@ android {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
+            // AGP 9 enables R8 minification by default, which obfuscates
+            // kotlin.coroutines.Continuation and breaks Pigeon plugin dispatch
+            // (e.g. shared_preferences). Disable until keep rules are added.
+            isMinifyEnabled = false
+            isShrinkResources = false
             val isSigningConfigured = keystoreProperties.getProperty("storeFile") != null
             signingConfig =
                 if (isSigningConfigured) {
@@ -61,6 +63,12 @@ android {
                     signingConfigs.getByName("debug")
                 }
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
 }
 

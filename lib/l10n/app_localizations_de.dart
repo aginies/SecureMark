@@ -215,14 +215,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get expertOptions => 'Experten-Optionen';
 
   @override
-  String get advancedExpertTitle => 'Experten-Modus';
-
-  @override
-  String get advancedExpertSubtitle =>
-      'Schaltet Steganographie, Meine Geräte-Identität und Lokalen Netzwerkfreigabe frei';
-
-  @override
-  String get requiresAdvancedExpert => 'Verfügbar im Experten-Modus';
+  String get moreOptions => 'Weitere Optionen';
 
   @override
   String fontSizeValue(int value) {
@@ -331,10 +324,6 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get filePrefixHint => 'z.B. wasserzeichen-';
-
-  @override
-  String get resetExpertHint =>
-      'Dies setzt alle Experten-Einstellungen und das Datei-Präfix auf die Standardwerte zurück.';
 
   @override
   String get fontConfigTitle => 'Schrift-/Bildkonfiguration';
@@ -511,6 +500,9 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get steganographyEnabledHint =>
       'Steganographie ist aktiviert und wird angewendet';
+
+  @override
+  String get hideFileOption => 'Datei verbergen';
 
   @override
   String get hideFileWithSteganographyTitle =>
@@ -744,6 +736,34 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get bookmarkSaved =>
       'Identität erfolgreich als Lesezeichen gespeichert';
+
+  @override
+  String get qrIdentityHint =>
+      'Empfänger können dies scannen, um Ihre Dokumente zu verifizieren.';
+
+  @override
+  String identityAdded(Object name) {
+    return 'Identität \'$name\' zu Ihren vertrauenswürdigen Absendern hinzugefügt';
+  }
+
+  @override
+  String get autoVerifyVerified =>
+      'Integrität verifiziert — Absendersignatur ist authentisch';
+
+  @override
+  String get autoVerifyTampered =>
+      'Integritätsprüfung fehlgeschlagen — Dokument wurde verändert';
+
+  @override
+  String get autoVerifyHasMarks =>
+      'SecureMark-Inhalt erkannt — für Details tippen';
+
+  @override
+  String get autoVerifyNoMarks =>
+      'Keine SecureMark-Signatur in dieser Datei gefunden';
+
+  @override
+  String get viewDetails => 'Details';
 
   @override
   String get signatureVerified =>
@@ -1127,12 +1147,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get onboardingStep4 => '4. Teilen oder Speichern Sie die Ergebnisse.';
 
   @override
-  String get onboardingExpertTitle => 'Profile & Optionen';
-
-  @override
-  String get onboardingExpertModeTitle => 'Expertenmodus';
-
-  @override
   String get onboardingSaveProfileTitle => 'Presets speichern';
 
   @override
@@ -1144,10 +1158,6 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get onboardingProfileSave =>
       'Langes Drücken auf ein Profil speichert die aktuelle Konfiguration als Standard.';
-
-  @override
-  String get onboardingExpertNote =>
-      'Expertenmodus (oben rechts) schaltet erweiterte Einstellungen frei';
 
   @override
   String get onboardingOptionsNote =>
@@ -1372,6 +1382,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String get noCameraOption => 'Keine Kamera? QR zum Empfangen zeigen';
 
   @override
+  String get networkInterfaceLabel => 'Netzwerkschnittstelle';
+
+  @override
+  String qrScanningUnsupported(Object platform) {
+    return 'QR-Scannen wird auf $platform noch nicht unterstützt.';
+  }
+
+  @override
+  String qrScanningUnsupportedUseShowQr(Object platform) {
+    return 'QR-Scannen wird auf $platform noch nicht unterstützt.\nVerwenden Sie auf dem anderen Gerät \'QR zum Empfangen zeigen\'.';
+  }
+
+  @override
   String get showQrToReceive =>
       'Scannen Sie dies vom sendenden Gerät, um eine Datei hierher zu übertragen.';
 
@@ -1467,4 +1490,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get webDataExpired => 'Dateien wurden aus dem Speicher gelöscht';
+
+  @override
+  String get webPrivacyBadgeTitle =>
+      'Es wird nichts auf einem Server gespeichert';
+
+  @override
+  String get webPrivacyBadgeSub =>
+      'Die gesamte Verarbeitung läuft in Ihrem Browser';
 }

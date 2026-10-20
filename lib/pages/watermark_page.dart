@@ -48,9 +48,69 @@ import '../utils/web_file_store.dart';
 import '../utils/certificate_manager.dart';
 import '../utils/watermark_utils.dart';
 import '../steganography/encryption_utils.dart';
+import '../steganography/forensic_utils.dart';
 import '../models/watermark_option.dart';
 import '../widgets/option_toggle_grid.dart';
 import 'onboarding_page.dart';
+
+/// Whether [key] is part of the SecureMark configuration backup.
+///
+/// Shared by the export and import paths so an imported
+/// `securemark_config.json` can only write keys the export path would
+/// produce. Anything else (e.g. `https_cert_fingerprint`) is rejected,
+/// preventing a malicious backup zip from injecting arbitrary
+/// SharedPreferences state.
+bool _isConfigBackupKey(String key) {
+  // The Ed25519 private key is never part of a backup, so it must never
+  // be importable either.
+  if (key == 'device_private_key') return false;
+  if (key.startsWith('profile_') || key.startsWith('device_')) return true;
+  return const {
+    'transparency',
+    'density',
+    'fontSize',
+    'jpegQuality',
+    'targetSize',
+    'includeTimestamp',
+    'preserveMetadata',
+    'rasterizePdf',
+    'antiAiLevel',
+    'useSteganography',
+    'useRobustSteganography',
+    'useAiCloaking',
+    'digitallySign',
+    'deviceName',
+    'filePrefix',
+    'selectedProfile',
+    'selectedFont',
+    'qrVisible',
+    'qrType',
+    'qrAuthor',
+    'qrUrl',
+    'identity_bookmarks',
+  }.contains(key);
+}
+
+/// Preference keys that must be stored as ints, because they are read back
+/// with [SharedPreferences.getInt]. Profile-scoped keys reuse the same
+/// suffixes (e.g. `profile_watermark_jpegQuality`), so match on suffixes.
+const Set<String> _intPreferenceKeySuffixes = {
+  'jpegQuality',
+  'targetSize',
+  'selectedColor',
+  'selectedProfile',
+  'qrType',
+  'qrPosition',
+  'watermarkType',
+};
+
+/// Whether [key] is persisted as an int rather than a double.
+///
+/// On Web every number is a double, so `value is int` / `value is double`
+/// cannot reliably pick the right typed setter. The expected type of each
+/// preference key is fixed, so dispatch on the key instead.
+bool _isIntPreferenceKey(String key) =>
+    _intPreferenceKeySuffixes.any((suffix) => key.endsWith(suffix));
 
 class WatermarkPage extends StatefulWidget {
   final bool hasCamera;
@@ -124,7 +184,6 @@ class WatermarkPageState extends State<WatermarkPage>
   double _progress = 0.0;
   bool _obscureHidingPassword = true;
   bool _obscureSecureZipPassword = true;
-  bool _advancedExpert = false;
   bool _obscureExtractionPassword = true;
   String _statusMessage = '';
   String _modalProgressStatus = '';
@@ -134,6 +193,12 @@ class WatermarkPageState extends State<WatermarkPage>
   String? _outputDirectory;
   String? _logoDirectory;
   List<IdentityBookmark> _identityBookmarks = [];
+
+  /// Last file received over the local network, kept so the auto-verify
+  /// badge can re-open the full analysis on demand.
+  Uint8List? _receivedFileBytes;
+  String? _receivedFileName;
+
   ui.Image? _rawImage;
   final List<String> _logs = <String>[];
   final List<String> _tempFiles = <String>[];
@@ -384,11 +449,9 @@ class WatermarkPageState extends State<WatermarkPage>
           }
           _hideFileWithSteganography =
               prefs.getBool('hideFileWithSteganography') ?? false;
-          // Digital signing and file hiding are not exposed in the web UI:
-          // force them off so a setting persisted on another platform
-          // cannot linger invisibly.
+          // File hiding is not exposed in the web UI: force it off so a
+          // setting persisted on another platform cannot linger invisibly.
           if (kIsWeb) {
-            _digitallySign = false;
             _hideFileWithSteganography = false;
           }
           _zipOutputs = prefs.getBool('zipOutputs') ?? false;
@@ -396,7 +459,6 @@ class WatermarkPageState extends State<WatermarkPage>
           _secureZipPasswordController.text =
               prefs.getString('secureZipPassword') ?? '';
           _useRandomColor = prefs.getBool('useRandomColor') ?? true;
-          _advancedExpert = prefs.getBool('advancedExpert') ?? false;
           _filePrefix = prefs.getString('filePrefix') ?? 'securemark-';
           _filePrefixController.text = _filePrefix;
 
@@ -491,13 +553,15 @@ class WatermarkPageState extends State<WatermarkPage>
   Future<void> _savePreference(String key, dynamic value) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      if (value is double) {
-        await prefs.setDouble(key, value);
-      } else if (value is int) {
-        await prefs.setInt(key, value);
-        // Clear the null flag if we're setting a value for targetSize
-        if (key == 'targetSize') {
-          await prefs.remove('targetSizeIsNull');
+      if (value is num) {
+        if (_isIntPreferenceKey(key)) {
+          await prefs.setInt(key, value.toInt());
+          // Clear the null flag if we're setting a value for targetSize
+          if (key == 'targetSize') {
+            await prefs.remove('targetSizeIsNull');
+          }
+        } else {
+          await prefs.setDouble(key, value.toDouble());
         }
       } else if (value is bool) {
         await prefs.setBool(key, value);
@@ -792,8 +856,13 @@ class WatermarkPageState extends State<WatermarkPage>
           if (!prefs.containsKey('${pKey}targetSize')) {
             _targetSize = 1280;
           }
+          // Signed document: a subtle visible watermark carrying the device
+          // identity (drawn in _applyWatermark when signing) in a random
+          // color — less visible than the Image profile (transparency 50) —
+          // backed by the Ed25519 digital signature for integrity. No
+          // steganography.
           if (!prefs.containsKey('${pKey}transparency')) {
-            _transparency = 50;
+            _transparency = 75;
           }
           if (!prefs.containsKey('${pKey}density')) {
             _density = 50;
@@ -808,13 +877,16 @@ class WatermarkPageState extends State<WatermarkPage>
             _useAiCloaking = true;
           }
           if (!prefs.containsKey('${pKey}digitallySign')) {
-            _digitallySign = false;
+            _digitallySign = true;
           }
+          // Digital signing requires ZIP output to carry the integrity
+          // metadata (the ZIP toggle is locked on while signing).
+          _zipOutputs = true;
           if (!prefs.containsKey('${pKey}useSteganography')) {
-            _useSteganography = true;
+            _useSteganography = false;
           }
           if (!prefs.containsKey('${pKey}useRobustSteganography')) {
-            _useRobustSteganography = true;
+            _useRobustSteganography = false;
           }
           if (!prefs.containsKey('${pKey}useRandomColor')) {
             _useRandomColor = true;
@@ -924,16 +996,18 @@ class WatermarkPageState extends State<WatermarkPage>
 
         case SettingsProfile.shareDocument:
           if (!prefs.containsKey('${pKey}targetSize')) _targetSize = 1280;
-          if (!prefs.containsKey('${pKey}transparency')) _transparency = 50;
+          // Clean document: the visible watermark stays fully transparent
+          // (same convention as the QR profile) and steganography is off.
+          if (!prefs.containsKey('${pKey}transparency')) _transparency = 100;
           if (!prefs.containsKey('${pKey}density')) _density = 40;
           if (!prefs.containsKey('${pKey}jpegQuality')) _jpegQuality = 80;
           if (!prefs.containsKey('${pKey}antiAiLevel')) _antiAiLevel = 75;
           if (!prefs.containsKey('${pKey}useAiCloaking')) _useAiCloaking = true;
           if (!prefs.containsKey('${pKey}useSteganography')) {
-            _useSteganography = true;
+            _useSteganography = false;
           }
           if (!prefs.containsKey('${pKey}useRobustSteganography')) {
-            _useRobustSteganography = true;
+            _useRobustSteganography = false;
           }
           if (!prefs.containsKey('${pKey}filePrefix')) {
             _filePrefix = 'doc-';
@@ -1371,6 +1445,13 @@ class WatermarkPageState extends State<WatermarkPage>
   bool get _supportsDesktopDrop =>
       !kIsWeb && (Platform.isMacOS || Platform.isLinux || Platform.isWindows);
 
+  /// Guards for the apply action: nothing to run while a job is in flight,
+  /// before a file is picked, or when the image watermark has no logo loaded.
+  bool get _canApplyWatermark =>
+      !_processing &&
+      _selectedPaths.isNotEmpty &&
+      !(_watermarkType == WatermarkType.image && _watermarkImageBytes == null);
+
   ProcessedFile? get _currentProcessedFile {
     if (_processedFiles.isEmpty) {
       return null;
@@ -1388,67 +1469,80 @@ class WatermarkPageState extends State<WatermarkPage>
       appBar: AppBar(
         title: Row(
           children: [
+            // The "magic wand" stays pinned top-left: one click to run
+            // SecureMark on the current selection, whatever the screen size.
             IconButton(
               icon: const Icon(Icons.auto_fix_high),
-              onPressed: _processing ||
-                      _selectedPaths.isEmpty ||
-                      (_watermarkType == WatermarkType.image &&
-                          _watermarkImageBytes == null)
-                  ? null
-                  : _applyWatermark,
+              onPressed: _canApplyWatermark ? _applyWatermark : null,
               tooltip: l10n.applyWatermark,
               color: theme.colorScheme.primary,
             ),
             const SizedBox(width: 8),
-            // The file analyzer is not part of the web UI.
-            if (!kIsWeb)
-              IconButton(
-                icon: const Icon(Icons.search_rounded),
-                onPressed: _showFileAnalyzer,
-                tooltip: l10n.analyzeFile,
-              ),
-            if (_advancedExpert) ...[
-              IconButton(
-                icon: const Icon(Icons.verified_user_outlined),
-                onPressed: _showSteganographyOptions,
-                tooltip: l10n.steganographyTitle,
-              ),
-              IconButton(
-                icon: const Icon(Icons.person_pin_outlined),
-                onPressed: _showIdentityDialog,
-                tooltip: l10n.myIdentityTitle,
-              ),
-              // The local share dialog serves files over a LAN socket,
-              // which does not exist on the web: on web the output is a
-              // browser download (see _shareCurrent).
-              if (!kIsWeb)
-                IconButton(
-                  icon: const Icon(Icons.sensors),
-                  onPressed: _showLocalShareDialog,
-                  tooltip: l10n.localShareTitle,
-                ),
+            // Secondary tools live in a labeled overflow menu: the old
+            // row of icon-only buttons overflowed narrow app bars and was
+            // the main source of "where is that feature?" confusion.
+            PopupMenuButton<String>(
+              tooltip: l10n.moreOptions,
+              onSelected: (value) {
+                switch (value) {
+                  case 'analyze':
+                    _showFileAnalyzer();
+                  case 'steganography':
+                    _showSteganographyOptions();
+                  case 'identity':
+                    _showIdentityDialog();
+                  case 'localShare':
+                    _showLocalShareDialog();
+                  case 'qr':
+                    _showQrWatermarkOptions();
+                  case 'font':
+                    _showFontOptions();
+                  case 'expertOptions':
+                    _showExpertOptions();
+                }
+              },
+              itemBuilder: (context) => [
+                _toolMenuItem(
+                    'font', Icons.image_outlined, l10n.fontConfigTitle),
+                _toolMenuItem('qr', Icons.qr_code_2, l10n.qrWatermarkTitle),
+                // Local share and the file analyzer are not part of the web
+                // UI: on web the output is a browser download (see
+                // _shareCurrent) and there is no LAN socket. Device identity
+                // and steganography run fully on-device (WASM isolate), so
+                // they are available on web.
+                _toolMenuItem('identity', Icons.person_pin_outlined,
+                    l10n.myIdentityTitle),
+                if (!kIsWeb)
+                  _toolMenuItem(
+                      'localShare', Icons.sensors, l10n.localShareTitle),
+                _toolMenuItem('steganography', Icons.verified_user_outlined,
+                    l10n.steganographyTitle),
+                if (!kIsWeb)
+                  _toolMenuItem(
+                      'analyze', Icons.search_rounded, l10n.analyzeFile),
+                // Expert Options (file naming, PDF and security settings) sits
+                // last: it is the least-used panel, so it no longer claims a
+                // permanent spot in the bar.
+                _toolMenuItem('expertOptions', Icons.settings_suggest_outlined,
+                    l10n.expertOptions),
+              ],
+            ),
+            // The zero-server promise belongs in the app bar of the web build:
+            // a document tool served over the network has to say "nothing is
+            // uploaded" before the user picks a file, not in a footer below
+            // the fold. Tap opens « Confidentialité ».
+            if (kIsWeb) ...[
+              const SizedBox(width: 4),
+              Expanded(child: _buildWebPrivacyBadge(theme, l10n)),
             ],
-            IconButton(
-              icon: const Icon(Icons.qr_code_2),
-              onPressed: _showQrWatermarkOptions,
-              tooltip: l10n.qrWatermarkTitle,
-            ),
-            IconButton(
-              icon: const Icon(Icons.image_outlined),
-              onPressed: _showFontOptions,
-              tooltip: l10n.fontConfigTitle,
-            ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_suggest_outlined),
-            onPressed: _showExpertOptions,
-            tooltip: l10n.expertOptions,
-          ),
-        ],
         centerTitle: false,
       ),
+      // Apply is the one primary action of the page: it floats over the
+      // preview panel at bottom-right, where the eye lands after picking a
+      // file, and stays reachable while the controls column scrolls.
+      floatingActionButton: _buildApplyFloatingButton(l10n, theme),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -1509,14 +1603,29 @@ class WatermarkPageState extends State<WatermarkPage>
     );
   }
 
+  /// Labeled overflow-menu entry: fixed icon, ellipsized text so long
+  /// localized labels (e.g. FR steganography) cannot overflow the menu.
+  PopupMenuItem<String> _toolMenuItem(
+    String value,
+    IconData icon,
+    String label,
+  ) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(label, overflow: TextOverflow.ellipsis),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildProfileSelector(ThemeData theme, AppLocalizations l10n) {
-    final availableProfiles = _advancedExpert
-        ? SettingsProfile.values
-        : SettingsProfile.values
-            .where((p) =>
-                p != SettingsProfile.secureIdentity &&
-                p != SettingsProfile.integrity)
-            .toList();
+    final availableProfiles = SettingsProfile.values.toList();
 
     return GridView.count(
       shrinkWrap: true,
@@ -1576,9 +1685,9 @@ class WatermarkPageState extends State<WatermarkPage>
       case SettingsProfile.shareDocument:
         return Icons.description;
       case SettingsProfile.p1:
-        return Icons.person_outline;
+        return Icons.tune;
       case SettingsProfile.p2:
-        return Icons.person_outline;
+        return Icons.tune;
     }
   }
 
@@ -1588,9 +1697,11 @@ class WatermarkPageState extends State<WatermarkPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildProfileSelector(theme, l10n),
-        const SizedBox(height: 16),
+        // Upload comes first: choosing a file is step 1, the preset profiles
+        // only re-shape the options of whatever is loaded.
         _buildPrimaryActionCard(),
+        const SizedBox(height: 16),
+        _buildProfileSelector(theme, l10n),
         const SizedBox(height: 16),
         _buildCombinedWatermarkCard(),
         const SizedBox(height: 16),
@@ -1954,7 +2065,8 @@ class WatermarkPageState extends State<WatermarkPage>
     }
   }
 
-  void _showFileAnalyzer() {
+  void _showFileAnalyzer(
+      {Uint8List? autoAnalyzeBytes, String? autoAnalyzeName}) {
     final l10n = AppLocalizations.of(context)!;
 
     setState(() {
@@ -1976,9 +2088,22 @@ class WatermarkPageState extends State<WatermarkPage>
       context: context,
       builder: (context) {
         bool isDragging = false;
+        bool autoAnalyzeStarted = false;
         return StatefulBuilder(
           builder: (context, setDialogState) {
             final theme = Theme.of(context);
+
+            // Auto-verify entry point: run the analysis once the dialog is
+            // on screen (used by the received-file badge).
+            if (!autoAnalyzeStarted &&
+                autoAnalyzeBytes != null &&
+                autoAnalyzeName != null) {
+              autoAnalyzeStarted = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _performFileAnalysis(
+                    autoAnalyzeBytes, autoAnalyzeName, setDialogState);
+              });
+            }
 
             Widget dialogContent = SingleChildScrollView(
               child: Column(
@@ -2994,7 +3119,7 @@ class WatermarkPageState extends State<WatermarkPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Network Interface',
+                      l10n.networkInterfaceLabel,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -3475,7 +3600,8 @@ class WatermarkPageState extends State<WatermarkPage>
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24),
                           child: Text(
-                            "QR Scanning not yet supported on ${Platform.isLinux ? 'Linux' : 'Windows'}.\nPlease use 'Show QR to receive' on the other device.",
+                            l10n.qrScanningUnsupportedUseShowQr(
+                                Platform.isLinux ? 'Linux' : 'Windows'),
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 13),
                           ),
@@ -3559,7 +3685,7 @@ class WatermarkPageState extends State<WatermarkPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Network Interface',
+                  l10n.networkInterfaceLabel,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -3677,6 +3803,11 @@ class WatermarkPageState extends State<WatermarkPage>
                     SnackBar(content: Text(l10n.fileReceived(remoteAddr))),
                   );
                 }
+
+                // Run a background integrity check on the received file;
+                // the result appears as a badge with a tap-to-open details
+                // card. Never blocks the receive flow.
+                _autoVerifyReceivedFile(filePath, fileName);
               } catch (e, stackTrace) {
                 _addLog('❌ Error handling received file: $e');
                 _addLog('Stack trace: $stackTrace');
@@ -4907,7 +5038,8 @@ class WatermarkPageState extends State<WatermarkPage>
                           size: 48, color: theme.colorScheme.primary),
                       const SizedBox(height: 16),
                       Text(
-                        "QR Scanning not yet supported on ${Platform.isLinux ? 'Linux' : 'Windows'}.",
+                        l10n.qrScanningUnsupported(
+                            Platform.isLinux ? 'Linux' : 'Windows'),
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 13),
                       ),
@@ -4939,6 +5071,22 @@ class WatermarkPageState extends State<WatermarkPage>
     );
   }
 
+  /// A QR identity payload carries a Base64-encoded Ed25519 public key.
+  /// Accept only keys that decode to exactly 32 bytes so corrupt or
+  /// attacker-crafted values never reach the bookmark list (and later
+  /// signature verification).
+  static bool _isValidEd25519PublicKey(String encoded) {
+    final normalized = encoded.trim();
+    if (normalized.isEmpty) return false;
+    final Uint8List? decoded;
+    try {
+      decoded = base64Decode(normalized);
+    } catch (_) {
+      return false;
+    }
+    return decoded.length == 32;
+  }
+
   void _showIdentityQrScanner(StateSetter setParentDialogState) {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
@@ -4958,7 +5106,8 @@ class WatermarkPageState extends State<WatermarkPage>
                           color: Theme.of(context).colorScheme.primary),
                       const SizedBox(height: 16),
                       Text(
-                        "QR Scanning not yet supported on ${Platform.isLinux ? 'Linux' : 'Windows'}.",
+                        l10n.qrScanningUnsupported(
+                            Platform.isLinux ? 'Linux' : 'Windows'),
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 13),
                       ),
@@ -4971,29 +5120,24 @@ class WatermarkPageState extends State<WatermarkPage>
                     if (barcodes.isNotEmpty) {
                       final String? code = barcodes.first.rawValue;
                       if (code != null) {
-                        String name = 'New Identity';
-                        String pubKey = code;
-
-                        // Try to parse as JSON first (for name + key combo)
-                        try {
-                          final data = jsonDecode(code);
-                          if (data is Map) {
-                            name = data['name'] ?? 'New Identity';
-                            pubKey = data['publicKey'] ?? code;
-                          }
-                        } catch (_) {
-                          // Not JSON, assume raw public key
-                        }
-
-                        if (pubKey.length > 20) {
+                        final messenger = ScaffoldMessenger.of(context);
+                        // Accepts the identity-card URI, the legacy JSON
+                        // format and bare keys (see parseIdentityCard).
+                        final card = ForensicUtils.parseIdentityCard(code);
+                        if (card != null &&
+                            _isValidEd25519PublicKey(card.publicKey)) {
                           Navigator.pop(context);
                           setParentDialogState(() {
                             _identityBookmarks.add(IdentityBookmark(
-                                name: name, publicKey: pubKey));
+                                name: card.name, publicKey: card.publicKey));
                           });
                           _saveBookmarks();
+                          messenger.showSnackBar(
+                            SnackBar(
+                                content: Text(l10n.identityAdded(card.name))),
+                          );
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          messenger.showSnackBar(
                             SnackBar(content: Text(l10n.invalidQrCode)),
                           );
                         }
@@ -5010,6 +5154,68 @@ class WatermarkPageState extends State<WatermarkPage>
         ],
       ),
     );
+  }
+
+  /// Background integrity check for files received over the local network.
+  /// Shows a short badge; the full verification card opens on demand via
+  /// the badge's details action.
+  Future<void> _autoVerifyReceivedFile(
+      String sourcePath, String fileName) async {
+    try {
+      final source = File(sourcePath);
+      if (!await source.exists()) return;
+      final bytes = await source.readAsBytes();
+      final analysis =
+          await WatermarkProcessor.analyzeFileAsync(bytes, fileName);
+      if (!mounted) return;
+
+      _receivedFileBytes = bytes;
+      _receivedFileName = fileName;
+
+      final l10n = AppLocalizations.of(context)!;
+      final Color badgeColor;
+      final String message;
+      if (analysis.senderPublicKey != null) {
+        if (analysis.integrityVerified) {
+          badgeColor = Colors.green;
+          message = l10n.autoVerifyVerified;
+        } else {
+          badgeColor = Colors.red;
+          message = l10n.autoVerifyTampered;
+        }
+      } else if (analysis.signature != null ||
+          analysis.robustSignature != null ||
+          analysis.file != null) {
+        badgeColor = Colors.blue;
+        message = l10n.autoVerifyHasMarks;
+      } else {
+        badgeColor = Colors.orange;
+        message = l10n.autoVerifyNoMarks;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: badgeColor,
+          duration: const Duration(seconds: 8),
+          action: SnackBarAction(
+            label: l10n.viewDetails,
+            onPressed: _showReceivedFileDetails,
+          ),
+        ),
+      );
+    } catch (e) {
+      _addLog('Auto-verify failed for $fileName: $e');
+    }
+  }
+
+  /// Re-opens the file analyzer and runs the full analysis on the last
+  /// received file, showing the complete verification card.
+  void _showReceivedFileDetails() {
+    final bytes = _receivedFileBytes;
+    final name = _receivedFileName;
+    if (bytes == null || name == null) return;
+    _showFileAnalyzer(autoAnalyzeBytes: bytes, autoAnalyzeName: name);
   }
 
   Future<void> _performFileAnalysis(
@@ -7103,38 +7309,35 @@ class WatermarkPageState extends State<WatermarkPage>
                         _savePreference('rasterizePdf', value ?? false);
                       },
                     ),
-                    // Digital signing is not part of the web UI.
-                    if (!kIsWeb) ...[
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      CheckboxListTile(
-                        title: Text(l10n.digitallySignTitle),
-                        subtitle: Text(l10n.digitallySignSubtitle),
-                        value: _digitallySign,
-                        contentPadding: EdgeInsets.zero,
-                        onChanged: (value) {
-                          final bool enabled = value ?? false;
-                          setDialogState(() {
-                            _digitallySign = enabled;
-                            // Automatically enable ZIP when digital signature is enabled
-                            // to preserve integrity metadata
-                            if (enabled) {
-                              _zipOutputs = true;
-                            }
-                          });
-                          setState(() {
-                            _digitallySign = enabled;
-                            if (enabled) {
-                              _zipOutputs = true;
-                            }
-                          });
-                          _savePreference('digitallySign', enabled);
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      title: Text(l10n.digitallySignTitle),
+                      subtitle: Text(l10n.digitallySignSubtitle),
+                      value: _digitallySign,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (value) {
+                        final bool enabled = value ?? false;
+                        setDialogState(() {
+                          _digitallySign = enabled;
+                          // Automatically enable ZIP when digital signature is enabled
+                          // to preserve integrity metadata
                           if (enabled) {
-                            _savePreference('zipOutputs', true);
+                            _zipOutputs = true;
                           }
-                        },
-                      ),
-                    ],
+                        });
+                        setState(() {
+                          _digitallySign = enabled;
+                          if (enabled) {
+                            _zipOutputs = true;
+                          }
+                        });
+                        _savePreference('digitallySign', enabled);
+                        if (enabled) {
+                          _savePreference('zipOutputs', true);
+                        }
+                      },
+                    ),
                     const Divider(),
                     const SizedBox(height: 8),
                     Row(
@@ -7212,27 +7415,6 @@ class WatermarkPageState extends State<WatermarkPage>
                         _savePreference('useSecureZip', enabled);
                       },
                     ),
-                    // The expert-mode toggle is not part of the web UI.
-                    if (!kIsWeb) ...[
-                      const Divider(),
-                      const SizedBox(height: 8),
-                      CheckboxListTile(
-                        title: Text(l10n.advancedExpertTitle),
-                        subtitle: Text(l10n.advancedExpertSubtitle),
-                        value: _advancedExpert,
-                        contentPadding: EdgeInsets.zero,
-                        onChanged: (value) {
-                          final bool enabled = value ?? false;
-                          setDialogState(() {
-                            _advancedExpert = enabled;
-                          });
-                          setState(() {
-                            _advancedExpert = enabled;
-                          });
-                          _savePreference('advancedExpert', enabled);
-                        },
-                      ),
-                    ],
                     /*
                     const Divider(),
                     const SizedBox(height: 8),
@@ -8475,7 +8657,9 @@ class WatermarkPageState extends State<WatermarkPage>
                                     }
 
                                     return Positioned(
-                                      bottom: 8,
+                                      // Top-right: the bottom-right corner of
+                                      // the preview belongs to the Apply FAB.
+                                      top: 8,
                                       right: 8,
                                       child: FloatingActionButton.small(
                                         heroTag: "zoom_reset_$index",
@@ -8828,6 +9012,87 @@ class WatermarkPageState extends State<WatermarkPage>
     ]);
   }
 
+  /// (Web only) App-bar badge: nothing is stored on a server, everything is
+  /// processed in the browser. Tapping it opens the « Confidentialité » dialog.
+  ///
+  /// Adaptive: the secondary line drops out on narrow bars, and once even the
+  /// headline would be truncated to an ellipsis only the shield remains (the
+  /// tooltip carries the message and the tap still works).
+  Widget _buildWebPrivacyBadge(ThemeData theme, AppLocalizations l10n) {
+    final linkStyle = theme.textTheme.labelSmall?.copyWith(
+      color: theme.colorScheme.primary,
+      decoration: TextDecoration.underline,
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final showText = constraints.maxWidth >= 200;
+        final showSubline = constraints.maxWidth >= 400;
+        // The badge lives in an Expanded (tight width) in the app bar. Align
+        // relaxes that to a loose constraint and the min-sized Row shrinks to
+        // the icon + text, so the InkWell tap target is only the content —
+        // not the whole remaining bar width.
+        return Align(
+          alignment: Alignment.centerLeft,
+          child: Tooltip(
+            message: l10n.privacyPolicy,
+            child: InkWell(
+              onTap: _showWebConfidentialite,
+              borderRadius: BorderRadius.circular(10),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.shield_outlined,
+                        size: 18, color: theme.colorScheme.primary),
+                    if (showText) ...[
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.webPrivacyBadgeTitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            if (showSubline)
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      l10n.webPrivacyBadgeSub,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(color: theme.hintColor),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  // French-only on purpose, like the footer
+                                  // links: the French text is the official
+                                  // legal version.
+                                  Text('Confidentialité', style: linkStyle),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   void _showGuide() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -9021,7 +9286,9 @@ class WatermarkPageState extends State<WatermarkPage>
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      // 4px = Card's default margin: this keeps the import CTA flush with the
+      // profile grid and the cards below it instead of sitting 12px narrower.
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -9073,14 +9340,30 @@ class WatermarkPageState extends State<WatermarkPage>
     );
   }
 
+  /// Floating Apply button over the preview panel (Scaffold.floatingActionButton
+  /// at the default endFloat location). Guarded by [_canApplyWatermark], so it
+  /// greys out under the same conditions as the app-bar magic wand.
+  Widget _buildApplyFloatingButton(AppLocalizations l10n, ThemeData theme) {
+    final enabled = _canApplyWatermark;
+    final colorScheme = theme.colorScheme;
+    return FloatingActionButton.extended(
+      heroTag: 'applyWatermark',
+      onPressed: enabled ? _applyWatermark : null,
+      icon: const Icon(Icons.auto_fix_high),
+      label: Text(l10n.applyWatermark),
+      // Grey the whole button out until it can actually be pressed, so the
+      // "nothing to apply yet" state is obvious regardless of theme defaults
+      // (no files selected, image watermark without an image, or a run in
+      // progress). Null keeps the theme's normal color once enabled.
+      backgroundColor: enabled ? null : colorScheme.surfaceContainerHighest,
+      foregroundColor:
+          enabled ? null : colorScheme.onSurface.withValues(alpha: 0.38),
+    );
+  }
+
   Widget _buildActionButtons() {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-
-    final bool canApply = !(_processing ||
-        _selectedPaths.isEmpty ||
-        (_watermarkType == WatermarkType.image &&
-            _watermarkImageBytes == null));
 
     return Card(
       elevation: 6,
@@ -9091,54 +9374,8 @@ class WatermarkPageState extends State<WatermarkPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Primary "Apply SecureMark" Button
-            Container(
-              decoration: BoxDecoration(
-                gradient: canApply
-                    ? LinearGradient(
-                        colors: [
-                          theme.colorScheme.primary,
-                          theme.colorScheme.secondary,
-                        ],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      )
-                    : null,
-                color:
-                    canApply ? null : theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: _PushDownWrapper(
-                enabled: canApply,
-                child: FilledButton.icon(
-                  onPressed: canApply ? _applyWatermark : null,
-                  icon: const Icon(Icons.auto_fix_high, size: 24),
-                  label: Text(
-                    l10n.applyWatermark,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.1,
-                    ),
-                  ),
-                  style: ButtonStyle(
-                    backgroundColor:
-                        WidgetStateProperty.all(Colors.transparent),
-                    foregroundColor: WidgetStateProperty.resolveWith((states) {
-                      if (states.contains(WidgetState.disabled)) {
-                        return theme.colorScheme.onSurfaceVariant;
-                      }
-                      return Colors.white;
-                    }),
-                    padding: WidgetStateProperty.all(
-                        const EdgeInsets.symmetric(vertical: 20)),
-                    shape: WidgetStateProperty.all(RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16))),
-                    elevation: WidgetStateProperty.all(0),
-                  ),
-                ),
-              ),
-            ),
+            // The apply CTA itself moved to the floating button; this card
+            // keeps the error strip and the output / save / share actions.
             if (_hasErrors && _statusMessage.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
@@ -9348,9 +9585,7 @@ class WatermarkPageState extends State<WatermarkPage>
                   children: [
                     // Random Color Rectangle
                     _ColorTile(
-                      isSelected: _useRandomColor,
                       processing: _processing,
-                      burstColor: theme.colorScheme.primary,
                       isCircle: false,
                       onTap: () => _updateColorMode(true),
                       child: AnimatedOpacity(
@@ -9405,9 +9640,7 @@ class WatermarkPageState extends State<WatermarkPage>
                       final isSelected = !_useRandomColor &&
                           color.toARGB32() == _selectedColor.toARGB32();
                       return _ColorTile(
-                        isSelected: isSelected,
                         processing: _processing,
-                        burstColor: color,
                         onTap: () {
                           _updateColorMode(false);
                           _selectColor(color);
@@ -9726,33 +9959,32 @@ class WatermarkPageState extends State<WatermarkPage>
   /// Builds the complete list of toggleable watermark options
   List<WatermarkOption> _buildAllOptions(AppLocalizations l10n) {
     return [
-      // Digital Signature (not part of the web UI)
-      if (!kIsWeb)
-        WatermarkOption(
-          id: 'digital_sign',
-          label: l10n.digitallySignTitle,
-          icon: Icons.fingerprint,
-          enabledColor: Colors.blueAccent,
-          isEnabled: _digitallySign,
-          isAvailable: !_rasterizePdf,
-          unavailableReason: _rasterizePdf ? l10n.unavailableRasterPdf : null,
-          subtitle: _digitallySign ? 'Integrity protection enabled' : null,
-          onToggle: () {
-            if (!_rasterizePdf) {
-              setState(() {
-                _digitallySign = !_digitallySign;
-                if (_digitallySign) {
-                  _zipOutputs = true; // Auto-enable zip for signing
-                }
-              });
-              _savePreference('digitallySign', _digitallySign);
+      // Digital Signature
+      WatermarkOption(
+        id: 'digital_sign',
+        label: l10n.digitallySignTitle,
+        icon: Icons.fingerprint,
+        enabledColor: Colors.blueAccent,
+        isEnabled: _digitallySign,
+        isAvailable: !_rasterizePdf,
+        unavailableReason: _rasterizePdf ? l10n.unavailableRasterPdf : null,
+        subtitle: _digitallySign ? 'Integrity protection enabled' : null,
+        onToggle: () {
+          if (!_rasterizePdf) {
+            setState(() {
+              _digitallySign = !_digitallySign;
               if (_digitallySign) {
-                _savePreference('zipOutputs', true);
+                _zipOutputs = true; // Auto-enable zip for signing
               }
+            });
+            _savePreference('digitallySign', _digitallySign);
+            if (_digitallySign) {
+              _savePreference('zipOutputs', true);
             }
-          },
-          onConfigure: _showExpertOptions,
-        ),
+          }
+        },
+        onConfigure: _showExpertOptions,
+      ),
 
       // Steganography
       WatermarkOption(
@@ -9764,12 +9996,8 @@ class WatermarkPageState extends State<WatermarkPage>
         enabledColor:
             _steganographyVerificationFailed ? Colors.red : Colors.green,
         isEnabled: _useSteganography,
-        isAvailable: !_rasterizePdf && _advancedExpert,
-        unavailableReason: _rasterizePdf
-            ? l10n.unavailableRasterPdf
-            : _advancedExpert
-                ? null
-                : l10n.requiresAdvancedExpert,
+        isAvailable: !_rasterizePdf,
+        unavailableReason: _rasterizePdf ? l10n.unavailableRasterPdf : null,
         subtitle: _steganographyVerificationFailed
             ? l10n.steganographyVerificationFailed
             : (_useSteganography ? l10n.steganographyEnabledHint : null),
@@ -9863,7 +10091,7 @@ class WatermarkPageState extends State<WatermarkPage>
       if (!kIsWeb)
         WatermarkOption(
           id: 'hide_file',
-          label: 'Hide File',
+          label: l10n.hideFileOption,
           icon: Icons.attachment,
           enabledColor: Colors.brown,
           isEnabled: _hideFileWithSteganography && _hiddenFileBytes != null,
@@ -10048,8 +10276,10 @@ class WatermarkPageState extends State<WatermarkPage>
         },
         onConfigure: null, // No settings dialog
       ),
+      // Steganography stays hidden in the web UI (behavior unchanged): the
+      // old expert-mode gate was never reachable there.
     ].where((option) {
-      if (!_advancedExpert &&
+      if (kIsWeb &&
           (option.id == 'steganography' || option.id == 'robust_stego')) {
         return false;
       }
@@ -10700,6 +10930,20 @@ class WatermarkPageState extends State<WatermarkPage>
         final bool shouldApplyStegano = _useSteganography ||
             (_hideFileWithSteganography && _hiddenFileBytes != null);
 
+        // When signing with the device identity, the identity (device name)
+        // is drawn as a visible watermark in a random color, so the signature
+        // is apparent on the image and not only cryptographically embedded.
+        final identityName = _deviceName.trim();
+        final bool applyIdentityWatermark =
+            _digitallySign && identityName.isNotEmpty;
+        final String effectiveWatermarkText = applyIdentityWatermark
+            ? (_textController.text.trim().isEmpty
+                ? identityName
+                : '${_textController.text.trim()} — $identityName')
+            : _textController.text;
+        final bool effectiveRandomColor =
+            applyIdentityWatermark || _useRandomColor;
+
         _addLog(
             'Processing with: useSteganography=$shouldApplyStegano, hideFile=$_hideFileWithSteganography, hiddenFile=$_hiddenFileName (${_hiddenFileBytes?.length ?? 0} bytes), digitallySign=$_digitallySign');
 
@@ -10710,8 +10954,8 @@ class WatermarkPageState extends State<WatermarkPage>
             inputBytes: kIsWeb ? WebFileStore.bytesFor(path) : null,
             transparency: _transparency,
             density: _density,
-            watermarkText: _textController.text,
-            useRandomColor: _useRandomColor,
+            watermarkText: effectiveWatermarkText,
+            useRandomColor: effectiveRandomColor,
             selectedColorValue: _selectedColor.toARGB32(),
             fontSize:
                 _watermarkType == WatermarkType.text ? _fontSize : _logoSize,
@@ -11576,14 +11820,7 @@ class WatermarkPageState extends State<WatermarkPage>
           title: Text(l10n.resetProfiles),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            children: (_advancedExpert
-                    ? SettingsProfile.values
-                    : SettingsProfile.values
-                        .where((p) =>
-                            p != SettingsProfile.secureIdentity &&
-                            p != SettingsProfile.integrity)
-                        .toList())
-                .map((profile) {
+            children: SettingsProfile.values.map((profile) {
               String label = '';
               IconData icon;
               switch (profile) {
@@ -11607,10 +11844,10 @@ class WatermarkPageState extends State<WatermarkPage>
                   icon = Icons.description;
                 case SettingsProfile.p1:
                   label = "P1";
-                  icon = Icons.person_outline;
+                  icon = Icons.tune;
                 case SettingsProfile.p2:
                   label = "P2";
-                  icon = Icons.person_outline;
+                  icon = Icons.tune;
               }
 
               return Padding(
@@ -11704,33 +11941,10 @@ class WatermarkPageState extends State<WatermarkPage>
       final Map<String, dynamic> configData = {};
 
       for (final key in allKeys) {
-        // Only export SecureMark related keys
-        if (key.startsWith('profile_') ||
-            key.startsWith('device_') ||
-            [
-              'transparency',
-              'density',
-              'fontSize',
-              'jpegQuality',
-              'targetSize',
-              'includeTimestamp',
-              'preserveMetadata',
-              'rasterizePdf',
-              'antiAiLevel',
-              'useSteganography',
-              'useRobustSteganography',
-              'useAiCloaking',
-              'digitallySign',
-              'deviceName',
-              'filePrefix',
-              'selectedProfile',
-              'selectedFont',
-              'qrVisible',
-              'qrType',
-              'qrAuthor',
-              'qrUrl',
-              'identity_bookmarks'
-            ].contains(key)) {
+        // Only export SecureMark related keys. The Ed25519 private key is
+        // intentionally excluded: a backup must not carry the signing
+        // identity's secret material.
+        if (_isConfigBackupKey(key)) {
           configData[key] = prefs.get(key);
         }
       }
@@ -11880,12 +12094,24 @@ class WatermarkPageState extends State<WatermarkPage>
             final key = entry.key;
             final value = entry.value;
 
+            // Reject keys the export path would never produce so a malicious
+            // backup zip cannot inject arbitrary SharedPreferences state
+            // (e.g. device_private_key, https_cert_fingerprint).
+            if (!_isConfigBackupKey(key)) {
+              _addLog('Skipping non-config key from imported backup: $key');
+              continue;
+            }
+
             if (value is bool) {
               await prefs.setBool(key, value);
-            } else if (value is int) {
-              await prefs.setInt(key, value);
-            } else if (value is double) {
-              await prefs.setDouble(key, value);
+            } else if (value is num) {
+              // On Web, JSON numbers decode as int even when the source had
+              // a decimal point, so store by key type rather than runtime type.
+              if (_isIntPreferenceKey(key)) {
+                await prefs.setInt(key, value.toInt());
+              } else {
+                await prefs.setDouble(key, value.toDouble());
+              }
             } else if (value is String) {
               await prefs.setString(key, value);
             } else if (value is List) {
@@ -12029,13 +12255,13 @@ class WatermarkPageState extends State<WatermarkPage>
                   ),
                   TextButton.icon(
                     onPressed: () {
-                      final shareData = jsonEncode({
-                        'name': _deviceNameController.text,
-                        'publicKey': publicKey,
-                      });
+                      // Share the self-describing identity-card URI so the
+                      // receiver's app can import the key directly.
+                      final card = ForensicUtils.generateIdentityCard(
+                          _deviceNameController.text, publicKey, fingerprint);
                       SharePlus.instance.share(
                         ShareParams(
-                          text: shareData,
+                          text: card,
                           subject: l10n.myIdentityTitle,
                         ),
                       );
@@ -12045,11 +12271,9 @@ class WatermarkPageState extends State<WatermarkPage>
                   ),
                   TextButton.icon(
                     onPressed: () {
-                      final qrData = jsonEncode({
-                        'name': _deviceNameController.text,
-                        'publicKey': publicKey,
-                      });
-                      _showQrIdentityDialog(qrData);
+                      final card = ForensicUtils.generateIdentityCard(
+                          _deviceNameController.text, publicKey, fingerprint);
+                      _showQrIdentityDialog(card);
                     },
                     icon: const Icon(Icons.qr_code, size: 18),
                     label: Text(l10n.generateQrKey),
@@ -12089,10 +12313,10 @@ class WatermarkPageState extends State<WatermarkPage>
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              "Recipients can scan this to verify your documents.",
+            Text(
+              l10n.qrIdentityHint,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12),
+              style: const TextStyle(fontSize: 12),
             ),
           ],
         ),
@@ -12234,18 +12458,14 @@ class _XYPadPainter extends CustomPainter {
 
 class _ColorTile extends StatefulWidget {
   final Widget child;
-  final bool isSelected;
   final VoidCallback onTap;
   final bool processing;
-  final Color burstColor;
   final bool isCircle;
 
   const _ColorTile({
     required this.child,
-    required this.isSelected,
     required this.onTap,
     required this.processing,
-    required this.burstColor,
     this.isCircle = true,
   });
 
@@ -12253,33 +12473,7 @@ class _ColorTile extends StatefulWidget {
   State<_ColorTile> createState() => _ColorTileState();
 }
 
-class _ColorTileState extends State<_ColorTile>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _burstController;
-
-  @override
-  void initState() {
-    super.initState();
-    _burstController = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    );
-  }
-
-  @override
-  void didUpdateWidget(_ColorTile oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!oldWidget.isSelected && widget.isSelected) {
-      _burstController.forward(from: 0.0);
-    }
-  }
-
-  @override
-  void dispose() {
-    _burstController.dispose();
-    super.dispose();
-  }
-
+class _ColorTileState extends State<_ColorTile> {
   @override
   Widget build(BuildContext context) {
     return _PushDownWrapper(
@@ -12289,73 +12483,9 @@ class _ColorTileState extends State<_ColorTile>
         child: InkWell(
           onTap: widget.processing ? null : widget.onTap,
           borderRadius: BorderRadius.circular(widget.isCircle ? 999 : 4),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              widget.child,
-              IgnorePointer(
-                child: _ColorBurst(
-                  controller: _burstController,
-                  color: widget.burstColor,
-                ),
-              ),
-            ],
-          ),
+          child: widget.child,
         ),
       ),
-    );
-  }
-}
-
-class _ColorBurst extends StatelessWidget {
-  final AnimationController controller;
-  final Color color;
-
-  const _ColorBurst({
-    required this.controller,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, child) {
-        if (controller.value == 0.0 || controller.value == 1.0) {
-          return const SizedBox.shrink();
-        }
-
-        return Stack(
-          alignment: Alignment.center,
-          children: List.generate(8, (index) {
-            final double angle = (index * 45) * (math.pi / 180);
-            final double distance = 60 * controller.value;
-            final double opacity = 1.0 - controller.value;
-            final double scale = 0.2 + (0.5 * controller.value);
-
-            return Transform.translate(
-              offset: Offset(
-                math.cos(angle) * distance,
-                math.sin(angle) * distance,
-              ),
-              child: Transform.scale(
-                scale: scale,
-                child: Opacity(
-                  opacity: opacity,
-                  child: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.8),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }),
-        );
-      },
     );
   }
 }
@@ -12385,33 +12515,7 @@ class _ProfileTile extends StatefulWidget {
   State<_ProfileTile> createState() => _ProfileTileState();
 }
 
-class _ProfileTileState extends State<_ProfileTile>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _burstController;
-
-  @override
-  void initState() {
-    super.initState();
-    _burstController = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    );
-  }
-
-  @override
-  void didUpdateWidget(_ProfileTile oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!oldWidget.isSelected && widget.isSelected) {
-      _burstController.forward(from: 0.0);
-    }
-  }
-
-  @override
-  void dispose() {
-    _burstController.dispose();
-    super.dispose();
-  }
-
+class _ProfileTileState extends State<_ProfileTile> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = widget.theme.colorScheme;
@@ -12490,73 +12594,11 @@ class _ProfileTileState extends State<_ProfileTile>
                     ),
                   ],
                 ),
-                IgnorePointer(
-                  child: _ProfileIconBurst(
-                    controller: _burstController,
-                    icon: widget.icon,
-                    color: colorScheme.primary,
-                    size: 22,
-                  ),
-                ),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-}
-
-class _ProfileIconBurst extends StatelessWidget {
-  final AnimationController controller;
-  final IconData icon;
-  final Color color;
-  final double size;
-
-  const _ProfileIconBurst({
-    required this.controller,
-    required this.icon,
-    required this.color,
-    required this.size,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, child) {
-        if (controller.value == 0.0 || controller.value == 1.0) {
-          return const SizedBox.shrink();
-        }
-
-        return Stack(
-          alignment: Alignment.center,
-          children: List.generate(8, (index) {
-            final double angle = (index * 45) * (3.14159 / 180);
-            final double distance = 200 * controller.value;
-            final double opacity = 1.0 - controller.value;
-            final double scale = 0.2 + (0.8 * controller.value);
-
-            return Transform.translate(
-              offset: Offset(
-                math.cos(angle) * distance,
-                math.sin(angle) * distance,
-              ),
-              child: Transform.scale(
-                scale: scale,
-                child: Opacity(
-                  opacity: opacity,
-                  child: Icon(
-                    icon,
-                    color: color.withValues(alpha: 0.8),
-                    size: size * 3.2,
-                  ),
-                ),
-              ),
-            );
-          }),
-        );
-      },
     );
   }
 }
