@@ -910,7 +910,9 @@ extension _WatermarkPageStateBuildersPart on WatermarkPageState {
                 children: [
                   Text(
                     'Antoine Giniès',
-                    style: theme.textTheme.bodySmall,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   if (_appVersion.isNotEmpty) ...[
                     const SizedBox(width: 6),
@@ -918,6 +920,7 @@ extension _WatermarkPageStateBuildersPart on WatermarkPageState {
                       'v$_appVersion',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: theme.hintColor,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
