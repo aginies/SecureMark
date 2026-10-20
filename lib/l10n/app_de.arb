@@ -13,6 +13,7 @@
   },
   "clickApplyToPreview": "Klicken Sie auf \"SecureMark anwenden\", um Vorschauen zu generieren",
   "previewUnavailable": "Vorschau nicht verfügbar",
+  "pdfNoPreviewHint": "Für PDF-Dateien ist keine Vorschau verfügbar. Klicken Sie auf \"Speichern\", um das markierte PDF zu öffnen.",
   "swipeHint": "Nach links für nächste, nach rechts für vorherige wischen ({current}/{total})",
   "@swipeHint": {
     "placeholders": {

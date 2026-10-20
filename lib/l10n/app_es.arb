@@ -13,6 +13,7 @@
   },
   "clickApplyToPreview": "Haz clic en \"Aplicar SecureMark\" para generar las vistas previas",
   "previewUnavailable": "Vista previa no disponible",
+  "pdfNoPreviewHint": "No hay vista previa para los archivos PDF. Haz clic en \"Guardar\" para abrir el PDF modificado.",
   "swipeHint": "Desliza a la izquierda para el siguiente, a la derecha para el anterior ({current}/{total})",
   "@swipeHint": {
     "placeholders": {

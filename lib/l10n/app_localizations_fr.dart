@@ -32,6 +32,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get previewUnavailable => 'Aperçu indisponible';
 
   @override
+  String get pdfNoPreviewHint =>
+      'Aperçu indisponible pour les fichiers PDF. Cliquez sur \"Enregistrer\" pour ouvrir le PDF filigrané.';
+
+  @override
   String swipeHint(int current, int total) {
     return 'Glissez à gauche pour le suivant, à droite pour le précédent ($current/$total)';
   }

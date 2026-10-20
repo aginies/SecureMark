@@ -32,6 +32,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get previewUnavailable => 'Preview unavailable';
 
   @override
+  String get pdfNoPreviewHint =>
+      'No preview is available for PDF files. Click \"Save\" to open the watermarked PDF.';
+
+  @override
   String swipeHint(int current, int total) {
     return 'Swipe left for next, right for previous ($current/$total)';
   }

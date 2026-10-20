@@ -8275,10 +8275,36 @@ class WatermarkPageState extends State<WatermarkPage>
                             final previewBytes =
                                 _processedFiles[index].result.previewBytes;
                             if (previewBytes == null) {
+                              // A PDF preview needs the rasterizer, which is
+                              // not reachable on every platform (web). Tell the
+                              // user where to find the result instead of
+                              // showing an empty box.
+                              final resultIsPdf =
+                                  _processedFiles[index].result.isPdf;
                               return Center(
-                                child: Text(
-                                  l10n.previewUnavailable,
-                                  style: theme.textTheme.bodyMedium,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        resultIsPdf
+                                            ? Icons.picture_as_pdf_outlined
+                                            : Icons
+                                                .image_not_supported_outlined,
+                                        size: 56,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        resultIsPdf
+                                            ? l10n.pdfNoPreviewHint
+                                            : l10n.previewUnavailable,
+                                        style: theme.textTheme.bodyMedium,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               );
                             }
