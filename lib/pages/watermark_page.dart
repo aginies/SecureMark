@@ -960,16 +960,18 @@ class WatermarkPageState extends State<WatermarkPage>
 
         case SettingsProfile.shareDocument:
           if (!prefs.containsKey('${pKey}targetSize')) _targetSize = 1280;
-          if (!prefs.containsKey('${pKey}transparency')) _transparency = 50;
+          // Clean document: the visible watermark stays fully transparent
+          // (same convention as the QR profile) and steganography is off.
+          if (!prefs.containsKey('${pKey}transparency')) _transparency = 100;
           if (!prefs.containsKey('${pKey}density')) _density = 40;
           if (!prefs.containsKey('${pKey}jpegQuality')) _jpegQuality = 80;
           if (!prefs.containsKey('${pKey}antiAiLevel')) _antiAiLevel = 75;
           if (!prefs.containsKey('${pKey}useAiCloaking')) _useAiCloaking = true;
           if (!prefs.containsKey('${pKey}useSteganography')) {
-            _useSteganography = true;
+            _useSteganography = false;
           }
           if (!prefs.containsKey('${pKey}useRobustSteganography')) {
-            _useRobustSteganography = true;
+            _useRobustSteganography = false;
           }
           if (!prefs.containsKey('${pKey}filePrefix')) {
             _filePrefix = 'doc-';
