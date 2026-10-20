@@ -2,6 +2,30 @@
 
 All notable changes to SecureMark are documented in this file.
 
+## 2.2.0
+
+### Added
+
+- **Per-profile ZIP default**: the "ZIP All Files" option is now enabled by
+  default only for the Identity and Integrity profiles (both sign documents,
+  which requires ZIP output). It is off by default for every other profile
+  (Share Document, Online Image, QR Code, P1, P2).
+
+### Changed
+
+- **Apply button**: the floating button now shows a short "Apply" label
+  (instead of "Apply SecureMark") and is lifted above the author footer so it
+  no longer covers "Antoine Giniès vX.X.X" at the bottom of the screen.
+
+### Fixed
+
+- **Android release build**: disabled R8 minification for release builds.
+  AGP 9 (from the 2.1.1 toolchain upgrade) ran R8 by default, which obfuscated
+  `kotlin.coroutines.Continuation` and broke Pigeon dispatch for
+  `shared_preferences`, crashing the app on startup in release.
+- **Web privacy badge**: the "Confidentialité" link at the end of the badge is
+  now shown in parentheses.
+
 ## 2.1.1
 
 ### Added
