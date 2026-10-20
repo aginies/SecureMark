@@ -3,6 +3,20 @@ part of '../watermark_page.dart';
 /// File forensics: extraction, batch analysis, signature verification and results UI.
 
 extension _WatermarkPageStateForensicsPart on WatermarkPageState {
+  /// Clears every analysis-related field so the analyzer always starts from a
+  /// clean slate (shared by the dialog entry points).
+  void _resetAnalysisState() {
+    _analysisResult = null;
+    _extractedFile = null;
+    _batchAnalysisResult = null;
+    _selectedFileIndex = null;
+    _extractedSignature = null;
+    _verificationResult = null;
+    _integrityVerified = false;
+    _senderPublicKey = null;
+    _analyzingFile = false;
+  }
+
   void _showFileAnalyzer(
       {Uint8List? autoAnalyzeBytes, String? autoAnalyzeName}) {
     final l10n = AppLocalizations.of(context)!;
@@ -11,15 +25,7 @@ extension _WatermarkPageStateForensicsPart on WatermarkPageState {
       _extractionPassword = '';
       _extractionPasswordController.text = '';
       // Reset analysis state
-      _analysisResult = null;
-      _extractedFile = null;
-      _batchAnalysisResult = null;
-      _selectedFileIndex = null;
-      _extractedSignature = null;
-      _verificationResult = null;
-      _integrityVerified = false;
-      _senderPublicKey = null;
-      _analyzingFile = false;
+      _resetAnalysisState();
     });
 
     showDialog(
@@ -552,17 +558,7 @@ extension _WatermarkPageStateForensicsPart on WatermarkPageState {
 
   Future<void> _pickAndAnalyze(StateSetter setDialogState) async {
     // Reset state FIRST before picking new file
-    setDialogState(() {
-      _analysisResult = null;
-      _extractedFile = null;
-      _batchAnalysisResult = null;
-      _selectedFileIndex = null;
-      _extractedSignature = null;
-      _verificationResult = null;
-      _integrityVerified = false;
-      _senderPublicKey = null;
-      _analyzingFile = false;
-    });
+    setDialogState(_resetAnalysisState);
 
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: false,

@@ -7,6 +7,17 @@ part of '../watermark_page.dart';
 const MethodChannel _platform = MethodChannel('secure_mark/sharing');
 
 extension _WatermarkPageStateFilePickingPart on WatermarkPageState {
+  /// Shows the standard red error snackbar used by all picking/scanning paths.
+  void _showPickError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
+    );
+  }
+
   Future<void> _pickOutputDirectory() async {
     try {
       String? directoryPath;
@@ -192,14 +203,7 @@ extension _WatermarkPageStateFilePickingPart on WatermarkPageState {
       await _selectPaths([photo.path]);
     } catch (e) {
       _addLog('Error capturing photo: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.errorPrefix(e.toString())),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
+      _showPickError(l10n.errorPrefix(e.toString()));
     }
   }
 
@@ -265,14 +269,7 @@ extension _WatermarkPageStateFilePickingPart on WatermarkPageState {
       }
     } catch (e) {
       _addLog('Error scanning document: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.errorPrefix(e.toString())),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
+      _showPickError(l10n.errorPrefix(e.toString()));
     }
   }
 

@@ -3,6 +3,15 @@ part of '../watermark_page.dart';
 /// Pure UI builders (panels, cards, dashboards, status icons) for the watermark page.
 
 extension _WatermarkPageStateBuildersPart on WatermarkPageState {
+  /// Standard padding/shape for the secondary action buttons (save, share,
+  /// reset) — used across panels to avoid duplicated [ButtonStyle] literals.
+  static final ButtonStyle _secondaryActionStyle = ButtonStyle(
+    padding: WidgetStateProperty.all(
+        const EdgeInsets.symmetric(horizontal: 20, vertical: 16)),
+    shape: WidgetStateProperty.all(
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+  );
+
   Widget _buildProfileSelector(ThemeData theme, AppLocalizations l10n) {
     final availableProfiles = SettingsProfile.values.toList();
 
@@ -1324,13 +1333,7 @@ extension _WatermarkPageStateBuildersPart on WatermarkPageState {
                         : _saveCurrent,
                     icon: const Icon(Icons.save_alt),
                     label: Text(l10n.saveAll),
-                    style: ButtonStyle(
-                      padding: WidgetStateProperty.all(
-                          const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 16)),
-                      shape: WidgetStateProperty.all(RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12))),
-                    ),
+                    style: _secondaryActionStyle,
                   ),
                 ),
                 PushDownWrapper(
@@ -1341,13 +1344,7 @@ extension _WatermarkPageStateBuildersPart on WatermarkPageState {
                         : _shareCurrent,
                     icon: const Icon(Icons.share_outlined),
                     label: Text(l10n.shareAll),
-                    style: ButtonStyle(
-                      padding: WidgetStateProperty.all(
-                          const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 16)),
-                      shape: WidgetStateProperty.all(RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12))),
-                    ),
+                    style: _secondaryActionStyle,
                   ),
                 ),
                 PushDownWrapper(
@@ -1622,6 +1619,10 @@ extension _WatermarkPageStateBuildersPart on WatermarkPageState {
           _transparency = (1.0 - newX) * 100;
           _density = 10 + ((1.0 - newY) * 80);
         });
+      },
+      // Persist once per gesture (not per move event) — a pan fires dozens of
+      // pointer updates per second and each _savePreference is a disk write.
+      onPanEnd: (_) {
         _savePreference('transparency', _transparency);
         _savePreference('density', _density);
       },
