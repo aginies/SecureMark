@@ -828,8 +828,11 @@ class WatermarkPageState extends State<WatermarkPage>
           if (!prefs.containsKey('${pKey}targetSize')) {
             _targetSize = 1280;
           }
+          // Signed document: no visible watermark (fully transparent,
+          // same convention as the QR profile) and no steganography;
+          // integrity comes from the Ed25519 digital signature.
           if (!prefs.containsKey('${pKey}transparency')) {
-            _transparency = 50;
+            _transparency = 100;
           }
           if (!prefs.containsKey('${pKey}density')) {
             _density = 50;
@@ -844,13 +847,16 @@ class WatermarkPageState extends State<WatermarkPage>
             _useAiCloaking = true;
           }
           if (!prefs.containsKey('${pKey}digitallySign')) {
-            _digitallySign = false;
+            _digitallySign = true;
           }
+          // Digital signing requires ZIP output to carry the integrity
+          // metadata (the ZIP toggle is locked on while signing).
+          _zipOutputs = true;
           if (!prefs.containsKey('${pKey}useSteganography')) {
-            _useSteganography = true;
+            _useSteganography = false;
           }
           if (!prefs.containsKey('${pKey}useRobustSteganography')) {
-            _useRobustSteganography = true;
+            _useRobustSteganography = false;
           }
           if (!prefs.containsKey('${pKey}useRandomColor')) {
             _useRandomColor = true;
@@ -1637,9 +1643,9 @@ class WatermarkPageState extends State<WatermarkPage>
       case SettingsProfile.shareDocument:
         return Icons.description;
       case SettingsProfile.p1:
-        return Icons.person_outline;
+        return Icons.tune;
       case SettingsProfile.p2:
-        return Icons.person_outline;
+        return Icons.tune;
     }
   }
 
@@ -11654,10 +11660,10 @@ class WatermarkPageState extends State<WatermarkPage>
                   icon = Icons.description;
                 case SettingsProfile.p1:
                   label = "P1";
-                  icon = Icons.person_outline;
+                  icon = Icons.tune;
                 case SettingsProfile.p2:
                   label = "P2";
-                  icon = Icons.person_outline;
+                  icon = Icons.tune;
               }
 
               return Padding(
