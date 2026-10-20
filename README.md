@@ -131,6 +131,7 @@ SecureMark turns each device into a cryptographic identity, giving recipients a 
 - **Automatic ZIP**: Enabling the signature turns on ZIP compression to preserve embedded metadata integrity.
 - **Cache-aware**: The signing identity is resolved before result caching, so an identity switch or reset never serves a stale signature back.
 - **Output**: The signature and the signer's public key are embedded in the protected output.
+- **Visible Identity Watermark**: When signing, the device identity (name) is drawn as a subtle visible watermark in a random color, so the signature is apparent on the document, not only cryptographically embedded. The Identity profile uses a transparency of 75 (less visible than the Image profile's 50) for this mark.
 
 ### Identity Cards (QR Code)
 
@@ -368,7 +369,7 @@ SecureMark registers as a share target for image and PDF files:
 - **Fully client-side**: all processing runs in the browser — no server-side code, user files never leave the device
 - **Build**: `./build_and_verify.sh build_web` (or `flutter build web --release` plus `--wasm`) — both bundles land in `build/web/`
 - **Deploy**: copy the *contents* of `build/web/` to any static web server; see [docs/apache-vhost.example.conf](docs/apache-vhost.example.conf) for a tested Apache vhost (TLS, wasm/mjs MIME types, compression)
-- **Web-specific behavior**: outputs are handed to the browser as downloads; picking is limited to 10 MB per file and 5 files per session; in-memory file data is auto-erased 2 minutes after the last import or processing; the analyzer, expert mode, digital signing, file hiding and config export/import are hidden
+- **Web-specific behavior**: outputs are handed to the browser as downloads; picking is limited to 10 MB per file and 5 files per session; in-memory file data is auto-erased 2 minutes after the last import or processing; the analyzer, expert mode, local share and config export/import are hidden. Device identity and digital signing are available on web — keys stay on-device via secure storage and signing runs in the WASM isolate
 
 ## Supported Input Formats
 

@@ -2,6 +2,24 @@
 
 All notable changes to SecureMark are documented in this file.
 
+## 2.1.0
+
+### Added
+
+- **Web identity & digital signing**: Device identity and the Digital Integrity
+  Signature are now available in the browser. Users can set their name, view
+  their personal public key, and sign documents on web — key material stays
+  on-device via secure storage and signing runs in the WASM isolate.
+
+### Changed
+
+- **Identity watermark**: When signing, the device identity (name) is drawn as
+  a subtle visible watermark in a random color, so a signed document carries an
+  apparent, hard-to-strip mark in addition to the cryptographic signature.
+- **Identity profile**: the Identity (`secureIdentity`) profile now uses a
+  transparency of 75 for that watermark (less visible than the Image profile's
+  50) instead of being fully invisible.
+
 ## 2.0.0
 
 ### Changed
