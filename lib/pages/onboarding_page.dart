@@ -84,16 +84,16 @@ class _OnboardingPageState extends State<OnboardingPage> {
       _OnboardingStepSlide(
         title: l10n.onboardingStepTitle,
         steps: [
-          l10n.onboardingStep1,
           widget.hasCamera
-              ? l10n.onboardingStep2
-              : l10n.onboardingStep2NoCamera,
+              ? l10n.onboardingStep1
+              : l10n.onboardingStep1NoCamera,
+          l10n.onboardingStep2,
           l10n.onboardingStep3,
           l10n.onboardingStep4,
         ],
         images: [
-          'images/guide/save_profile.png',
           'images/guide/import.png',
+          'images/guide/save_profile.png',
           'images/guide/apply.png',
           'images/guide/share.png',
         ],

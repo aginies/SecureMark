@@ -25,13 +25,26 @@ class WatermarkUtils {
   /// directory (`..`, absolute paths, Windows drive/separators) or inject an
   /// HTTP header (CR/LF/controls/quotes).
   static String sanitizeFileName(String name) {
-    var sanitized = name.replaceAll(RegExp(r'[\\:\u0000-\u001f\u007f"]'), '_');
+    // Normalize Windows separators so basename extraction works across platforms
+    var sanitized = name.replaceAll('\\', '/');
     sanitized = p.basename(sanitized);
-    sanitized = sanitized.replaceAll('/', '_').trim();
+    sanitized =
+        sanitized.replaceAll(RegExp(r'[\\/:\u0000-\u001f\u007f"]'), '_').trim();
     if (sanitized.isEmpty || sanitized == '.' || sanitized == '..') {
       return 'file';
     }
     return sanitized;
+  }
+
+  /// Maps a file extension to a standard MIME type string.
+  static String mimeTypeForPath(String path) {
+    return switch (p.extension(path).toLowerCase()) {
+      '.png' => 'image/png',
+      '.jpg' || '.jpeg' => 'image/jpeg',
+      '.webp' => 'image/webp',
+      '.pdf' => 'application/pdf',
+      _ => 'application/octet-stream',
+    };
   }
 
   static String outputPath(String path, String ext,

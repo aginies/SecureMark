@@ -23,6 +23,12 @@ class SecureHttpClient {
     required String outputPath,
     Function(int, int)? onProgress,
   }) async {
+    final parsed = Uri.tryParse(url);
+    if (parsed == null || parsed.host.isEmpty || parsed.scheme != 'https') {
+      throw ArgumentError(
+          'HTTPS required for certificate fingerprint verification: $url');
+    }
+
     final client = HttpClient();
 
     try {
