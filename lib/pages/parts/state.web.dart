@@ -146,9 +146,12 @@ extension _WatermarkPageStateWebPart on WatermarkPageState {
             'conservés uniquement en mémoire volatile de votre navigateur et '
             'sont effacés automatiquement 2 minutes après la dernière '
             'importation ou le dernier traitement. Préférences : les réglages '
-            '(langue, options de filigrane, mots de passe de stéganographie et '
-            'de ZIP chiffré, identité de signature) sont stockés dans le '
-            'localStorage de votre navigateur, sur votre appareil uniquement.'
+            '(langue, options de filigrane, identité de signature) sont '
+            'stockés dans le localStorage de votre navigateur, sur votre '
+            'appareil uniquement. Pour votre sécurité, les mots de passe '
+            '(PDF, ZIP chiffré, stéganographie) ne sont jamais enregistrés '
+            'dans le localStorage et restent uniquement en mémoire volatile '
+            'pendant votre session.'
       ),
       (
         '4. Sécurité',
@@ -288,6 +291,15 @@ extension _WatermarkPageStateWebPart on WatermarkPageState {
     _webRetentionTimer = null;
     _webRetentionDeadline = null;
     WebFileStore.clear();
+    WatermarkProcessor.clearCache();
+    _hiddenFileBytes = null;
+    _hiddenFileName = null;
+    _watermarkImageBytes = null;
+    _pdfUserPasswordController.clear();
+    _pdfOwnerPasswordController.clear();
+    _secureZipPasswordController.clear();
+    _hidingPasswordController.clear();
+    _hidingPassword = '';
     _addLog('In-memory files erased after the 2-minute retention window.');
     if (!mounted) return;
     _refresh(() {

@@ -57,6 +57,8 @@ class LocalServerManager {
 
   static bool get isRunning => _server != null;
   static const int chunkSize = 64 * 1024; // 64 KB chunks
+  static const int maxUploadSizeBytes =
+      500 * 1024 * 1024; // 500 MB upload limit
 
   /// Get all network interfaces with classification (internal/external)
   static Future<List<NetworkInterfaceInfo>> getNetworkInterfaces({
@@ -581,6 +583,10 @@ class LocalServerManager {
           // directory (`..`/absolute paths) or carry control characters.
           final fileName = WatermarkUtils.sanitizeFileName(rawName);
           final contentLength = request.contentLength;
+          if (contentLength > maxUploadSizeBytes) {
+            throw const HttpException(
+                'Payload too large: exceeds maximum allowed upload size');
+          }
 
           // Stream to temp file (memory-efficient!)
           tempDir = await Directory.systemTemp.createTemp('upload_');
@@ -599,8 +605,14 @@ class LocalServerManager {
               throw Exception('Transfer cancelled by user');
             }
 
-            sink.add(chunk);
             receivedBytes += chunk.length;
+            if (receivedBytes > maxUploadSizeBytes) {
+              await sink.close();
+              throw const HttpException(
+                  'Payload too large: exceeds maximum allowed upload size');
+            }
+
+            sink.add(chunk);
 
             // Report progress if content length is known
             if (contentLength > 0 && onProgress != null) {

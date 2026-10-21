@@ -1590,9 +1590,41 @@ extension _WatermarkPageStateForensicsPart on WatermarkPageState {
       return;
     }
 
+    final safeName = WatermarkUtils.sanitizeFileName(file.fileName);
+
+    if (kIsWeb) {
+      try {
+        browserDownload(
+          file.fileBytes,
+          safeName,
+          WatermarkUtils.mimeTypeForPath(safeName),
+        );
+        _addLog('Extracted file downloaded via browser: $safeName');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.fileSaved(safeName)),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } catch (e) {
+        _addLog('Error downloading extracted file: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.errorSavingFile(e.toString())),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      }
+      return;
+    }
+
     try {
       final FileSaveLocation? saveLocation = await getSaveLocation(
-        suggestedName: file.fileName,
+        suggestedName: safeName,
       );
 
       if (saveLocation == null) {
@@ -1602,7 +1634,7 @@ extension _WatermarkPageStateForensicsPart on WatermarkPageState {
 
       final outputFile = XFile.fromData(
         file.fileBytes,
-        name: file.fileName,
+        name: safeName,
       );
 
       await outputFile.saveTo(saveLocation.path);
@@ -1639,9 +1671,41 @@ extension _WatermarkPageStateForensicsPart on WatermarkPageState {
       return;
     }
 
+    final safeName = WatermarkUtils.sanitizeFileName(_extractedFile!.fileName);
+
+    if (kIsWeb) {
+      try {
+        browserDownload(
+          _extractedFile!.fileBytes,
+          safeName,
+          WatermarkUtils.mimeTypeForPath(safeName),
+        );
+        _addLog('Extracted file downloaded via browser: $safeName');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.fileSaved(safeName)),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } catch (e) {
+        _addLog('Error downloading extracted file: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.errorSavingFile(e.toString())),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      }
+      return;
+    }
+
     try {
       final FileSaveLocation? saveLocation = await getSaveLocation(
-        suggestedName: _extractedFile!.fileName,
+        suggestedName: safeName,
       );
 
       if (saveLocation == null) {
@@ -1651,7 +1715,7 @@ extension _WatermarkPageStateForensicsPart on WatermarkPageState {
 
       final outputFile = XFile.fromData(
         _extractedFile!.fileBytes,
-        name: _extractedFile!.fileName,
+        name: safeName,
       );
 
       await outputFile.saveTo(saveLocation.path);

@@ -78,10 +78,13 @@ part 'parts/state.web.dart';
 /// preventing a malicious backup zip from injecting arbitrary
 /// SharedPreferences state.
 bool _isConfigBackupKey(String key) {
-  // The Ed25519 private key is never part of a backup, so it must never
-  // be importable either.
-  if (key == 'device_private_key') return false;
-  if (key.startsWith('profile_') || key.startsWith('device_')) return true;
+  // The Ed25519 identity key pair belongs strictly to this device: neither the
+  // private key nor the public key can ever be part of a backup export or import.
+  // Excluding device_public_key prevents public key poisoning (mismatched keypair
+  // that breaks digital signature verification).
+  if (key == 'device_private_key' || key == 'device_public_key') return false;
+  if (key.startsWith('device_')) return false;
+  if (key.startsWith('profile_')) return true;
   return const {
     'transparency',
     'density',

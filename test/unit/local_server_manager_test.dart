@@ -106,5 +106,10 @@ void main() {
       debugPrint('URL tokens use base64url encoding (URL-safe)');
       debugPrint('This separation prevents token/key confusion');
     });
+
+    test('Upload limit is bounded to prevent disk exhaustion DoS', () {
+      expect(LocalServerManager.maxUploadSizeBytes, equals(500 * 1024 * 1024));
+      expect(LocalServerManager.maxUploadSizeBytes, greaterThan(0));
+    });
   });
 }

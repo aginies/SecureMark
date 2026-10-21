@@ -10,7 +10,12 @@ extension _WatermarkPageStateProcessingPart on WatermarkPageState {
       archive.addFile(ArchiveFile(
           fileName, file.result.outputBytes.length, file.result.outputBytes));
     }
-    return Uint8List.fromList(ZipEncoder().encode(archive));
+    final String? zipPassword =
+        _useSecureZip && _secureZipPasswordController.text.isNotEmpty
+            ? _secureZipPasswordController.text
+            : null;
+    return Uint8List.fromList(
+        ZipEncoder(password: zipPassword).encode(archive));
   }
 
   /// Web output path: a single file is downloaded directly, several files
@@ -18,7 +23,7 @@ extension _WatermarkPageStateProcessingPart on WatermarkPageState {
   Future<void> _downloadProcessedFiles() async {
     final l10n = AppLocalizations.of(context)!;
     try {
-      if (_zipOutputs || _processedFiles.length > 1) {
+      if (_zipOutputs || _useSecureZip || _processedFiles.length > 1) {
         final bytes = await _createProcessedZipBytes();
         final now = DateTime.now();
         final timestamp =
@@ -28,7 +33,8 @@ extension _WatermarkPageStateProcessingPart on WatermarkPageState {
       } else {
         final file = _processedFiles.first;
         final name = p.basename(file.result.outputPath);
-        browserDownload(file.result.outputBytes, name, _mimeTypeForPath(name));
+        browserDownload(file.result.outputBytes, name,
+            WatermarkUtils.mimeTypeForPath(name));
       }
       if (mounted) {
         _refresh(() {
@@ -1014,13 +1020,5 @@ extension _WatermarkPageStateProcessingPart on WatermarkPageState {
     }
   }
 
-  String _mimeTypeForPath(String path) {
-    return switch (p.extension(path).toLowerCase()) {
-      '.png' => 'image/png',
-      '.jpg' || '.jpeg' => 'image/jpeg',
-      '.webp' => 'image/webp',
-      '.pdf' => 'application/pdf',
-      _ => 'application/octet-stream',
-    };
-  }
+  String _mimeTypeForPath(String path) => WatermarkUtils.mimeTypeForPath(path);
 }
