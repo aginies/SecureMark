@@ -43,4 +43,50 @@ void main() {
       }
     });
   });
+
+  group('sanitizeFileName', () {
+    test('keeps normal filenames', () {
+      expect(WatermarkUtils.sanitizeFileName('document.pdf'), 'document.pdf');
+      expect(WatermarkUtils.sanitizeFileName('photo_123.jpg'), 'photo_123.jpg');
+    });
+
+    test('strips directory traversal and path separators', () {
+      expect(WatermarkUtils.sanitizeFileName('../../secret.txt'), 'secret.txt');
+      expect(WatermarkUtils.sanitizeFileName('/etc/passwd'), 'passwd');
+      expect(WatermarkUtils.sanitizeFileName('C:\\Windows\\System32\\cmd.exe'),
+          'cmd.exe');
+      expect(WatermarkUtils.sanitizeFileName('foo/bar/baz.png'), 'baz.png');
+    });
+
+    test('replaces control and dangerous characters', () {
+      expect(WatermarkUtils.sanitizeFileName('file"with"quotes.png'),
+          'file_with_quotes.png');
+      expect(
+          WatermarkUtils.sanitizeFileName('doc\u0000null.pdf'), 'doc_null.pdf');
+      expect(
+          WatermarkUtils.sanitizeFileName('line\nbreak.jpg'), 'line_break.jpg');
+    });
+
+    test('handles empty or relative path components safely', () {
+      expect(WatermarkUtils.sanitizeFileName(''), 'file');
+      expect(WatermarkUtils.sanitizeFileName('.'), 'file');
+      expect(WatermarkUtils.sanitizeFileName('..'), 'file');
+      expect(WatermarkUtils.sanitizeFileName('   '), 'file');
+    });
+  });
+
+  group('mimeTypeForPath', () {
+    test('returns correct MIME types for supported extensions', () {
+      expect(WatermarkUtils.mimeTypeForPath('test.png'), 'image/png');
+      expect(WatermarkUtils.mimeTypeForPath('test.PNG'), 'image/png');
+      expect(WatermarkUtils.mimeTypeForPath('photo.jpg'), 'image/jpeg');
+      expect(WatermarkUtils.mimeTypeForPath('photo.jpeg'), 'image/jpeg');
+      expect(WatermarkUtils.mimeTypeForPath('image.webp'), 'image/webp');
+      expect(WatermarkUtils.mimeTypeForPath('doc.pdf'), 'application/pdf');
+      expect(WatermarkUtils.mimeTypeForPath('archive.zip'),
+          'application/octet-stream');
+      expect(WatermarkUtils.mimeTypeForPath('unknown'),
+          'application/octet-stream');
+    });
+  });
 }

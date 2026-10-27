@@ -180,7 +180,24 @@ extension _WatermarkPageStatePreferencesPart on WatermarkPageState {
             _useRobustSteganography = false;
             _hideFileWithSteganography = false;
           }
+
+          if (kIsWeb) {
+            // Sensitive document passwords are never restored from or retained
+            // in browser localStorage (shared browser / cross-session exposure).
+            _pdfUserPasswordController.clear();
+            _pdfOwnerPasswordController.clear();
+            _secureZipPasswordController.clear();
+            _hidingPasswordController.clear();
+            _hidingPassword = '';
+          }
         });
+        if (kIsWeb) {
+          // Clean up any historical passwords left in localStorage
+          await prefs.remove('pdfUserPassword');
+          await prefs.remove('pdfOwnerPassword');
+          await prefs.remove('secureZipPassword');
+          await prefs.remove('hidingPassword');
+        }
       }
     } catch (e) {
       _addLog('Error loading preferences: $e');
@@ -188,6 +205,15 @@ extension _WatermarkPageStatePreferencesPart on WatermarkPageState {
   }
 
   Future<void> _savePreference(String key, dynamic value) async {
+    // On Web builds, document and archive passwords must never be stored
+    // in unencrypted HTML5 localStorage (shared browser / XSS exposure).
+    if (kIsWeb &&
+        (key == 'pdfUserPassword' ||
+            key == 'pdfOwnerPassword' ||
+            key == 'secureZipPassword' ||
+            key == 'hidingPassword')) {
+      return;
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       if (value is num) {
@@ -809,13 +835,15 @@ extension _WatermarkPageStatePreferencesPart on WatermarkPageState {
     await prefs.setBool('${pKey}pdfAllowPrinting', _pdfAllowPrinting);
     await prefs.setBool('${pKey}pdfAllowCopying', _pdfAllowCopying);
     await prefs.setBool('${pKey}pdfAllowEditing', _pdfAllowEditing);
-    await prefs.setString(
-        '${pKey}pdfUserPassword', _pdfUserPasswordController.text);
-    await prefs.setString(
-        '${pKey}pdfOwnerPassword', _pdfOwnerPasswordController.text);
+    if (!kIsWeb) {
+      await prefs.setString(
+          '${pKey}pdfUserPassword', _pdfUserPasswordController.text);
+      await prefs.setString(
+          '${pKey}pdfOwnerPassword', _pdfOwnerPasswordController.text);
+      await prefs.setString(
+          '${pKey}secureZipPassword', _secureZipPasswordController.text);
+    }
     await prefs.setBool('${pKey}useSecureZip', _useSecureZip);
-    await prefs.setString(
-        '${pKey}secureZipPassword', _secureZipPasswordController.text);
 
     if (mounted) {
       String profileLabel = '';

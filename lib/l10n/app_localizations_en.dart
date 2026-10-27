@@ -1117,13 +1117,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingStepTitle => 'How it works';
 
   @override
-  String get onboardingStep1 => '1. Choose a Profile preset for your use case.';
+  String get onboardingStep1 => '1. Import your Images or PDF files.';
 
   @override
-  String get onboardingStep2 => '2. Import your Images or PDF files.';
+  String get onboardingStep1NoCamera => '1. Pick your Images or PDF files.';
 
   @override
-  String get onboardingStep2NoCamera => '2. Pick your Images or PDF files.';
+  String get onboardingStep2 => '2. Choose a Profile preset for your use case.';
 
   @override
   String get onboardingStep3 => '3. Click Apply to generate the watermarks.';

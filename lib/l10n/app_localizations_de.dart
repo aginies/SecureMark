@@ -1136,15 +1136,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get onboardingStepTitle => 'So funktioniert es';
 
   @override
-  String get onboardingStep1 =>
-      '1. Wählen Sie ein Profil für Ihren Anwendungsfall.';
+  String get onboardingStep1 => '1. Importieren Sie Bilder oder PDF-Dateien.';
 
   @override
-  String get onboardingStep2 => '2. Importieren Sie Bilder oder PDF-Dateien.';
+  String get onboardingStep1NoCamera =>
+      '1. Wählen Sie Bilder oder PDF-Dateien aus.';
 
   @override
-  String get onboardingStep2NoCamera =>
-      '2. Wählen Sie Bilder oder PDF-Dateien aus.';
+  String get onboardingStep2 =>
+      '2. Wählen Sie ein Profil für Ihren Anwendungsfall.';
 
   @override
   String get onboardingStep3 =>
